@@ -151,6 +151,12 @@
     border: 1.5px solid rgba(0, 0, 0, 0.08);
   }
 
+  .remaining-time {
+    font-weight: 700;
+    font-size: 0.55em;
+    opacity: 0.75;
+  }
+
   .day-name {
     font-family: 'Noto Sans KR', sans-serif;
     font-weight: 700;
@@ -234,7 +240,6 @@
     position: relative;
   }
 
-  /* === RULE CARD === */
   .rule-card {
     display: flex;
     align-items: flex-start;
@@ -260,7 +265,6 @@
     box-shadow: 0 8px 30px rgba(0,0,0,0.08);
   }
 
-  /* iOS-style wiggle in edit mode */
   .edit-mode .rule-card {
     animation: wiggle 0.35s ease-in-out infinite alternate;
   }
@@ -273,7 +277,6 @@
     100% { transform: rotate(0.4deg); }
   }
 
-  /* Dragging card - lifted state */
   .rule-card.is-lifted {
     z-index: 999;
     box-shadow: 0 20px 60px rgba(0,0,0,0.18), 0 8px 20px rgba(0,0,0,0.1);
@@ -285,7 +288,6 @@
     width: var(--card-width);
   }
 
-  /* Cards shifting to make room */
   .rule-card.shift-down {
     transform: translateY(calc(var(--card-h) + 1.2rem)) rotate(0deg) !important;
     animation: none !important;
@@ -296,7 +298,6 @@
     animation: none !important;
   }
 
-  /* Drop placeholder */
   .drop-placeholder {
     border: 2px dashed rgba(59, 130, 246, 0.35);
     border-radius: 18px;
@@ -453,6 +454,329 @@
     transition: all 0.3s ease; pointer-events: none;
   }
   .toast.show { opacity: 1; transform: translateY(0); }
+
+  /* ========== Settings Button ========== */
+  .settings-btn {
+    position: fixed;
+    bottom: 1.5rem;
+    left: 1.5rem;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    border: 1.5px solid rgba(0,0,0,0.08);
+    background: rgba(255,255,255,0.5);
+    backdrop-filter: blur(8px);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.3rem;
+    color: rgba(0,0,0,0.35);
+    transition: all 0.3s;
+    z-index: 10;
+  }
+  .settings-btn:hover {
+    background: rgba(255,255,255,0.8);
+    color: rgba(0,0,0,0.6);
+    transform: rotate(30deg);
+  }
+
+  /* ========== Modal ========== */
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.4);
+    backdrop-filter: blur(4px);
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s;
+  }
+  .modal-overlay.open {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  .modal-card {
+    background: #f5f0e8;
+    border-radius: 24px;
+    width: 90%;
+    max-width: 800px;
+    max-height: 85vh;
+    overflow-y: auto;
+    padding: 2rem;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+    transform: translateY(20px) scale(0.97);
+    transition: transform 0.3s cubic-bezier(0.2, 0.9, 0.3, 1);
+  }
+  .modal-overlay.open .modal-card {
+    transform: translateY(0) scale(1);
+  }
+  .modal-card::-webkit-scrollbar { width: 4px; }
+  .modal-card::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.1); border-radius: 4px; }
+
+  .modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1.5rem;
+  }
+  .modal-title {
+    font-family: 'Black Han Sans', sans-serif;
+    font-size: 1.8rem;
+    color: #2d2a26;
+  }
+  .modal-close {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    border: none;
+    background: rgba(0,0,0,0.06);
+    font-size: 1.2rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #666;
+    transition: all 0.2s;
+  }
+  .modal-close:hover { background: rgba(0,0,0,0.12); }
+
+  /* ========== Settings Sections ========== */
+  .settings-section {
+    margin-bottom: 1.8rem;
+  }
+  .settings-section-title {
+    font-weight: 900;
+    font-size: 1.05rem;
+    color: #2d2a26;
+    margin-bottom: 0.8rem;
+    letter-spacing: 0.03em;
+  }
+
+  /* Toggle */
+  .toggle-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.9rem 1.1rem;
+    background: rgba(255,255,255,0.6);
+    border-radius: 14px;
+    border: 1px solid rgba(255,255,255,0.8);
+  }
+  .toggle-label {
+    font-weight: 700;
+    font-size: 0.95rem;
+    color: #333;
+  }
+  .toggle-switch {
+    position: relative;
+    width: 48px;
+    height: 28px;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+  .toggle-switch input { opacity: 0; width: 0; height: 0; position: absolute; }
+  .toggle-slider {
+    position: absolute;
+    inset: 0;
+    background: rgba(0,0,0,0.15);
+    border-radius: 28px;
+    transition: background 0.3s;
+  }
+  .toggle-slider::before {
+    content: '';
+    position: absolute;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: #fff;
+    top: 3px;
+    left: 3px;
+    transition: transform 0.3s;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+  }
+  .toggle-switch input:checked + .toggle-slider {
+    background: #3b82f6;
+  }
+  .toggle-switch input:checked + .toggle-slider::before {
+    transform: translateX(20px);
+  }
+
+  /* ========== Timetable Editor ========== */
+  .tt-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  .tt-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.65rem 0.8rem;
+    background: rgba(255,255,255,0.6);
+    border-radius: 14px;
+    border: 1px solid rgba(255,255,255,0.8);
+    transition: transform 0.3s cubic-bezier(0.2, 0.9, 0.3, 1),
+                box-shadow 0.3s ease,
+                background 0.3s ease,
+                opacity 0.3s ease;
+    position: relative;
+  }
+  .tt-label-input {
+    font-family: 'Noto Sans KR', sans-serif;
+    font-weight: 700;
+    font-size: 0.85rem;
+    width: 68px;
+    padding: 0.3rem 0.4rem;
+    border-radius: 8px;
+    border: 1px solid rgba(0,0,0,0.1);
+    background: rgba(255,255,255,0.8);
+    outline: none;
+    text-align: center;
+  }
+  .tt-label-input:focus { border-color: #3b82f6; box-shadow: 0 0 0 2px rgba(59,130,246,0.15); }
+
+  .tt-time-input {
+    font-family: 'Outfit', sans-serif;
+    font-weight: 600;
+    font-size: 0.85rem;
+    width: 70px;
+    padding: 0.3rem 0.3rem;
+    border-radius: 8px;
+    border: 1px solid rgba(0,0,0,0.1);
+    background: rgba(255,255,255,0.8);
+    outline: none;
+    text-align: center;
+  }
+  .tt-time-input:focus { border-color: #3b82f6; box-shadow: 0 0 0 2px rgba(59,130,246,0.15); }
+
+  .tt-separator {
+    font-weight: 700;
+    color: rgba(0,0,0,0.25);
+    font-size: 0.85rem;
+  }
+  .tt-type-select {
+    font-family: 'Noto Sans KR', sans-serif;
+    font-size: 0.78rem;
+    padding: 0.3rem 0.3rem;
+    border-radius: 8px;
+    border: 1px solid rgba(0,0,0,0.1);
+    background: rgba(255,255,255,0.8);
+    outline: none;
+    cursor: pointer;
+  }
+  .tt-type-select:focus { border-color: #3b82f6; }
+
+  .tt-days {
+    display: flex;
+    gap: 0.2rem;
+  }
+  .tt-day-btn {
+    width: 26px;
+    height: 26px;
+    border-radius: 6px;
+    border: 1px solid rgba(0,0,0,0.1);
+    background: rgba(255,255,255,0.6);
+    cursor: pointer;
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: rgba(0,0,0,0.35);
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Noto Sans KR', sans-serif;
+  }
+  .tt-day-btn.active {
+    background: #3b82f6;
+    color: #fff;
+    border-color: #3b82f6;
+  }
+  .tt-day-btn:hover:not(.active) { background: rgba(59,130,246,0.08); }
+
+  .tt-delete-btn {
+    width: 26px;
+    height: 26px;
+    border-radius: 6px;
+    border: none;
+    background: rgba(0,0,0,0.04);
+    cursor: pointer;
+    font-size: 0.75rem;
+    color: #999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    flex-shrink: 0;
+  }
+  .tt-delete-btn:hover { background: #fee2e2; color: #ef4444; }
+
+  .tt-add-btn {
+    width: 100%;
+    padding: 0.65rem;
+    border-radius: 14px;
+    border: 2px dashed rgba(0,0,0,0.1);
+    background: transparent;
+    cursor: pointer;
+    font-family: 'Noto Sans KR', sans-serif;
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: rgba(0,0,0,0.3);
+    transition: all 0.3s;
+    margin-top: 0.5rem;
+  }
+  .tt-add-btn:hover { border-color: #3b82f6; color: #3b82f6; }
+
+  .tt-bottom-row {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 0.6rem;
+  }
+  .tt-reset-btn {
+    padding: 0.45rem 0.9rem;
+    border-radius: 10px;
+    border: 1px solid rgba(0,0,0,0.1);
+    background: rgba(255,255,255,0.5);
+    cursor: pointer;
+    font-family: 'Noto Sans KR', sans-serif;
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: #999;
+    transition: all 0.2s;
+  }
+  .tt-reset-btn:hover { background: #fee2e2; color: #ef4444; border-color: #fca5a5; }
+
+  /* ========== Timetable Drag & Drop ========== */
+  .tt-drag-handle {
+    cursor: grab;
+    color: rgba(0,0,0,0.2);
+    font-size: 1rem;
+    padding: 0.2rem 0.1rem;
+    touch-action: none;
+    transition: color 0.2s;
+    flex-shrink: 0;
+    user-select: none;
+  }
+  .tt-drag-handle:hover { color: rgba(0,0,0,0.45); }
+
+  .tt-row.tt-lifted {
+    z-index: 999;
+    box-shadow: 0 12px 40px rgba(0,0,0,0.16), 0 4px 12px rgba(0,0,0,0.08);
+    background: rgba(255, 255, 255, 0.95);
+    pointer-events: none;
+    border-radius: 14px;
+  }
+
+  .tt-row.tt-shift-down {
+    transform: translateY(calc(var(--tt-card-h) + 0.5rem)) !important;
+  }
+  .tt-row.tt-shift-up {
+    transform: translateY(calc(-1 * (var(--tt-card-h) + 0.5rem))) !important;
+  }
 </style>
 </head>
 <body>
@@ -485,11 +809,47 @@
   <button class="add-rule-btn" id="addRuleBtn" onclick="addRule()">+ 새 규칙 추가</button>
 </div>
 
+<button class="settings-btn" onclick="openSettings()">&#9881;</button>
+
+<div class="modal-overlay" id="settingsModal" onclick="if(event.target===this)closeSettings()">
+  <div class="modal-card">
+    <div class="modal-header">
+      <div class="modal-title">설정</div>
+      <button class="modal-close" onclick="closeSettings()">&#10005;</button>
+    </div>
+
+    <div class="settings-section">
+      <div class="settings-section-title">표시 설정</div>
+      <div class="toggle-row">
+        <span class="toggle-label">남은 시간 표시</span>
+        <label class="toggle-switch">
+          <input type="checkbox" id="showRemainingToggle" onchange="toggleShowRemaining()">
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+    </div>
+
+    <div class="settings-section">
+      <div class="settings-section-title">시간표 편집</div>
+      <div class="tt-list" id="ttList"></div>
+      <button class="tt-add-btn" onclick="addTimetableEntry()">+ 새 시간 추가</button>
+      <div class="tt-bottom-row">
+        <button class="tt-reset-btn" onclick="resetTimetable()">기본값으로 초기화</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 <div class="corner-label">Our Classroom</div>
 
 <script>
+// =============================================
+// CONSTANTS
+// =============================================
 const COLORS = ['#3b82f6','#8b5cf6','#f97316','#10b981','#ef4444','#ec4899','#14b8a6','#f59e0b'];
+const DAYS_KR = ['일요일','월요일','화요일','수요일','목요일','금요일','토요일'];
+const DAY_LABELS = ['월','화','수','목','금'];
 
 const DEFAULT_RULES = [
   { title: '서로 존중하기', desc: '친구의 말에 귀 기울이고, 다름을 인정해요', color: '#3b82f6' },
@@ -498,21 +858,49 @@ const DEFAULT_RULES = [
   { title: '시간 약속 지키기', desc: '수업 시작 전 자리에 앉고, 정해진 시간을 잘 지켜요', color: '#10b981' },
 ];
 
+const DEFAULT_TIMETABLE = [
+  { label: '1교시', start: '09:00', end: '09:40', type: 'in-class', days: [1,2,3,4,5] },
+  { label: '2교시', start: '09:50', end: '10:30', type: 'in-class', days: [1,2,3,4,5] },
+  { label: '3교시', start: '10:40', end: '11:20', type: 'in-class', days: [1,2,3,4,5] },
+  { label: '4교시', start: '11:30', end: '12:10', type: 'in-class', days: [1,2,3,4,5] },
+  { label: '점심시간', start: '12:10', end: '13:00', type: 'lunch-time', days: [1,2,3,4,5] },
+  { label: '5교시', start: '13:00', end: '13:40', type: 'in-class', days: [1,2,3,4,5] },
+  { label: '6교시', start: '13:50', end: '14:30', type: 'in-class', days: [2] },
+];
+
+// =============================================
+// STATE
+// =============================================
 let rules = [];
 let isEditing = false;
+let timetable = [];
+let settings = { showRemaining: true };
 
-// === Drag state ===
 let drag = {
-  active: false,
-  cardEl: null,
-  index: -1,
-  currentIndex: -1,
-  startY: 0,
-  offsetY: 0,
-  cardRects: [],
-  cardH: 0,
+  active: false, cardEl: null, index: -1, currentIndex: -1,
+  startY: 0, offsetY: 0, cardRects: [], cardH: 0,
 };
 
+let ttDrag = {
+  active: false, rowEl: null, index: -1, currentIndex: -1,
+  startY: 0, offsetY: 0, cardRects: [], cardH: 0, rows: [],
+};
+
+// =============================================
+// HELPERS
+// =============================================
+function timeToMins(str) {
+  const [h, m] = str.split(':').map(Number);
+  return h * 60 + m;
+}
+
+function minsToTime(mins) {
+  return String(Math.floor(mins / 60)).padStart(2, '0') + ':' + String(mins % 60).padStart(2, '0');
+}
+
+// =============================================
+// LOAD / SAVE
+// =============================================
 function loadRules() {
   try {
     const s = localStorage.getItem('classroomRules');
@@ -521,8 +909,27 @@ function loadRules() {
 }
 function saveRules() { localStorage.setItem('classroomRules', JSON.stringify(rules)); }
 
+function loadTimetable() {
+  try {
+    const s = localStorage.getItem('classroomTimetable');
+    timetable = s ? JSON.parse(s) : JSON.parse(JSON.stringify(DEFAULT_TIMETABLE));
+  } catch { timetable = JSON.parse(JSON.stringify(DEFAULT_TIMETABLE)); }
+}
+function saveTimetable() {
+  timetable.sort((a, b) => timeToMins(a.start) - timeToMins(b.start));
+  localStorage.setItem('classroomTimetable', JSON.stringify(timetable));
+}
+
+function loadSettings() {
+  try {
+    const s = localStorage.getItem('classroomSettings');
+    if (s) settings = JSON.parse(s);
+  } catch { /* keep defaults */ }
+}
+function saveSettings() { localStorage.setItem('classroomSettings', JSON.stringify(settings)); }
+
 // =============================================
-// RENDER
+// RENDER RULES
 // =============================================
 function renderRules() {
   const container = document.getElementById('rulesContainer');
@@ -534,13 +941,11 @@ function renderRules() {
     card.className = 'rule-card';
     card.dataset.index = i;
 
-    // Drag handle
     const handle = document.createElement('span');
     handle.className = 'drag-handle';
-    handle.innerHTML = '⠿';
+    handle.innerHTML = '&#10303;';
     handle.addEventListener('pointerdown', e => startDrag(e, i, card));
 
-    // Number + palette
     const numWrap = document.createElement('div');
     numWrap.style.cssText = 'display:flex;flex-direction:column;align-items:center;';
     const num = document.createElement('div');
@@ -560,7 +965,6 @@ function renderRules() {
     });
     numWrap.appendChild(palette);
 
-    // Content
     const content = document.createElement('div');
     content.className = 'rule-content';
 
@@ -583,13 +987,12 @@ function renderRules() {
     content.appendChild(title);
     content.appendChild(desc);
 
-    // Actions (only delete now, reorder via drag)
     const actions = document.createElement('div');
     actions.className = 'rule-actions';
 
     const delBtn = document.createElement('button');
     delBtn.className = 'action-btn delete-btn';
-    delBtn.innerHTML = '✕';
+    delBtn.innerHTML = '&#10005;';
     delBtn.onclick = () => {
       card.style.transition = 'transform 0.3s, opacity 0.3s';
       card.style.transform = 'scale(0.8)';
@@ -607,7 +1010,7 @@ function renderRules() {
 }
 
 // =============================================
-// DRAG & DROP (pointer-based, iOS-style)
+// DRAG & DROP
 // =============================================
 function startDrag(e, index, cardEl) {
   if (!isEditing) return;
@@ -616,34 +1019,22 @@ function startDrag(e, index, cardEl) {
   const container = document.getElementById('rulesContainer');
   const cards = [...container.querySelectorAll('.rule-card')];
   const rect = cardEl.getBoundingClientRect();
-  const containerRect = container.getBoundingClientRect();
 
-  // Measure all card positions
   const rects = cards.map(c => c.getBoundingClientRect());
   const cardH = rect.height;
 
   drag = {
-    active: true,
-    cardEl,
-    index,
-    currentIndex: index,
-    startY: e.clientY,
-    offsetY: e.clientY - rect.top,
-    cardRects: rects,
-    cardH,
-    containerTop: containerRect.top,
-    cards,
+    active: true, cardEl, index, currentIndex: index,
+    startY: e.clientY, offsetY: e.clientY - rect.top,
+    cardRects: rects, cardH, cards,
   };
 
-  // Lift the card
   cardEl.classList.add('is-lifted');
   cardEl.style.setProperty('--card-width', rect.width + 'px');
   cardEl.style.left = rect.left + 'px';
   cardEl.style.top = (e.clientY - drag.offsetY) + 'px';
 
-  // Set CSS var for shift distance
   cards.forEach(c => c.style.setProperty('--card-h', cardH + 'px'));
-
   document.body.classList.add('is-dragging');
 
   document.addEventListener('pointermove', onDragMove);
@@ -652,13 +1043,10 @@ function startDrag(e, index, cardEl) {
 
 function onDragMove(e) {
   if (!drag.active) return;
-
   const { cardEl, offsetY, index, cards, cardRects, cardH } = drag;
 
-  // Move lifted card to cursor
   cardEl.style.top = (e.clientY - offsetY) + 'px';
 
-  // Determine which index the card is hovering over
   const centerY = e.clientY - offsetY + cardH / 2;
   let newIndex = index;
 
@@ -671,17 +1059,12 @@ function onDragMove(e) {
 
   if (newIndex !== drag.currentIndex) {
     drag.currentIndex = newIndex;
-
-    // Shift other cards
     cards.forEach((c, i) => {
       if (i === index) return;
       c.classList.remove('shift-down', 'shift-up');
-
       if (index < newIndex) {
-        // Dragging down: cards between original & new shift up
         if (i > index && i <= newIndex) c.classList.add('shift-up');
       } else if (index > newIndex) {
-        // Dragging up: cards between new & original shift down
         if (i >= newIndex && i < index) c.classList.add('shift-down');
       }
     });
@@ -690,10 +1073,8 @@ function onDragMove(e) {
 
 function onDragEnd() {
   if (!drag.active) return;
-
   const { cardEl, index, currentIndex, cards } = drag;
 
-  // Remove visual states
   cardEl.classList.remove('is-lifted');
   cardEl.style.cssText = '';
   cards.forEach(c => { c.classList.remove('shift-down', 'shift-up'); c.style.removeProperty('--card-h'); });
@@ -702,7 +1083,6 @@ function onDragEnd() {
   document.removeEventListener('pointermove', onDragMove);
   document.removeEventListener('pointerup', onDragEnd);
 
-  // Apply reorder if changed
   if (index !== currentIndex) {
     const moved = rules.splice(index, 1)[0];
     rules.splice(currentIndex, 0, moved);
@@ -715,7 +1095,7 @@ function onDragEnd() {
 }
 
 // =============================================
-// ADD / TOGGLE / TOAST
+// ADD RULE / TOGGLE EDIT / TOAST
 // =============================================
 function addRule() {
   rules.push({ title: '새 규칙', desc: '설명을 입력하세요', color: COLORS[rules.length % COLORS.length] });
@@ -734,7 +1114,7 @@ function toggleEdit() {
   btn.textContent = isEditing ? '완료' : '편집';
   btn.classList.toggle('active', isEditing);
   renderRules();
-  if (!isEditing) showToast('저장되었어요 ✓');
+  if (!isEditing) showToast('저장되었어요');
 }
 
 function showToast(msg) {
@@ -745,59 +1125,292 @@ function showToast(msg) {
   t._timer = setTimeout(() => t.classList.remove('show'), 2000);
 }
 
-// Clock
-const DAYS_KR = ['일요일','월요일','화요일','수요일','목요일','금요일','토요일'];
+// =============================================
+// SETTINGS
+// =============================================
+function toggleShowRemaining() {
+  settings.showRemaining = document.getElementById('showRemainingToggle').checked;
+  saveSettings();
+}
 
-// Timetable: [start_hour, start_min, end_hour, end_min, label, type]
-// 6교시 is Tuesday only (day === 2)
-const TIMETABLE = [
-  [9,  0,  9, 40, '1교시', 'in-class'],
-  [9, 50, 10, 30, '2교시', 'in-class'],
-  [10, 40, 11, 20, '3교시', 'in-class'],
-  [11, 30, 12, 10, '4교시', 'in-class'],
-  [12, 10, 13,  0, '점심시간', 'lunch-time'],
-  [13,  0, 13, 40, '5교시', 'in-class'],
-  [13, 50, 14, 30, '6교시', 'in-class'],  // Tuesday only
-];
+function openSettings() {
+  document.getElementById('settingsModal').classList.add('open');
+  document.getElementById('showRemainingToggle').checked = settings.showRemaining;
+  renderTimetableEditor();
+}
 
+function closeSettings() {
+  document.getElementById('settingsModal').classList.remove('open');
+}
+
+// =============================================
+// TIMETABLE EDITOR
+// =============================================
+function renderTimetableEditor() {
+  const container = document.getElementById('ttList');
+  container.innerHTML = '';
+
+  timetable.forEach((entry, i) => {
+    const row = document.createElement('div');
+    row.className = 'tt-row';
+
+    // Label
+    const labelInput = document.createElement('input');
+    labelInput.className = 'tt-label-input';
+    labelInput.type = 'text';
+    labelInput.value = entry.label;
+    labelInput.addEventListener('change', () => {
+      timetable[i].label = labelInput.value.trim() || '새 교시';
+      saveTimetable();
+    });
+
+    // Start time
+    const startInput = document.createElement('input');
+    startInput.className = 'tt-time-input';
+    startInput.type = 'time';
+    startInput.value = entry.start;
+    startInput.addEventListener('change', () => {
+      if (startInput.value) {
+        timetable[i].start = startInput.value;
+        saveTimetable();
+        renderTimetableEditor();
+      } else {
+        startInput.value = timetable[i].start;
+      }
+    });
+
+    const sep = document.createElement('span');
+    sep.className = 'tt-separator';
+    sep.textContent = '~';
+
+    // End time
+    const endInput = document.createElement('input');
+    endInput.className = 'tt-time-input';
+    endInput.type = 'time';
+    endInput.value = entry.end;
+    endInput.addEventListener('change', () => {
+      if (endInput.value) {
+        timetable[i].end = endInput.value;
+        saveTimetable();
+        renderTimetableEditor();
+      } else {
+        endInput.value = timetable[i].end;
+      }
+    });
+
+    // Type
+    const typeSelect = document.createElement('select');
+    typeSelect.className = 'tt-type-select';
+    [['in-class', '수업'], ['lunch-time', '점심'], ['break-time', '쉬는시간']].forEach(([val, txt]) => {
+      const opt = document.createElement('option');
+      opt.value = val;
+      opt.textContent = txt;
+      if (val === entry.type) opt.selected = true;
+      typeSelect.appendChild(opt);
+    });
+    typeSelect.addEventListener('change', () => {
+      timetable[i].type = typeSelect.value;
+      saveTimetable();
+    });
+
+    // Day buttons
+    const daysDiv = document.createElement('div');
+    daysDiv.className = 'tt-days';
+    DAY_LABELS.forEach((dayLabel, di) => {
+      const dayNum = di + 1;
+      const btn = document.createElement('button');
+      btn.className = 'tt-day-btn' + (entry.days.includes(dayNum) ? ' active' : '');
+      btn.textContent = dayLabel;
+      btn.addEventListener('click', () => {
+        const idx = entry.days.indexOf(dayNum);
+        if (idx >= 0) entry.days.splice(idx, 1);
+        else { entry.days.push(dayNum); entry.days.sort(); }
+        saveTimetable();
+        renderTimetableEditor();
+      });
+      daysDiv.appendChild(btn);
+    });
+
+    // Delete
+    const delBtn = document.createElement('button');
+    delBtn.className = 'tt-delete-btn';
+    delBtn.innerHTML = '&#10005;';
+    delBtn.addEventListener('click', () => {
+      timetable.splice(i, 1);
+      saveTimetable();
+      renderTimetableEditor();
+      showToast('시간이 삭제되었어요');
+    });
+
+    // Drag handle
+    const handle = document.createElement('span');
+    handle.className = 'tt-drag-handle';
+    handle.innerHTML = '&#10303;';
+    handle.addEventListener('pointerdown', e => startTtDrag(e, i, row));
+
+    row.appendChild(handle);
+    row.appendChild(labelInput);
+    row.appendChild(startInput);
+    row.appendChild(sep);
+    row.appendChild(endInput);
+    row.appendChild(typeSelect);
+    row.appendChild(daysDiv);
+    row.appendChild(delBtn);
+    container.appendChild(row);
+  });
+}
+
+function addTimetableEntry() {
+  const lastEntry = timetable[timetable.length - 1];
+  let startMins = lastEntry ? timeToMins(lastEntry.end) + 10 : 540;
+  let endMins = startMins + 40;
+  if (endMins > 1439) endMins = 1439;
+
+  timetable.push({
+    label: (timetable.length + 1) + '교시',
+    start: minsToTime(startMins),
+    end: minsToTime(endMins),
+    type: 'in-class',
+    days: [1, 2, 3, 4, 5],
+  });
+  saveTimetable();
+  renderTimetableEditor();
+  showToast('새 시간이 추가되었어요');
+}
+
+function resetTimetable() {
+  timetable = JSON.parse(JSON.stringify(DEFAULT_TIMETABLE));
+  saveTimetable();
+  renderTimetableEditor();
+  showToast('시간표가 초기화되었어요');
+}
+
+// =============================================
+// TIMETABLE DRAG & DROP
+// =============================================
+function startTtDrag(e, index, rowEl) {
+  e.preventDefault();
+
+  const container = document.getElementById('ttList');
+  const rows = [...container.querySelectorAll('.tt-row')];
+  const rect = rowEl.getBoundingClientRect();
+  const rects = rows.map(r => r.getBoundingClientRect());
+  const cardH = rect.height;
+
+  ttDrag = {
+    active: true, rowEl, index, currentIndex: index,
+    startX: e.clientX,
+    startY: e.clientY,
+    cardRects: rects, cardH, rows,
+  };
+
+  rowEl.classList.add('tt-lifted');
+  rows.forEach(r => r.style.setProperty('--tt-card-h', cardH + 'px'));
+  document.body.classList.add('is-dragging');
+
+  document.addEventListener('pointermove', onTtDragMove);
+  document.addEventListener('pointerup', onTtDragEnd);
+}
+
+function onTtDragMove(e) {
+  if (!ttDrag.active) return;
+  const { rowEl, startX, startY, index, rows, cardRects, cardH } = ttDrag;
+
+  const dy = e.clientY - startY;
+  rowEl.style.transform = 'translateY(' + dy + 'px) scale(1.02)';
+
+  const origCenter = cardRects[index].top + cardH / 2;
+  const centerY = origCenter + dy;
+  let newIndex = index;
+
+  for (let i = 0; i < cardRects.length; i++) {
+    const r = cardRects[i];
+    const midY = r.top + r.height / 2;
+    if (i < index && centerY < midY) { newIndex = i; break; }
+    if (i > index && centerY > midY) { newIndex = i; }
+  }
+
+  if (newIndex !== ttDrag.currentIndex) {
+    ttDrag.currentIndex = newIndex;
+    rows.forEach((r, i) => {
+      if (i === index) return;
+      r.classList.remove('tt-shift-down', 'tt-shift-up');
+      if (index < newIndex) {
+        if (i > index && i <= newIndex) r.classList.add('tt-shift-up');
+      } else if (index > newIndex) {
+        if (i >= newIndex && i < index) r.classList.add('tt-shift-down');
+      }
+    });
+  }
+}
+
+function onTtDragEnd() {
+  if (!ttDrag.active) return;
+  const { rowEl, index, currentIndex, rows } = ttDrag;
+
+  rowEl.classList.remove('tt-lifted');
+  rowEl.style.transform = '';
+  rows.forEach(r => { r.classList.remove('tt-shift-down', 'tt-shift-up'); r.style.removeProperty('--tt-card-h'); });
+  document.body.classList.remove('is-dragging');
+
+  document.removeEventListener('pointermove', onTtDragMove);
+  document.removeEventListener('pointerup', onTtDragEnd);
+
+  if (index !== currentIndex) {
+    const moved = timetable.splice(index, 1)[0];
+    timetable.splice(currentIndex, 0, moved);
+    localStorage.setItem('classroomTimetable', JSON.stringify(timetable));
+    showToast('시간표 순서가 변경되었어요');
+  }
+
+  ttDrag.active = false;
+  renderTimetableEditor();
+}
+
+// =============================================
+// CLOCK & PERIOD DETECTION
+// =============================================
 function getCurrentPeriod(now) {
-  const day = now.getDay(); // 0=Sun, 2=Tue
+  const day = now.getDay();
   const mins = now.getHours() * 60 + now.getMinutes();
   const isWeekend = (day === 0 || day === 6);
 
-  if (isWeekend) return { label: '주말', type: 'off-time' };
+  if (isWeekend) return { label: '주말', type: 'off-time', endMins: null };
 
-  for (let i = 0; i < TIMETABLE.length; i++) {
-    const [sh, sm, eh, em, label, type] = TIMETABLE[i];
-    const start = sh * 60 + sm;
-    const end = eh * 60 + em;
+  // Filter & sort today's entries
+  const todayEntries = timetable
+    .filter(e => e.days.includes(day))
+    .sort((a, b) => timeToMins(a.start) - timeToMins(b.start));
 
-    // Skip 6교시 on non-Tuesday
-    if (label === '6교시' && day !== 2) continue;
+  if (todayEntries.length === 0) return { label: '수업 없음', type: 'off-time', endMins: null };
 
-    if (mins >= start && mins < end) return { label, type };
+  for (let i = 0; i < todayEntries.length; i++) {
+    const entry = todayEntries[i];
+    const start = timeToMins(entry.start);
+    const end = timeToMins(entry.end);
 
-    // Check break time between this period and next
-    if (mins >= end) {
-      const next = TIMETABLE[i + 1];
-      if (next) {
-        // Skip 6교시 on non-Tuesday for next period check
-        if (next[4] === '6교시' && day !== 2) continue;
-        const nextStart = next[0] * 60 + next[1];
-        if (mins < nextStart) return { label: '쉬는 시간', type: 'break-time' };
+    // Currently in this period
+    if (mins >= start && mins < end) {
+      return { label: entry.label, type: entry.type, endMins: end };
+    }
+
+    // Check gap to next entry (break time)
+    if (mins >= end && i + 1 < todayEntries.length) {
+      const nextStart = timeToMins(todayEntries[i + 1].start);
+      if (mins < nextStart) {
+        return { label: '쉬는 시간', type: 'break-time', endMins: nextStart };
       }
     }
   }
 
   // Before or after school
-  const firstStart = 9 * 60;
-  const lastPeriod = (day === 2) ? TIMETABLE[6] : TIMETABLE[5];
-  const lastEnd = lastPeriod[2] * 60 + lastPeriod[3];
+  const firstStart = timeToMins(todayEntries[0].start);
+  const lastEnd = timeToMins(todayEntries[todayEntries.length - 1].end);
 
-  if (mins < firstStart) return { label: '수업 전', type: 'off-time' };
-  if (mins >= lastEnd) return { label: '수업 끝', type: 'off-time' };
+  if (mins < firstStart) return { label: '수업 전', type: 'off-time', endMins: null };
+  if (mins >= lastEnd) return { label: '수업 끝', type: 'off-time', endMins: null };
 
-  return { label: '수업 전', type: 'off-time' };
+  return { label: '수업 전', type: 'off-time', endMins: null };
 }
 
 function updateClock() {
@@ -806,21 +1419,49 @@ function updateClock() {
   const ampm = h < 12 ? '오전' : '오후';
   h = h % 12 || 12;
   document.getElementById('timeDisplay').innerHTML =
-    `${h}<span class="colon">:</span>${String(n.getMinutes()).padStart(2,'0')}`;
+    h + '<span class="colon">:</span>' + String(n.getMinutes()).padStart(2, '0');
   document.getElementById('ampmDisplay').textContent = ampm;
-  document.getElementById('secondsDisplay').textContent = `: ${String(n.getSeconds()).padStart(2,'0')}`;
+  document.getElementById('secondsDisplay').textContent = ': ' + String(n.getSeconds()).padStart(2, '0');
   document.getElementById('dateDisplay').textContent =
-    `${n.getFullYear()}. ${String(n.getMonth()+1).padStart(2,'0')}. ${String(n.getDate()).padStart(2,'0')}`;
+    n.getFullYear() + '. ' + String(n.getMonth() + 1).padStart(2, '0') + '. ' + String(n.getDate()).padStart(2, '0');
   document.getElementById('dayName').textContent = DAYS_KR[n.getDay()];
 
-  // Update period alert
+  // Period alert with optional remaining time
   const period = getCurrentPeriod(n);
   const alertEl = document.getElementById('periodAlert');
-  alertEl.textContent = period.label;
   alertEl.className = 'period-alert ' + period.type;
+
+  if (settings.showRemaining && period.endMins !== null) {
+    const currentTotalSecs = n.getHours() * 3600 + n.getMinutes() * 60 + n.getSeconds();
+    const endTotalSecs = period.endMins * 60;
+    const remaining = endTotalSecs - currentTotalSecs;
+
+    if (remaining > 0) {
+      const remMin = Math.floor(remaining / 60);
+      const remSec = remaining % 60;
+      let remText;
+      if (remMin > 0) {
+        remText = remMin + '분 ' + String(remSec).padStart(2, '0') + '초';
+      } else {
+        remText = remSec + '초';
+      }
+      alertEl.innerHTML = period.label + ' <span class="remaining-time">(' + remText + ' 남음)</span>';
+    } else {
+      alertEl.textContent = period.label;
+    }
+  } else {
+    alertEl.textContent = period.label;
+  }
 }
 
-loadRules(); renderRules(); updateClock();
+// =============================================
+// INIT
+// =============================================
+loadSettings();
+loadTimetable();
+loadRules();
+renderRules();
+updateClock();
 setInterval(updateClock, 1000);
 </script>
 </body>
