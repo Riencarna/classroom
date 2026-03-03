@@ -485,6 +485,68 @@
     transform: rotate(30deg);
   }
 
+  /* ========== Version Label ========== */
+  .version-label {
+    position: fixed;
+    bottom: 1.5rem;
+    left: 7.5rem;
+    height: 44px;
+    border-radius: 22px;
+    border: 1.5px solid rgba(0,0,0,0.08);
+    background: rgba(255,255,255,0.5);
+    backdrop-filter: blur(8px);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 1rem;
+    font-family: 'Outfit', sans-serif;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: rgba(0,0,0,0.35);
+    transition: all 0.3s;
+    z-index: 10;
+  }
+  .version-label:hover {
+    background: rgba(255,255,255,0.8);
+    color: rgba(0,0,0,0.6);
+  }
+
+  /* ========== Changelog ========== */
+  .changelog-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1.2rem;
+  }
+  .changelog-item {
+    padding: 1rem 1.2rem;
+    background: rgba(255,255,255,0.5);
+    border-radius: 14px;
+    border: 1px solid rgba(0,0,0,0.05);
+  }
+  .changelog-item-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 0.4rem;
+  }
+  .changelog-version {
+    font-family: 'Outfit', sans-serif;
+    font-weight: 700;
+    font-size: 1.05rem;
+    color: #2563eb;
+  }
+  .changelog-date {
+    font-family: 'Outfit', sans-serif;
+    font-size: 0.82rem;
+    color: rgba(0,0,0,0.35);
+  }
+  .changelog-desc {
+    font-size: 0.92rem;
+    color: rgba(0,0,0,0.6);
+    line-height: 1.6;
+  }
+
   /* ========== Fullscreen Button ========== */
   .fullscreen-btn {
     position: fixed;
@@ -1241,6 +1303,7 @@
 
 <button class="settings-btn" onclick="openSettings()">&#9881;</button>
 <button class="fullscreen-btn" id="fullscreenBtn" onclick="toggleFullscreen()" title="전체화면">&#x26F6;</button>
+<button class="version-label" onclick="openChangelog()">v1.0.0</button>
 
 <input type="file" id="importFileInput" accept=".json" style="display:none" onchange="handleImport(event)">
 
@@ -1300,6 +1363,73 @@
       <div class="data-manage-row">
         <button class="data-btn data-btn-primary" onclick="exportData()">&#128190; 내보내기</button>
         <button class="data-btn" onclick="document.getElementById('importFileInput').click()">&#128194; 불러오기</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="changelogModal" onclick="if(event.target===this)closeChangelog()">
+  <div class="modal-card">
+    <div class="modal-header">
+      <div class="modal-title">버전 기록</div>
+      <button class="modal-close" onclick="closeChangelog()">&#10005;</button>
+    </div>
+    <div class="changelog-list">
+      <div class="changelog-item">
+        <div class="changelog-item-header">
+          <span class="changelog-version">v1.0.0</span>
+          <span class="changelog-date">2025-01-15</span>
+        </div>
+        <div class="changelog-desc">알림장 전체화면, 워터마크, 방문자 카운터, 글자 크기 입력 기능 추가</div>
+      </div>
+      <div class="changelog-item">
+        <div class="changelog-item-header">
+          <span class="changelog-version">v0.9.0</span>
+          <span class="changelog-date">2025-01-14</span>
+        </div>
+        <div class="changelog-desc">콜론 깜빡임 토글 기능 추가</div>
+      </div>
+      <div class="changelog-item">
+        <div class="changelog-item-header">
+          <span class="changelog-version">v0.8.0</span>
+          <span class="changelog-date">2025-01-13</span>
+        </div>
+        <div class="changelog-desc">전체화면 버튼, 데이터 내보내기/불러오기, 요일별 교시 설정 추가</div>
+      </div>
+      <div class="changelog-item">
+        <div class="changelog-item-header">
+          <span class="changelog-version">v0.7.1</span>
+          <span class="changelog-date">2025-01-12</span>
+        </div>
+        <div class="changelog-desc">버그 수정: 설정 병합, XSS 방지, 초기화 확인, 미사용 코드 제거</div>
+      </div>
+      <div class="changelog-item">
+        <div class="changelog-item-header">
+          <span class="changelog-version">v0.7.0</span>
+          <span class="changelog-date">2025-01-11</span>
+        </div>
+        <div class="changelog-desc">오프라인 지원을 위한 폰트 로컬 번들링</div>
+      </div>
+      <div class="changelog-item">
+        <div class="changelog-item-header">
+          <span class="changelog-version">v0.6.0</span>
+          <span class="changelog-date">2025-01-10</span>
+        </div>
+        <div class="changelog-desc">멀티 탭, 자동 시간표 생성, 요일별 교시, 수업 시작 알림음 추가</div>
+      </div>
+      <div class="changelog-item">
+        <div class="changelog-item-header">
+          <span class="changelog-version">v0.5.0</span>
+          <span class="changelog-date">2025-01-09</span>
+        </div>
+        <div class="changelog-desc">설정 모달, 남은 시간 토글, 시간표 편집기 추가</div>
+      </div>
+      <div class="changelog-item">
+        <div class="changelog-item-header">
+          <span class="changelog-version">v0.1.0</span>
+          <span class="changelog-date">2025-01-08</span>
+        </div>
+        <div class="changelog-desc">최초 커밋: 시계, 날짜, 시간표, 알림장 기본 기능</div>
       </div>
     </div>
   </div>
@@ -1655,6 +1785,17 @@ function openSettings() {
 
 function closeSettings() {
   document.getElementById('settingsModal').classList.remove('open');
+}
+
+// =============================================
+// CHANGELOG
+// =============================================
+function openChangelog() {
+  document.getElementById('changelogModal').classList.add('open');
+}
+
+function closeChangelog() {
+  document.getElementById('changelogModal').classList.remove('open');
 }
 
 // =============================================
