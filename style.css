@@ -1363,7 +1363,8 @@
 
   .event-item.active {
     border-color: rgba(139, 92, 246, 0.35);
-    box-shadow: 0 0 0 2px rgba(139,92,246,0.08);
+    box-shadow: 0 0 0 3px rgba(139,92,246,0.12);
+    background: rgba(139, 92, 246, 0.08);
   }
 
   .event-item-body {
@@ -1416,6 +1417,12 @@
     background: rgba(255,255,255,0.92);
   }
 
+  .event-mini-btn.active {
+    background: rgba(139, 92, 246, 0.14);
+    color: #6d28d9;
+    border-color: rgba(139, 92, 246, 0.26);
+  }
+
   .event-mini-btn.delete:hover {
     background: #fee2e2;
     color: #ef4444;
@@ -1450,6 +1457,17 @@
   .event-schedule-title {
     font-weight: 900;
     color: #6d28d9;
+  }
+
+  .event-input.flash,
+  .event-textarea.flash {
+    animation: eventFieldFlash 1.2s ease;
+  }
+
+  @keyframes eventFieldFlash {
+    0% { box-shadow: 0 0 0 0 rgba(139,92,246,0.25); }
+    40% { box-shadow: 0 0 0 5px rgba(139,92,246,0.16); }
+    100% { box-shadow: 0 0 0 0 rgba(139,92,246,0); }
   }
 
   .event-schedule-placeholder {

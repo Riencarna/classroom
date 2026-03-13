@@ -459,6 +459,39 @@ function setAcademicEventDateToday() {
   dateInput.value = formatDateKey(new Date());
 }
 
+function flashAcademicEventForm() {
+  const fields = [
+    document.getElementById('eventDateInput'),
+    document.getElementById('eventTitleInput'),
+    document.getElementById('eventNoticeInput')
+  ].filter(Boolean);
+
+  fields.forEach(field => {
+    field.classList.remove('flash');
+    void field.offsetWidth;
+    field.classList.add('flash');
+  });
+}
+
+function selectAcademicEvent(dateKey, options) {
+  const source = options && options.source ? options.source : 'list';
+  viewData.selectedAcademicEventDate = dateKey;
+  specialTimetableDirty = false;
+  saveViewData();
+  fillAcademicEventForm();
+  renderAcademicEventList();
+  renderSpecialTimetableEditor();
+  flashAcademicEventForm();
+
+  const titleInput = document.getElementById('eventTitleInput');
+  if (titleInput) titleInput.focus();
+
+  const scheduleCard = document.getElementById('eventScheduleCard');
+  if (scheduleCard) scheduleCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+
+  if (source === 'button') showToast('편집할 일정이 선택되었어요');
+}
+
 function renderAcademicEventList() {
   const container = document.getElementById('academicEventList');
   if (!container) return;
@@ -500,14 +533,11 @@ function renderAcademicEventList() {
     actions.className = 'event-item-actions';
 
     const editBtn = document.createElement('button');
-    editBtn.className = 'event-mini-btn';
-    editBtn.textContent = '편집';
+    const isActive = event.date === viewData.selectedAcademicEventDate;
+    editBtn.className = 'event-mini-btn' + (isActive ? ' active' : '');
+    editBtn.textContent = isActive ? '선택됨' : '편집';
     editBtn.addEventListener('click', () => {
-      viewData.selectedAcademicEventDate = event.date;
-      saveViewData();
-      fillAcademicEventForm();
-      renderAcademicEventList();
-      renderSpecialTimetableEditor();
+      selectAcademicEvent(event.date, { source: 'button' });
     });
 
     const delBtn = document.createElement('button');
@@ -567,9 +597,7 @@ function saveAcademicEvent() {
     savedEvent.timetable = buildSpecialTimetableFromBase(date);
   }
   saveViewData();
-  renderAcademicEventList();
-  fillAcademicEventForm();
-  renderSpecialTimetableEditor();
+  selectAcademicEvent(date, { source: 'save' });
   updateAcademicEventBanner(new Date());
   if (settings.timetableMode) renderTimetableDisplay();
   showToast('학사 일정이 저장되었어요');
