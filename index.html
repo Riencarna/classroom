@@ -60,7 +60,10 @@
       <button class="notebook-expand-btn" id="notebookPanelFillBtn" onclick="toggleNotebookPanelFill()">패널 채우기</button>
       <button class="notebook-expand-btn" onclick="openNotebookFullscreen()">&#x26F6; 전체화면</button>
     </div>
-    <textarea id="notebookArea" class="notebook-textarea" placeholder="오늘의 알림을 입력하세요..." oninput="onNotebookInput()"></textarea>
+    <div class="notebook-editor-wrap">
+      <button class="notebook-focus-exit-btn" id="notebookFocusExitBtn" onclick="toggleNotebookPanelFill()">패널 닫기</button>
+      <textarea id="notebookArea" class="notebook-textarea" placeholder="오늘의 알림을 입력하세요..." oninput="onNotebookInput()"></textarea>
+    </div>
   </div>
 
   <div class="tab-content" id="tabNotice" style="display:none">

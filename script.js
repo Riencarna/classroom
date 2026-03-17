@@ -1206,6 +1206,12 @@ function applyNotebookPanelFill() {
   if (panel) panel.classList.toggle('notebook-focus-mode', enabled);
   const button = document.getElementById('notebookPanelFillBtn');
   if (button) button.classList.toggle('active', enabled);
+  const exitButton = document.getElementById('notebookFocusExitBtn');
+  if (exitButton) exitButton.setAttribute('aria-hidden', enabled ? 'false' : 'true');
+  if (enabled) {
+    const area = document.getElementById('notebookArea');
+    if (area) area.focus();
+  }
 }
 
 // =============================================
@@ -1745,6 +1751,8 @@ function closeNotebookFullscreen() {
 document.addEventListener('keydown', function(e) {
   if (e.key === 'Escape' && document.getElementById('notebookFullscreen').classList.contains('open')) {
     closeNotebookFullscreen();
+  } else if (e.key === 'Escape' && viewData.activeTab === 'notebook' && viewData.notebookPanelFill) {
+    toggleNotebookPanelFill();
   }
 });
 
