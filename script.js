@@ -1141,7 +1141,10 @@ function switchTab(tabName) {
   document.getElementById('tabNotice').style.display = tabName === 'notice' ? '' : 'none';
 
   if (tabName === 'notebook') {
-    document.getElementById('notebookArea').value = viewData.notebook || '';
+    const notebookText = viewData.notebook || '';
+    document.getElementById('notebookArea').value = notebookText;
+    const overlayArea = document.getElementById('notebookPanelTextarea');
+    if (overlayArea) overlayArea.value = notebookText;
     applyNotebookFontSize();
   }
   if (tabName === 'notice') {
@@ -1159,9 +1162,23 @@ function initTabs() {
 // NOTEBOOK (알림장)
 // =============================================
 function onNotebookInput() {
+  const value = document.getElementById('notebookArea').value;
+  const overlayArea = document.getElementById('notebookPanelTextarea');
+  if (overlayArea && overlayArea.value !== value) overlayArea.value = value;
   clearTimeout(notebookTimer);
   notebookTimer = setTimeout(() => {
-    viewData.notebook = document.getElementById('notebookArea').value;
+    viewData.notebook = value;
+    saveViewData();
+  }, 500);
+}
+
+function onNotebookPanelInput() {
+  const value = document.getElementById('notebookPanelTextarea').value;
+  const area = document.getElementById('notebookArea');
+  if (area && area.value !== value) area.value = value;
+  clearTimeout(notebookTimer);
+  notebookTimer = setTimeout(() => {
+    viewData.notebook = value;
     saveViewData();
   }, 500);
 }
@@ -1186,6 +1203,8 @@ function applyNotebookFontSize() {
   const size = viewData.notebookFontSize || 18;
   const area = document.getElementById('notebookArea');
   if (area) area.style.fontSize = size + 'px';
+  const panelArea = document.getElementById('notebookPanelTextarea');
+  if (panelArea) panelArea.style.fontSize = size + 'px';
   const fullscreenBody = document.getElementById('notebookFullscreenBody');
   if (fullscreenBody) fullscreenBody.style.fontSize = size + 'px';
   const input = document.getElementById('fontSizeInput');
@@ -1206,11 +1225,14 @@ function applyNotebookPanelFill() {
   if (panel) panel.classList.toggle('notebook-focus-mode', enabled);
   const button = document.getElementById('notebookPanelFillBtn');
   if (button) button.classList.toggle('active', enabled);
-  const exitButton = document.getElementById('notebookFocusExitBtn');
-  if (exitButton) exitButton.setAttribute('aria-hidden', enabled ? 'false' : 'true');
+  const overlay = document.getElementById('notebookPanelOverlay');
+  const overlayArea = document.getElementById('notebookPanelTextarea');
+  if (overlay) overlay.setAttribute('aria-hidden', enabled ? 'false' : 'true');
   if (enabled) {
-    const area = document.getElementById('notebookArea');
-    if (area) area.focus();
+    if (overlayArea) {
+      overlayArea.value = viewData.notebook || '';
+      overlayArea.focus();
+    }
   }
 }
 

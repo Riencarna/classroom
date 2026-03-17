@@ -1154,42 +1154,14 @@
   .tab-content { width: 100%; }
   .right-panel.notebook-focus-mode {
     overflow-y: hidden;
-    padding: 1.2rem;
   }
-  .right-panel.notebook-focus-mode .tab-bar {
-    display: none;
-  }
-  .right-panel.notebook-focus-mode #tabNotebook > .rules-header-row,
-  .right-panel.notebook-focus-mode #tabNotebook > .rules-subtitle,
-  .right-panel.notebook-focus-mode #tabNotebook > .notebook-toolbar {
-    display: none;
-  }
-  .right-panel.notebook-focus-mode #tabNotebook {
-    display: flex !important;
-    flex-direction: column;
-    flex: 1;
-    min-height: 0;
-  }
-  .right-panel.notebook-focus-mode .rules-subtitle {
-    margin-bottom: 1rem;
-  }
-  .right-panel.notebook-focus-mode .notebook-editor-wrap {
-    flex: 1;
-    min-height: 0;
-  }
-  .right-panel.notebook-focus-mode .notebook-textarea {
-    flex: 1;
-    min-height: 0;
-    height: 100%;
-    resize: none;
-    border-radius: 24px;
-    padding-top: 4.6rem;
+  .right-panel.notebook-focus-mode .notebook-panel-overlay {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translateY(0);
   }
 
   /* ========== Notebook ========== */
-  .notebook-editor-wrap {
-    position: relative;
-  }
   .notebook-textarea {
     width: 100%;
     min-height: 400px;
@@ -1672,12 +1644,59 @@
     border-color: rgba(59,130,246,0.45);
     box-shadow: 0 0 0 2px rgba(59,130,246,0.12);
   }
+  .notebook-panel-overlay {
+    position: absolute;
+    inset: 0;
+    z-index: 25;
+    display: flex;
+    flex-direction: column;
+    padding: 1.2rem;
+    background: #f5f0e8;
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(8px);
+    transition: opacity 0.22s ease, transform 0.22s ease;
+  }
+  .notebook-panel-overlay::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(ellipse 70% 55% at 15% 30%, rgba(59, 130, 246, 0.08) 0%, transparent 70%),
+      radial-gradient(ellipse 60% 70% at 85% 75%, rgba(129, 212, 250, 0.1) 0%, transparent 70%);
+    pointer-events: none;
+  }
+  .notebook-panel-textarea {
+    position: relative;
+    z-index: 1;
+    flex: 1;
+    width: 100%;
+    min-height: 0;
+    padding: 4.8rem 1.8rem 1.8rem;
+    border-radius: 24px;
+    border: 1px solid rgba(255,255,255,0.82);
+    background: rgba(255,255,255,0.72);
+    backdrop-filter: blur(12px);
+    font-family: 'Noto Sans KR', sans-serif;
+    font-size: 1.1rem;
+    line-height: 1.8;
+    color: #2d2a26;
+    resize: none;
+    outline: none;
+    box-shadow: 0 12px 32px rgba(0,0,0,0.06);
+  }
+  .notebook-panel-textarea:focus {
+    border-color: rgba(59, 130, 246, 0.42);
+    box-shadow: 0 12px 32px rgba(0,0,0,0.06), 0 0 0 3px rgba(59, 130, 246, 0.1);
+  }
   .notebook-focus-exit-btn {
     position: absolute;
     top: 0.9rem;
     right: 0.9rem;
     z-index: 2;
-    display: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     padding: 0.45rem 0.85rem;
     border-radius: 999px;
     border: 1.5px solid rgba(59,130,246,0.22);
@@ -1693,11 +1712,6 @@
   .notebook-focus-exit-btn:hover {
     background: rgba(255,255,255,0.95);
     border-color: rgba(59,130,246,0.4);
-  }
-  .right-panel.notebook-focus-mode .notebook-focus-exit-btn {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
   }
 
   /* ========== Watermark ========== */
