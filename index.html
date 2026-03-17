@@ -57,6 +57,7 @@
       <button class="font-size-btn" onclick="changeNotebookFontSize(-2)">−</button>
       <input type="number" class="font-size-input" id="fontSizeInput" value="18" min="12" max="80" onchange="setNotebookFontSize(this.value)">
       <button class="font-size-btn" onclick="changeNotebookFontSize(2)">+</button>
+      <button class="notebook-expand-btn" id="notebookPanelFillBtn" onclick="toggleNotebookPanelFill()">패널 채우기</button>
       <button class="notebook-expand-btn" onclick="openNotebookFullscreen()">&#x26F6; 전체화면</button>
     </div>
     <textarea id="notebookArea" class="notebook-textarea" placeholder="오늘의 알림을 입력하세요..." oninput="onNotebookInput()"></textarea>

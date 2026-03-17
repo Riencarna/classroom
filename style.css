@@ -320,6 +320,11 @@
     color: #f97316;
     border-color: rgba(249, 115, 22, 0.25);
   }
+  .tt-display-row.tt-current.event-time {
+    background: rgba(139, 92, 246, 0.12);
+    color: #8b5cf6;
+    border-color: rgba(139, 92, 246, 0.25);
+  }
   .tt-display-row.tt-future {
     opacity: 0.7;
     color: #555;
@@ -1147,6 +1152,24 @@
     background: rgba(139, 92, 246, 0.1); color: #8b5cf6; border-color: rgba(139, 92, 246, 0.3);
   }
   .tab-content { width: 100%; }
+  .right-panel.notebook-focus-mode {
+    overflow-y: hidden;
+  }
+  .right-panel.notebook-focus-mode #tabNotebook {
+    display: flex !important;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+  }
+  .right-panel.notebook-focus-mode .rules-subtitle {
+    margin-bottom: 1rem;
+  }
+  .right-panel.notebook-focus-mode .notebook-textarea {
+    flex: 1;
+    min-height: 0;
+    height: 100%;
+    resize: none;
+  }
 
   /* ========== Notebook ========== */
   .notebook-textarea {
@@ -1619,7 +1642,18 @@
     transition: all 0.2s;
     white-space: nowrap;
   }
+  #notebookPanelFillBtn {
+    margin-left: auto;
+  }
+  .notebook-toolbar .notebook-expand-btn + .notebook-expand-btn {
+    margin-left: 0;
+  }
   .notebook-expand-btn:hover { background: rgba(59,130,246,0.15); border-color: rgba(59,130,246,0.4); }
+  .notebook-expand-btn.active {
+    background: rgba(59,130,246,0.18);
+    border-color: rgba(59,130,246,0.45);
+    box-shadow: 0 0 0 2px rgba(59,130,246,0.12);
+  }
 
   /* ========== Watermark ========== */
   .watermark {

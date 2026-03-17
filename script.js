@@ -13,6 +13,7 @@ const DEFAULT_RULES = [
 ];
 
 const DEFAULT_TIMETABLE = [
+  { label: '아침 시간', start: '08:40', end: '09:00', type: 'event-time', days: [1,2,3,4,5], subjects: {} },
   { label: '1교시', start: '09:00', end: '09:40', type: 'in-class', days: [1,2,3,4,5], subjects: {} },
   { label: '2교시', start: '09:50', end: '10:30', type: 'in-class', days: [1,2,3,4,5], subjects: {} },
   { label: '3교시', start: '10:40', end: '11:20', type: 'in-class', days: [1,2,3,4,5], subjects: {} },
@@ -28,7 +29,7 @@ const DEFAULT_TIMETABLE = [
 let rules = [];
 let isEditing = false;
 let timetable = [];
-let settings = { showRemaining: true, chimeEnabled: true, colonBlink: true, showSeconds: true, timetableMode: false, dailyPeriods: { 1:5, 2:6, 3:5, 4:5, 5:5 } };
+let settings = { showRemaining: true, chimeEnabled: true, colonBlink: true, showSeconds: true, timetableMode: false, dailyPeriods: { 1:5, 2:6, 3:5, 4:5, 5:5 }, morningSlotMigrated: false };
 let viewData = { activeTab: 'rules', notebook: '', notices: [], academicEvents: [], selectedAcademicEventDate: '' };
 let lastPeriodLabel = null;
 let lastChimeTime = 0;
@@ -76,6 +77,14 @@ function cloneEntry(entry) {
     subjects: entry.subjects ? { ...entry.subjects } : {},
     subject: entry.subject || '',
   };
+}
+
+function createMorningEntry(start, end) {
+  return { label: '아침 시간', start, end, type: 'event-time', days: [1, 2, 3, 4, 5], subjects: {} };
+}
+
+function hasMorningEntry(entries) {
+  return entries.some(entry => entry.label === '아침 시간');
 }
 
 function normalizeAcademicEvent(event) {
@@ -170,6 +179,12 @@ function loadTimetable() {
     timetable = s ? JSON.parse(s) : JSON.parse(JSON.stringify(DEFAULT_TIMETABLE));
   } catch { timetable = JSON.parse(JSON.stringify(DEFAULT_TIMETABLE)); }
   timetable.forEach(entry => { if (!entry.subjects) entry.subjects = {}; });
+  if (!settings.morningSlotMigrated && !hasMorningEntry(timetable)) {
+    timetable.unshift(createMorningEntry('08:40', '09:00'));
+    saveTimetable();
+    settings.morningSlotMigrated = true;
+    saveSettings();
+  }
 }
 function saveTimetable() {
   timetable.sort((a, b) => timeToMins(a.start) - timeToMins(b.start));
@@ -187,6 +202,7 @@ function loadSettings() {
       if (settings.colonBlink === undefined) settings.colonBlink = true;
       if (settings.showSeconds === undefined) settings.showSeconds = true;
       if (settings.timetableMode === undefined) settings.timetableMode = false;
+      if (settings.morningSlotMigrated === undefined) settings.morningSlotMigrated = false;
     }
   } catch { /* keep defaults */ }
 }
@@ -1131,6 +1147,7 @@ function switchTab(tabName) {
   if (tabName === 'notice') {
     renderNotices();
   }
+  applyNotebookPanelFill();
 }
 
 function initTabs() {
@@ -1175,6 +1192,20 @@ function applyNotebookFontSize() {
   if (input) input.value = size;
   const inputFs = document.getElementById('fontSizeInputFullscreen');
   if (inputFs) inputFs.value = size;
+}
+
+function toggleNotebookPanelFill() {
+  viewData.notebookPanelFill = !viewData.notebookPanelFill;
+  saveViewData();
+  applyNotebookPanelFill();
+}
+
+function applyNotebookPanelFill() {
+  const enabled = !!viewData.notebookPanelFill && viewData.activeTab === 'notebook';
+  const panel = document.getElementById('rightPanel');
+  if (panel) panel.classList.toggle('notebook-focus-mode', enabled);
+  const button = document.getElementById('notebookPanelFillBtn');
+  if (button) button.classList.toggle('active', enabled);
 }
 
 // =============================================
@@ -1249,6 +1280,7 @@ function generateTimetable() {
   const startTimeStr = document.getElementById('autoStartTime').value || '09:00';
   let startMins = timeToMins(startTimeStr);
   const newTimetable = [];
+  newTimetable.push(createMorningEntry(minsToTime(Math.max(0, startMins - 20)), minsToTime(startMins)));
 
   for (let p = 1; p <= 7; p++) {
     const endMins = startMins + 40;
