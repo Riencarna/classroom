@@ -33,6 +33,7 @@ let settings = { showRemaining: true, chimeEnabled: true, colonBlink: true, show
 let viewData = { activeTab: 'rules', notebook: '', notices: [], academicEvents: [], selectedAcademicEventDate: '' };
 let lastPeriodLabel = null;
 let lastChimeTime = 0;
+let lastTimetableMin = -1;
 let audioCtx = null;
 let notebookTimer = null;
 let lastAcademicEventToastKey = '';
@@ -1432,6 +1433,7 @@ function applyTimetableMode() {
   if (toggle) toggle.checked = settings.timetableMode;
 
   if (settings.timetableMode) {
+    lastTimetableMin = -1; // force re-render
     renderTimetableDisplay();
   }
 }
@@ -1443,54 +1445,125 @@ function renderTimetableDisplay() {
 
   const now = new Date();
   const mins = now.getHours() * 60 + now.getMinutes();
+  const day = now.getDay();
   const entries = getTodayEntries(now);
   if (entries.length === 0) {
-    const event = getAcademicEventByDate(formatDateKey(now));
+    const event = typeof getAcademicEventByDate === 'function' ? getAcademicEventByDate(formatDateKey(now)) : null;
     container.innerHTML = '<div class="timetable-empty-msg">' + (event ? '등록된 일정은 있지만 시간표는 없어요' : '오늘은 수업이 없어요') + '</div>';
     return;
   }
 
-  // 교시 수에 따라 행 크기 자동 조절
-  let rowFontSize = '2rem';
-  let rowPadding = '0.85rem 1rem';
-  if (entries.length >= 9) {
-    rowFontSize = '1.5rem';
-    rowPadding = '0.5rem 1rem';
-  } else if (entries.length >= 7) {
-    rowFontSize = '1.75rem';
-    rowPadding = '0.65rem 1rem';
+  // Build timeline (classes only, no breaks/lunch)
+  const timeline = [];
+  for (let i = 0; i < entries.length; i++) {
+    const entry = entries[i];
+    if (entry.type === 'lunch-time' || entry.type === 'break-time' || entry.type === 'event-time') continue;
+    const subject = entry.subject || (entry.subjects ? entry.subjects[day] || '' : '');
+    timeline.push({ label: entry.label, start: entry.start, end: entry.end, type: entry.type, subject: subject });
   }
 
-  entries.forEach(entry => {
-    const start = timeToMins(entry.start);
-    const end = timeToMins(entry.end);
+  // Find current index
+  let currentIdx = -1;
+  for (let i = 0; i < timeline.length; i++) {
+    const s = timeToMins(timeline[i].start);
+    const e = timeToMins(timeline[i].end);
+    if (mins >= s && mins < e) { currentIdx = i; break; }
+  }
 
-    const row = document.createElement('div');
-    row.className = 'tt-display-row';
-    row.style.fontSize = rowFontSize;
-    row.style.padding = rowPadding;
+  // Split into rows of 3
+  const rowSize = 3;
+  const rows = [];
+  for (let i = 0; i < timeline.length; i += rowSize) {
+    rows.push(timeline.slice(i, i + rowSize));
+  }
 
-    if (mins >= end) {
-      row.classList.add('tt-past');
-    } else if (mins >= start && mins < end) {
-      row.classList.add('tt-current');
-      if (entry.type === 'lunch-time') row.classList.add('lunch-time');
-    } else {
-      row.classList.add('tt-future');
+  const wrapper = document.createElement('div');
+  wrapper.className = 'subway-wrapper';
+
+  rows.forEach((rowItems, rowIdx) => {
+    const line = document.createElement('div');
+    line.className = 'subway-line';
+
+    // Add connector from previous row
+    if (rowIdx > 0) {
+      const connector = document.createElement('div');
+      connector.className = 'subway-connector';
+      wrapper.appendChild(connector);
     }
 
-    const label = document.createElement('span');
-    label.className = 'tt-display-label';
-    label.textContent = entry.label;
+    rowItems.forEach((item, i) => {
+      const globalIdx = rowIdx * rowSize + i;
+      const s = timeToMins(item.start);
+      const e = timeToMins(item.end);
+      const isPast = mins >= e;
+      const isCurrent = (globalIdx === currentIdx);
+      const isFuture = mins < s;
 
-    const subjectSpan = document.createElement('span');
-    subjectSpan.className = 'tt-display-subject';
-    subjectSpan.textContent = entry.subject || (entry.subjects ? entry.subjects[now.getDay()] || '' : '');
+      const station = document.createElement('div');
+      station.className = 'subway-station';
+      if (isPast) station.classList.add('subway-past');
+      if (isCurrent) station.classList.add('subway-current');
+      if (isFuture) station.classList.add('subway-future');
 
-    row.appendChild(label);
-    row.appendChild(subjectSpan);
-    container.appendChild(row);
+      const node = document.createElement('div');
+      node.className = 'subway-node';
+      if (isCurrent) {
+        const pulse = document.createElement('div');
+        pulse.className = 'subway-node-pulse';
+        node.appendChild(pulse);
+      }
+
+      const info = document.createElement('div');
+      info.className = 'subway-info';
+
+      const topRow = document.createElement('div');
+      topRow.className = 'subway-top-row';
+
+      const labelSpan = document.createElement('span');
+      labelSpan.className = 'subway-label';
+      labelSpan.textContent = item.label;
+      topRow.appendChild(labelSpan);
+
+      if (item.subject) {
+        const subjectSpan = document.createElement('span');
+        subjectSpan.className = 'subway-subject';
+        subjectSpan.textContent = item.subject;
+        topRow.appendChild(subjectSpan);
+      }
+
+      info.appendChild(topRow);
+
+      const timeRow = document.createElement('div');
+      timeRow.className = 'subway-time';
+      timeRow.textContent = item.start + ' - ' + item.end;
+      info.appendChild(timeRow);
+
+      if (isCurrent) {
+        const progress = (mins - s) / (e - s);
+        const progressWrap = document.createElement('div');
+        progressWrap.className = 'subway-progress';
+        const progressBar = document.createElement('div');
+        progressBar.className = 'subway-progress-bar';
+        progressBar.style.width = Math.round(progress * 100) + '%';
+        progressWrap.appendChild(progressBar);
+        info.appendChild(progressWrap);
+
+        const remMins = e - mins;
+        const remSpan = document.createElement('div');
+        remSpan.className = 'subway-remaining';
+        remSpan.textContent = remMins + '분 남음';
+        info.appendChild(remSpan);
+      }
+
+      station.appendChild(node);
+      station.appendChild(info);
+      line.appendChild(station);
+    });
+
+    wrapper.appendChild(line);
   });
+
+  container.appendChild(wrapper);
 }
 
 // =============================================
@@ -1642,9 +1715,13 @@ function updateClock() {
     alertEl.textContent = displayLabel;
   }
 
-  // Update timetable display if in timetable mode
+  // Update timetable display if in timetable mode (only on minute change)
   if (settings.timetableMode) {
-    renderTimetableDisplay();
+    const currentMin = n.getHours() * 60 + n.getMinutes();
+    if (currentMin !== lastTimetableMin) {
+      lastTimetableMin = currentMin;
+      renderTimetableDisplay();
+    }
   }
 
   // Voice alert check
