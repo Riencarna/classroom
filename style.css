@@ -234,8 +234,8 @@
   .left-panel .period-alert { transition: all 0.4s ease; }
 
   .left-panel.timetable-mode {
-    justify-content: flex-start;
-    padding-top: 3rem;
+    justify-content: center;
+    gap: 1rem;
   }
   .left-panel.timetable-mode .date-row {
     position: relative;
