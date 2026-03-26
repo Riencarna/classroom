@@ -2135,10 +2135,15 @@ function checkVoiceAlert(now) {
   const endSecs = period.endMins * 60;
   const remaining = endSecs - currentSecs;
 
-  const alerts = [
-    { secs: 300, msg: '5분 남았습니다. 자리로 돌아와주세요.' },
-    { secs: 60, msg: '1분 남았습니다. 수업 준비해주세요.' },
-  ];
+  const alerts = period.type === 'lunch-time'
+    ? [
+        { secs: 300, msg: '5분 남았습니다. 자리로 돌아와주세요.' },
+        { secs: 60, msg: '1분 남았습니다. 수업 준비해주세요.' },
+      ]
+    : [
+        { secs: 180, msg: '3분 남았습니다. 자리로 돌아와주세요.' },
+        { secs: 60, msg: '1분 남았습니다. 수업 준비해주세요.' },
+      ];
 
   for (const alert of alerts) {
     const key = period.label + '-' + period.endMins + '-' + alert.secs;
