@@ -1491,6 +1491,58 @@ function renderTimetableDisplay() {
       wrapper.appendChild(connector);
     }
 
+    // Calculate rail gauge fill for this row
+    // Rail spans from first station center to last station center
+    // Station centers (flex:1) are at (i+0.5)/N of line width
+    // Rail left = (0.5/N)*100%, rail width = ((N-1)/N)*100%
+    // Gauge progress = (localIdx + segmentFraction) / (N-1) of rail width
+    const rowStart = rowIdx * rowSize;
+    const rowEnd = rowStart + rowItems.length - 1;
+    const stationCount = rowItems.length;
+    const railLeftPct = (0.5 / stationCount) * 100;
+    const railWidthPct = stationCount > 1 ? ((stationCount - 1) / stationCount) * 100 : 0;
+    let gaugeFraction = 0; // 0~1 fraction of rail filled
+
+    if (currentIdx >= 0) {
+      if (currentIdx > rowEnd) {
+        gaugeFraction = 1;
+      } else if (currentIdx >= rowStart && currentIdx <= rowEnd) {
+        const localIdx = currentIdx - rowStart;
+        const s = timeToMins(timeline[currentIdx].start);
+        const e = timeToMins(timeline[currentIdx].end);
+        const progress = Math.min(1, Math.max(0, (mins - s) / (e - s)));
+        if (stationCount <= 1) {
+          gaugeFraction = progress;
+        } else {
+          gaugeFraction = (localIdx + progress) / (stationCount - 1);
+        }
+      }
+    } else {
+      const lastInRow = timeline[rowEnd];
+      if (lastInRow && mins >= timeToMins(lastInRow.end)) {
+        gaugeFraction = 1;
+      }
+    }
+
+    // Set CSS custom properties for rail positioning
+    line.style.setProperty('--rail-left', railLeftPct + '%');
+    line.style.setProperty('--rail-right', (100 - railLeftPct - railWidthPct) + '%');
+
+    // Rail gauge bar (fills along the track)
+    const railGauge = document.createElement('div');
+    railGauge.className = 'subway-rail-gauge';
+    railGauge.style.left = railLeftPct + '%';
+    railGauge.style.width = (gaugeFraction * railWidthPct) + '%';
+
+    // Train indicator at the leading edge
+    if (gaugeFraction > 0 && gaugeFraction < 1) {
+      const train = document.createElement('div');
+      train.className = 'subway-train';
+      railGauge.appendChild(train);
+    }
+
+    line.appendChild(railGauge);
+
     rowItems.forEach((item, i) => {
       const globalIdx = rowIdx * rowSize + i;
       const s = timeToMins(item.start);
@@ -1532,28 +1584,6 @@ function renderTimetableDisplay() {
       }
 
       info.appendChild(topRow);
-
-      const timeRow = document.createElement('div');
-      timeRow.className = 'subway-time';
-      timeRow.textContent = item.start + ' - ' + item.end;
-      info.appendChild(timeRow);
-
-      if (isCurrent) {
-        const progress = (mins - s) / (e - s);
-        const progressWrap = document.createElement('div');
-        progressWrap.className = 'subway-progress';
-        const progressBar = document.createElement('div');
-        progressBar.className = 'subway-progress-bar';
-        progressBar.style.width = Math.round(progress * 100) + '%';
-        progressWrap.appendChild(progressBar);
-        info.appendChild(progressWrap);
-
-        const remMins = e - mins;
-        const remSpan = document.createElement('div');
-        remSpan.className = 'subway-remaining';
-        remSpan.textContent = remMins + '분 남음';
-        info.appendChild(remSpan);
-      }
 
       station.appendChild(node);
       station.appendChild(info);
