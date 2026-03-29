@@ -96,56 +96,65 @@
     <div class="settings-section">
       <div class="settings-section-title">표시 설정</div>
       <div class="toggle-row">
-        <span class="toggle-label">남은 시간 표시</span>
+        <span class="toggle-label">남은 시간 표시<span class="help-icon">?<span class="help-tooltip">현재 교시의 남은 시간을 시계 아래에 표시합니다.</span></span></span>
         <label class="toggle-switch">
           <input type="checkbox" id="showRemainingToggle" onchange="toggleShowRemaining()">
           <span class="toggle-slider"></span>
         </label>
       </div>
       <div class="toggle-row">
-        <span class="toggle-label">수업 시작 알림음</span>
+        <span class="toggle-label">수업 시작 알림음<span class="help-icon">?<span class="help-tooltip">수업 시작 시 알림 차임벨을 재생합니다.</span></span></span>
         <label class="toggle-switch">
           <input type="checkbox" id="chimeToggle" onchange="toggleChime()">
           <span class="toggle-slider"></span>
         </label>
       </div>
       <div class="toggle-row">
-        <span class="toggle-label">콜론 깜빡임</span>
+        <span class="toggle-label">콜론 깜빡임<span class="help-icon">?<span class="help-tooltip">시계의 콜론(:)이 1초 간격으로 깜빡입니다.</span></span></span>
         <label class="toggle-switch">
           <input type="checkbox" id="colonBlinkToggle" onchange="toggleColonBlink()">
           <span class="toggle-slider"></span>
         </label>
       </div>
       <div class="toggle-row">
-        <span class="toggle-label">초 시계 표시</span>
+        <span class="toggle-label">초 시계 표시<span class="help-icon">?<span class="help-tooltip">시계에 초 단위까지 표시합니다.</span></span></span>
         <label class="toggle-switch">
           <input type="checkbox" id="secondsToggle" onchange="toggleSecondsDisplay()">
           <span class="toggle-slider"></span>
         </label>
       </div>
       <div class="toggle-row">
-        <span class="toggle-label">시간표 표시</span>
+        <span class="toggle-label">시간표 표시<span class="help-icon">?<span class="help-tooltip">화면에 오늘의 시간표를 표시합니다.</span></span></span>
         <label class="toggle-switch">
           <input type="checkbox" id="timetableModeToggle" onchange="toggleTimetableModeSetting()">
           <span class="toggle-slider"></span>
         </label>
       </div>
       <div class="toggle-row">
-        <span class="toggle-label">쉬는 시간 음성 안내</span>
+        <span class="toggle-label">쉬는 시간 음성 안내<span class="help-icon">?<span class="help-tooltip">쉬는 시간에 남은 시간을 음성으로 안내합니다. 쉬는 시간 종료 3분 전과 1분 전에 안내가 나갑니다.</span></span></span>
         <label class="toggle-switch">
           <input type="checkbox" id="voiceAlertToggle" onchange="toggleVoiceAlert()">
           <span class="toggle-slider"></span>
         </label>
       </div>
+      <div class="voice-preview-row">
+        <span class="voice-preview-label">음성 미리듣기</span>
+        <div class="voice-preview-buttons">
+          <button class="voice-preview-btn" onclick="playVoiceFile('break-3')">쉬는시간 3분</button>
+          <button class="voice-preview-btn" onclick="playVoiceFile('break-1')">쉬는시간 1분</button>
+          <button class="voice-preview-btn" onclick="playVoiceFile('lunch-5')">점심 5분</button>
+          <button class="voice-preview-btn" onclick="playVoiceFile('lunch-1')">점심 1분</button>
+        </div>
+      </div>
     </div>
 
     <div class="settings-section">
-      <div class="settings-section-title">요일별 교시 수</div>
+      <div class="settings-section-title">요일별 교시 수<span class="help-icon">?<span class="help-tooltip">각 요일마다 몇 교시까지 수업이 있는지 설정합니다.</span></span></div>
       <div class="daily-periods-grid" id="dailyPeriodsGrid"></div>
     </div>
 
     <div class="settings-section">
-      <div class="settings-section-title">시간표 편집</div>
+      <div class="settings-section-title">시간표 편집<span class="help-icon">?<span class="help-tooltip">각 교시의 시작·종료 시간을 직접 수정하거나 자동 생성할 수 있습니다.</span></span></div>
       <div class="tt-auto-generate">
         <span class="tt-auto-label">시작 시간</span>
         <input type="time" class="tt-auto-time" id="autoStartTime" value="09:00">
@@ -159,7 +168,7 @@
     </div>
 
     <div class="settings-section">
-      <div class="settings-section-title">학사 일정 / 날짜별 시간표</div>
+      <div class="settings-section-title">학사 일정 / 날짜별 시간표<span class="help-icon">?<span class="help-tooltip">특정 날짜에 별도 일정과 전용 시간표를 설정합니다. 해당 날짜에만 자동 적용됩니다.</span></span></div>
       <div class="event-selected-bar" id="eventSelectedBar">현재 선택: 새 일정 작성 중</div>
       <div class="event-help-text">1. 날짜와 일정 입력 2. 일정 저장 3. 아래 날짜 전용 시간표 수정. 배너는 해당 날짜 당일에만 표시됩니다.</div>
       <div class="event-form-grid">
@@ -188,12 +197,12 @@
     </div>
 
     <div class="settings-section">
-      <div class="settings-section-title">과목 편집</div>
+      <div class="settings-section-title">과목 편집<span class="help-icon">?<span class="help-tooltip">시간표에 사용할 과목명과 색상을 추가·수정합니다.</span></span></div>
       <div class="subject-grid" id="subjectGrid"></div>
     </div>
 
     <div class="settings-section">
-      <div class="settings-section-title">데이터 관리</div>
+      <div class="settings-section-title">데이터 관리<span class="help-icon">?<span class="help-tooltip">설정과 시간표 데이터를 파일로 내보내거나, 백업 파일을 불러올 수 있습니다.</span></span></div>
       <div class="data-manage-row">
         <button class="data-btn data-btn-primary" onclick="exportData()">&#128190; 내보내기</button>
         <button class="data-btn" onclick="document.getElementById('importFileInput').click()">&#128194; 불러오기</button>

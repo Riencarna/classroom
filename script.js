@@ -1462,9 +1462,17 @@ function renderTimetableDisplay() {
     timeline.push({ label: entry.label, start: entry.start, end: entry.end, type: entry.type, subject: subject });
   }
 
-  // Find current index
+  // Add terminal station for days with fewer than 6 periods
+  const periodCount = timeline.length;
+  if (periodCount > 0 && periodCount < 6) {
+    const lastEntry = timeline[timeline.length - 1];
+    timeline.push({ label: '수업 끝', start: lastEntry.end, end: lastEntry.end, type: 'terminal', subject: '' });
+  }
+
+  // Find current index (skip terminal)
   let currentIdx = -1;
   for (let i = 0; i < timeline.length; i++) {
+    if (timeline[i].type === 'terminal') continue;
     const s = timeToMins(timeline[i].start);
     const e = timeToMins(timeline[i].end);
     if (mins >= s && mins < e) { currentIdx = i; break; }
@@ -1481,27 +1489,24 @@ function renderTimetableDisplay() {
   wrapper.className = 'subway-wrapper';
 
   rows.forEach((rowItems, rowIdx) => {
+    const isReversed = rowIdx % 2 === 1; // ㄷ shape: odd rows reversed
     const line = document.createElement('div');
-    line.className = 'subway-line';
+    line.className = 'subway-line' + (isReversed ? ' subway-line-reversed' : '');
 
-    // Add connector from previous row
+    // Spacer between rows (arch will be drawn via SVG later)
     if (rowIdx > 0) {
-      const connector = document.createElement('div');
-      connector.className = 'subway-connector';
-      wrapper.appendChild(connector);
+      const spacer = document.createElement('div');
+      spacer.className = 'subway-connector-spacer';
+      wrapper.appendChild(spacer);
     }
 
-    // Calculate rail gauge fill for this row
-    // Rail spans from first station center to last station center
-    // Station centers (flex:1) are at (i+0.5)/N of line width
-    // Rail left = (0.5/N)*100%, rail width = ((N-1)/N)*100%
-    // Gauge progress = (localIdx + segmentFraction) / (N-1) of rail width
+    // Calculate rail gauge fill
     const rowStart = rowIdx * rowSize;
     const rowEnd = rowStart + rowItems.length - 1;
     const stationCount = rowItems.length;
     const railLeftPct = (0.5 / stationCount) * 100;
     const railWidthPct = stationCount > 1 ? ((stationCount - 1) / stationCount) * 100 : 0;
-    let gaugeFraction = 0; // 0~1 fraction of rail filled
+    let gaugeFraction = 0;
 
     if (currentIdx >= 0) {
       if (currentIdx > rowEnd) {
@@ -1514,7 +1519,7 @@ function renderTimetableDisplay() {
         if (stationCount <= 1) {
           gaugeFraction = progress;
         } else {
-          gaugeFraction = (localIdx + progress) / (stationCount - 1);
+          gaugeFraction = Math.min(1, (localIdx + progress) / (stationCount - 1));
         }
       }
     } else {
@@ -1524,17 +1529,21 @@ function renderTimetableDisplay() {
       }
     }
 
-    // Set CSS custom properties for rail positioning
     line.style.setProperty('--rail-left', railLeftPct + '%');
     line.style.setProperty('--rail-right', (100 - railLeftPct - railWidthPct) + '%');
 
-    // Rail gauge bar (fills along the track)
+    // Rail gauge bar
     const railGauge = document.createElement('div');
     railGauge.className = 'subway-rail-gauge';
-    railGauge.style.left = railLeftPct + '%';
+    if (isReversed) {
+      railGauge.style.right = railLeftPct + '%';
+      railGauge.style.left = 'auto';
+    } else {
+      railGauge.style.left = railLeftPct + '%';
+    }
     railGauge.style.width = (gaugeFraction * railWidthPct) + '%';
 
-    // Train indicator at the leading edge
+    // Train indicator
     if (gaugeFraction > 0 && gaugeFraction < 1) {
       const train = document.createElement('div');
       train.className = 'subway-train';
@@ -1544,18 +1553,22 @@ function renderTimetableDisplay() {
     line.appendChild(railGauge);
 
     rowItems.forEach((item, i) => {
-      const globalIdx = rowIdx * rowSize + i;
+      const globalIdx = rowStart + i;
+      const isTerminal = item.type === 'terminal';
       const s = timeToMins(item.start);
       const e = timeToMins(item.end);
-      const isPast = mins >= e;
+      const isPast = !isTerminal && mins >= e;
       const isCurrent = (globalIdx === currentIdx);
-      const isFuture = mins < s;
+      const isFuture = !isTerminal && !isPast && !isCurrent;
+      const isTerminalReached = isTerminal && mins >= s;
 
       const station = document.createElement('div');
       station.className = 'subway-station';
       if (isPast) station.classList.add('subway-past');
       if (isCurrent) station.classList.add('subway-current');
       if (isFuture) station.classList.add('subway-future');
+      if (isTerminal) station.classList.add('subway-terminal');
+      if (isTerminalReached) station.classList.add('subway-terminal-reached');
 
       const node = document.createElement('div');
       node.className = 'subway-node';
@@ -1567,10 +1580,8 @@ function renderTimetableDisplay() {
 
       const info = document.createElement('div');
       info.className = 'subway-info';
-
       const topRow = document.createElement('div');
       topRow.className = 'subway-top-row';
-
       const labelSpan = document.createElement('span');
       labelSpan.className = 'subway-label';
       labelSpan.textContent = item.label;
@@ -1584,7 +1595,6 @@ function renderTimetableDisplay() {
       }
 
       info.appendChild(topRow);
-
       station.appendChild(node);
       station.appendChild(info);
       line.appendChild(station);
@@ -1594,6 +1604,69 @@ function renderTimetableDisplay() {
   });
 
   container.appendChild(wrapper);
+
+  // Draw SVG arch curves between rows (replaces straight connectors)
+  if (rows.length > 1) {
+    wrapper.style.position = 'relative';
+    requestAnimationFrame(() => {
+      const lineEls = wrapper.querySelectorAll('.subway-line');
+      const svgNS = 'http://www.w3.org/2000/svg';
+      const svg = document.createElementNS(svgNS, 'svg');
+      svg.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;overflow:visible;';
+      svg.setAttribute('preserveAspectRatio', 'none');
+      const wW = wrapper.offsetWidth;
+      const wH = wrapper.offsetHeight;
+      svg.setAttribute('viewBox', '0 0 ' + wW + ' ' + wH);
+
+      for (let r = 0; r < rows.length - 1; r++) {
+        const row1El = lineEls[r];
+        const row2El = lineEls[r + 1];
+        if (!row1El || !row2El) continue;
+
+        const isRowReversed = r % 2 === 0; // even row exits RIGHT, odd exits LEFT
+        const stCount = rows[r].length;
+        const connXPct = isRowReversed
+          ? ((stCount - 0.5) / stCount) * 100
+          : (0.5 / stCount) * 100;
+        const connX = wW * connXPct / 100;
+
+        const y1 = row1El.offsetTop + 47; // rail center of row 1
+        const y2 = row2El.offsetTop + 47; // rail center of row 2
+        const archH = y2 - y1;
+        const archR = Math.min(archH * 0.5, 40); // protrusion distance
+        const curveDir = isRowReversed ? 1 : -1; // 1=right, -1=left
+
+        const d = 'M ' + connX + ' ' + y1 +
+          ' C ' + (connX + archR * curveDir) + ' ' + y1 +
+          ', ' + (connX + archR * curveDir) + ' ' + y2 +
+          ', ' + connX + ' ' + y2;
+
+        // Track path (gray)
+        const trackPath = document.createElementNS(svgNS, 'path');
+        trackPath.setAttribute('d', d);
+        trackPath.setAttribute('stroke', 'rgba(0,0,0,0.08)');
+        trackPath.setAttribute('stroke-width', '6');
+        trackPath.setAttribute('fill', 'none');
+        trackPath.setAttribute('stroke-linecap', 'round');
+        svg.appendChild(trackPath);
+
+        // Gauge path (blue, if filled)
+        const prevRowEnd = r * rowSize + rows[r].length - 1;
+        const prevEndTime = timeToMins(timeline[prevRowEnd].end);
+        if (mins >= prevEndTime || (currentIdx >= 0 && currentIdx > prevRowEnd)) {
+          const gaugePath = document.createElementNS(svgNS, 'path');
+          gaugePath.setAttribute('d', d);
+          gaugePath.setAttribute('stroke', '#4a8af4');
+          gaugePath.setAttribute('stroke-width', '6');
+          gaugePath.setAttribute('fill', 'none');
+          gaugePath.setAttribute('stroke-linecap', 'round');
+          svg.appendChild(gaugePath);
+        }
+      }
+
+      wrapper.appendChild(svg);
+    });
+  }
 }
 
 // =============================================
@@ -2114,6 +2187,22 @@ function renderRandomPickedList() {
 // =============================================
 let lastVoiceAlertKey = '';
 
+const VOICE_FILES = {
+  'break-3': 'audio/break_3min.mp3',
+  'break-1': 'audio/break_1min.mp3',
+  'lunch-5': 'audio/lunch_5min.mp3',
+  'lunch-1': 'audio/lunch_1min.mp3',
+};
+
+let voiceAudio = null;
+
+function playVoiceFile(key) {
+  if (voiceAudio) { voiceAudio.pause(); voiceAudio.currentTime = 0; }
+  voiceAudio = new Audio(VOICE_FILES[key]);
+  voiceAudio.volume = 1.0;
+  voiceAudio.play();
+}
+
 function toggleVoiceAlert() {
   settings.voiceAlertEnabled = document.getElementById('voiceAlertToggle').checked;
   saveSettings();
@@ -2121,7 +2210,6 @@ function toggleVoiceAlert() {
 
 function checkVoiceAlert(now) {
   if (!settings.voiceAlertEnabled) return;
-  if (!('speechSynthesis' in window)) return;
 
   const period = getCurrentPeriod(now);
   if (period.type !== 'break-time' && period.type !== 'lunch-time') {
@@ -2135,36 +2223,25 @@ function checkVoiceAlert(now) {
   const endSecs = period.endMins * 60;
   const remaining = endSecs - currentSecs;
 
-  const alerts = period.type === 'lunch-time'
+  const isLunch = period.type === 'lunch-time';
+  const alerts = isLunch
     ? [
-        { secs: 300, msg: '5분 남았습니다. 자리로 돌아와주세요.' },
-        { secs: 60, msg: '1분 남았습니다. 수업 준비해주세요.' },
+        { secs: 300, fileKey: 'lunch-5' },
+        { secs: 60, fileKey: 'lunch-1' },
       ]
     : [
-        { secs: 180, msg: '3분 남았습니다. 자리로 돌아와주세요.' },
-        { secs: 60, msg: '1분 남았습니다. 수업 준비해주세요.' },
+        { secs: 180, fileKey: 'break-3' },
+        { secs: 60, fileKey: 'break-1' },
       ];
 
   for (const alert of alerts) {
     const key = period.label + '-' + period.endMins + '-' + alert.secs;
     if (remaining <= alert.secs && remaining > alert.secs - 2 && lastVoiceAlertKey !== key) {
       lastVoiceAlertKey = key;
-      const typeName = period.type === 'lunch-time' ? '점심시간' : '쉬는 시간';
-      speakText(typeName + ' ' + alert.msg);
+      playVoiceFile(alert.fileKey);
       return;
     }
   }
-}
-
-function speakText(text) {
-  if (!('speechSynthesis' in window)) return;
-  window.speechSynthesis.cancel();
-  const utter = new SpeechSynthesisUtterance(text);
-  utter.lang = 'ko-KR';
-  utter.rate = 0.95;
-  utter.pitch = 1.0;
-  utter.volume = 1.0;
-  window.speechSynthesis.speak(utter);
 }
 
 // =============================================
@@ -2184,3 +2261,39 @@ applyTimetableMode();
 updateClock();
 setInterval(updateClock, 1000);
 initVisitorCounter();
+
+// =============================================
+// HELP TOOLTIP (FLOATING ON BODY)
+// =============================================
+(() => {
+  let floatingTip = null;
+  function removeFloatingTip() {
+    if (floatingTip) { floatingTip.remove(); floatingTip = null; }
+  }
+  document.querySelectorAll('.help-icon').forEach(icon => {
+    const text = icon.querySelector('.help-tooltip')?.textContent;
+    if (!text) return;
+    icon.addEventListener('mouseenter', () => {
+      removeFloatingTip();
+      floatingTip = document.createElement('div');
+      floatingTip.className = 'floating-tooltip';
+      floatingTip.textContent = text;
+      document.body.appendChild(floatingTip);
+      const r = icon.getBoundingClientRect();
+      const tt = floatingTip.getBoundingClientRect();
+      let left = r.left + r.width / 2 - tt.width / 2;
+      if (left < 8) left = 8;
+      if (left + tt.width > window.innerWidth - 8) left = window.innerWidth - 8 - tt.width;
+      // 위쪽에 공간이 있으면 위에, 없으면 아래에 표시
+      if (r.top - tt.height - 10 > 0) {
+        floatingTip.style.top = (r.top - tt.height - 10) + 'px';
+        floatingTip.classList.add('above');
+      } else {
+        floatingTip.style.top = (r.bottom + 10) + 'px';
+        floatingTip.classList.add('below');
+      }
+      floatingTip.style.left = left + 'px';
+    });
+    icon.addEventListener('mouseleave', removeFloatingTip);
+  });
+})();
