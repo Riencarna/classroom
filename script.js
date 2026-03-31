@@ -1523,9 +1523,19 @@ function renderTimetableDisplay() {
         }
       }
     } else {
+      // Break/lunch time — preserve gauge for completed periods in this row
       const lastInRow = timeline[rowEnd];
       if (lastInRow && mins >= timeToMins(lastInRow.end)) {
         gaugeFraction = 1;
+      } else if (stationCount > 1) {
+        for (let k = rowEnd; k >= rowStart; k--) {
+          if (timeline[k].type === 'terminal') continue;
+          if (mins >= timeToMins(timeline[k].end)) {
+            var localK = k - rowStart;
+            gaugeFraction = Math.min(1, (localK + 1) / (stationCount - 1));
+            break;
+          }
+        }
       }
     }
 
@@ -1616,6 +1626,7 @@ function renderTimetableDisplay() {
       svg.setAttribute('preserveAspectRatio', 'none');
       const wW = wrapper.offsetWidth;
       const wH = wrapper.offsetHeight;
+      const archPartials = [];
       svg.setAttribute('viewBox', '0 0 ' + wW + ' ' + wH);
 
       for (let r = 0; r < rows.length - 1; r++) {
@@ -1633,7 +1644,7 @@ function renderTimetableDisplay() {
         const y1 = row1El.offsetTop + 47; // rail center of row 1
         const y2 = row2El.offsetTop + 47; // rail center of row 2
         const archH = y2 - y1;
-        const archR = Math.min(archH * 0.5, 40); // protrusion distance
+        const archR = Math.min(archH * 0.6, 60); // protrusion distance
         const curveDir = isRowReversed ? 1 : -1; // 1=right, -1=left
 
         const d = 'M ' + connX + ' ' + y1 +
@@ -1650,10 +1661,21 @@ function renderTimetableDisplay() {
         trackPath.setAttribute('stroke-linecap', 'round');
         svg.appendChild(trackPath);
 
-        // Gauge path (blue, if filled)
+        // Gauge path (blue, with gradual fill for arch)
         const prevRowEnd = r * rowSize + rows[r].length - 1;
         const prevEndTime = timeToMins(timeline[prevRowEnd].end);
-        if (mins >= prevEndTime || (currentIdx >= 0 && currentIdx > prevRowEnd)) {
+        let archFill = 0;
+        if (currentIdx >= 0 && currentIdx > prevRowEnd) {
+          archFill = 1;
+        } else if (currentIdx >= 0 && currentIdx === prevRowEnd) {
+          // Currently in the last period of this row — fill arch gradually
+          const aS = timeToMins(timeline[currentIdx].start);
+          const aE = timeToMins(timeline[currentIdx].end);
+          archFill = (aE > aS) ? Math.min(1, Math.max(0, (mins - aS) / (aE - aS))) : 1;
+        } else if (mins >= prevEndTime) {
+          archFill = 1;
+        }
+        if (archFill > 0) {
           const gaugePath = document.createElementNS(svgNS, 'path');
           gaugePath.setAttribute('d', d);
           gaugePath.setAttribute('stroke', '#4a8af4');
@@ -1661,10 +1683,20 @@ function renderTimetableDisplay() {
           gaugePath.setAttribute('fill', 'none');
           gaugePath.setAttribute('stroke-linecap', 'round');
           svg.appendChild(gaugePath);
+          if (archFill < 1) {
+            archPartials.push({ path: gaugePath, fill: archFill });
+          }
         }
       }
 
       wrapper.appendChild(svg);
+
+      // Apply partial arch fills (SVG now in DOM, getTotalLength available)
+      archPartials.forEach(function(item) {
+        var totalLen = item.path.getTotalLength();
+        item.path.setAttribute('stroke-dasharray', totalLen);
+        item.path.setAttribute('stroke-dashoffset', totalLen * (1 - item.fill));
+      });
     });
   }
 }
