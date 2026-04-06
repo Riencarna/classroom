@@ -82,7 +82,7 @@
 <button class="settings-btn" onclick="openSettings()">&#9881;</button>
 <button class="random-pick-btn" onclick="openRandomPicker()" title="랜덤 뽑기">&#127922;</button>
 <button class="fullscreen-btn" id="fullscreenBtn" onclick="toggleFullscreen()" title="전체화면">&#x26F6;</button>
-<button class="version-label" onclick="openChangelog()">v1.6.0</button>
+<button class="version-label" onclick="openChangelog()">v1.6.1</button>
 
 <input type="file" id="importFileInput" accept=".json" style="display:none" onchange="handleImport(event)">
 
@@ -218,6 +218,12 @@
       <button class="modal-close" onclick="closeChangelog()">&#10005;</button>
     </div>
     <div class="changelog-list">
+      <div class="changelog-item">
+        <div class="changelog-item-header">
+          <span class="changelog-version">v1.6.1</span>
+        </div>
+        <div class="changelog-desc">백그라운드 탭에서도 시계·음성 안내가 정상 작동하도록 Web Worker 타이머 적용, 음성 안내 감지 방식 개선</div>
+      </div>
       <div class="changelog-item">
         <div class="changelog-item-header">
           <span class="changelog-version">v1.6.0</span>
