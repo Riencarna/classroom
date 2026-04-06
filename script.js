@@ -2218,6 +2218,7 @@ function renderRandomPickedList() {
 // VOICE ALERT (쉬는 시간 음성 안내)
 // =============================================
 let lastVoiceAlertKey = '';
+let playedVoiceAlerts = new Set();
 
 const VOICE_FILES = {
   'break-3': 'audio/break_3min.mp3',
@@ -2245,7 +2246,8 @@ function checkVoiceAlert(now) {
 
   const period = getCurrentPeriod(now);
   if (period.type !== 'break-time' && period.type !== 'lunch-time') {
-    lastVoiceAlertKey = '';
+    // 쉬는시간/점심이 아니면 재생 기록 초기화
+    playedVoiceAlerts.clear();
     return;
   }
 
@@ -2266,10 +2268,11 @@ function checkVoiceAlert(now) {
         { secs: 60, fileKey: 'break-1' },
       ];
 
+  // 큰 시간부터 체크하여, 해당 시점을 지났으면 한 번만 재생
   for (const alert of alerts) {
     const key = period.label + '-' + period.endMins + '-' + alert.secs;
-    if (remaining <= alert.secs && remaining > alert.secs - 2 && lastVoiceAlertKey !== key) {
-      lastVoiceAlertKey = key;
+    if (remaining <= alert.secs && remaining > 0 && !playedVoiceAlerts.has(key)) {
+      playedVoiceAlerts.add(key);
       playVoiceFile(alert.fileKey);
       return;
     }
@@ -2291,7 +2294,13 @@ applySecondsVisibility();
 updateAcademicEventSelectionBar();
 applyTimetableMode();
 updateClock();
-setInterval(updateClock, 1000);
+
+// Web Worker로 1초 타이머 실행 (백그라운드 탭에서도 쓰로틀링 없음)
+const timerWorker = new Worker(URL.createObjectURL(new Blob([
+  'setInterval(() => postMessage(1), 1000);'
+], { type: 'application/javascript' })));
+timerWorker.onmessage = () => updateClock();
+
 initVisitorCounter();
 
 // =============================================
