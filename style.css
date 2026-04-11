@@ -1361,16 +1361,22 @@
     font-size: 1.1rem;
     line-height: 1.8;
     color: #2d2a26;
-    resize: vertical;
     outline: none;
     transition: border-color 0.3s, box-shadow 0.3s;
     box-shadow: 0 4px 20px rgba(0,0,0,0.04);
+    overflow-y: auto;
+    white-space: pre-wrap;
+    word-wrap: break-word;
   }
   .notebook-textarea:focus {
     border-color: rgba(59, 130, 246, 0.4);
     box-shadow: 0 4px 20px rgba(0,0,0,0.04), 0 0 0 3px rgba(59, 130, 246, 0.1);
   }
-  .notebook-textarea::placeholder { color: rgba(0,0,0,0.25); }
+  .notebook-textarea:empty::before {
+    content: attr(data-placeholder);
+    color: rgba(0,0,0,0.25);
+    pointer-events: none;
+  }
 
   .notebook-toolbar {
     display: flex;
@@ -1417,7 +1423,150 @@
   .font-size-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
   .font-size-input:focus { border-color: #3b82f6; box-shadow: 0 0 0 2px rgba(59,130,246,0.15); }
 
+  .notebook-fontsize-wrap {
+    position: relative;
+  }
+  .notebook-fontsize-dropdown {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 110;
+    margin-top: 4px;
+    background: rgba(255,255,255,0.97);
+    backdrop-filter: blur(12px);
+    border: 1.5px solid rgba(0,0,0,0.1);
+    border-radius: 10px;
+    padding: 4px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+    max-height: 180px;
+    overflow-y: auto;
+    width: 64px;
+  }
+  .notebook-fontsize-dropdown.open { display: block; }
+  .notebook-fontsize-dropdown::-webkit-scrollbar { width: 4px; }
+  .notebook-fontsize-dropdown::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.12); border-radius: 4px; }
+  .notebook-fontsize-option {
+    display: block;
+    width: 100%;
+    padding: 0.3rem 0;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    font-family: 'Outfit', sans-serif;
+    font-weight: 600;
+    font-size: 0.82rem;
+    color: rgba(0,0,0,0.5);
+    text-align: center;
+    border-radius: 6px;
+    transition: all 0.15s;
+  }
+  .notebook-fontsize-option:hover { background: rgba(59,130,246,0.08); color: #3b82f6; }
+  .notebook-fontsize-option.active { background: rgba(59,130,246,0.13); color: #3b82f6; font-weight: 800; }
+
+  .notebook-toolbar-divider {
+    width: 1px;
+    height: 20px;
+    background: rgba(0,0,0,0.1);
+    margin: 0 0.15rem;
+  }
+  .notebook-color-btn {
+    width: 32px; height: 32px;
+    border-radius: 10px;
+    border: 1.5px solid rgba(0,0,0,0.1);
+    background: rgba(255,255,255,0.6);
+    backdrop-filter: blur(8px);
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    padding: 0;
+    transition: all 0.2s;
+    position: relative;
+  }
+  .notebook-color-btn:hover { border-color: rgba(59,130,246,0.3); background: rgba(255,255,255,0.9); }
+  .notebook-color-btn-swatch {
+    width: 18px; height: 18px;
+    border-radius: 50%;
+    border: 1.5px solid rgba(0,0,0,0.15);
+    display: block;
+  }
+  .notebook-palette {
+    display: none;
+    position: absolute;
+    z-index: 100;
+    background: rgba(255,255,255,0.95);
+    backdrop-filter: blur(12px);
+    border: 1.5px solid rgba(0,0,0,0.1);
+    border-radius: 12px;
+    padding: 8px;
+    gap: 5px;
+    flex-wrap: wrap;
+    width: 174px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+    margin-top: 4px;
+  }
+  .notebook-palette.open { display: flex; }
+  .notebook-palette-color {
+    width: 26px; height: 26px;
+    border-radius: 50%;
+    border: 2px solid transparent;
+    cursor: pointer;
+    transition: all 0.15s;
+    box-sizing: border-box;
+  }
+  .notebook-palette-color:hover { transform: scale(1.2); }
+  .notebook-palette-color.active { border-color: #3b82f6; box-shadow: 0 0 0 2px rgba(59,130,246,0.3); }
+  .notebook-style-btn {
+    width: 32px; height: 32px;
+    border-radius: 10px;
+    border: 1.5px solid rgba(0,0,0,0.1);
+    background: rgba(255,255,255,0.6);
+    backdrop-filter: blur(8px);
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Noto Sans KR', serif;
+    font-size: 0.85rem;
+    color: rgba(0,0,0,0.45);
+    transition: all 0.2s;
+  }
+  .notebook-style-btn:hover { background: rgba(255,255,255,0.9); color: #3b82f6; border-color: rgba(59,130,246,0.3); }
+  .notebook-style-btn.active {
+    background: rgba(59,130,246,0.15);
+    color: #3b82f6;
+    border-color: rgba(59,130,246,0.4);
+  }
+
   /* ========== Notice Cards ========== */
+  .notice-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    margin-bottom: 0.8rem;
+    flex-wrap: wrap;
+  }
+  .notice-size-presets {
+    display: flex;
+    gap: 0.3rem;
+  }
+  .notice-preset-btn {
+    padding: 0.25rem 0.6rem;
+    border-radius: 8px;
+    border: 1.5px solid rgba(139,92,246,0.15);
+    background: rgba(255,255,255,0.6);
+    backdrop-filter: blur(8px);
+    cursor: pointer;
+    font-family: 'Noto Sans KR', sans-serif;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: rgba(0,0,0,0.4);
+    transition: all 0.2s;
+  }
+  .notice-preset-btn:hover { background: rgba(255,255,255,0.9); color: #8b5cf6; border-color: rgba(139,92,246,0.35); }
+  .notice-preset-btn.active {
+    background: rgba(139,92,246,0.12);
+    color: #8b5cf6;
+    border-color: rgba(139,92,246,0.4);
+  }
   .notice-card {
     display: flex;
     align-items: center;
@@ -1438,7 +1587,7 @@
   }
   .notice-content {
     flex: 1; min-width: 0; outline: none;
-    font-size: 1.5rem; line-height: 1.6; color: #2d2a26;
+    font-size: 24px; line-height: 1.6; color: #2d2a26;
     border-radius: 6px; padding: 2px 6px; transition: background 0.2s;
   }
   .notice-content:focus { background: #fff; box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.3); }
@@ -1925,8 +2074,14 @@
     background: transparent;
     border: none;
     outline: none;
-    resize: none;
     width: 100%;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+  }
+  .notebook-fullscreen-body:empty::before {
+    content: attr(data-placeholder);
+    color: rgba(0,0,0,0.25);
+    pointer-events: none;
   }
   .notebook-fullscreen-body::-webkit-scrollbar { width: 6px; }
   .notebook-fullscreen-body::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.1); border-radius: 6px; }
@@ -1952,6 +2107,13 @@
     margin-left: 0;
   }
   .notebook-expand-btn:hover { background: rgba(59,130,246,0.15); border-color: rgba(59,130,246,0.4); }
+  .notebook-schoolbell-btn {
+    background: rgba(34,197,94,0.08);
+    border-color: rgba(34,197,94,0.25);
+    color: #16a34a;
+    margin-left: 0;
+  }
+  .notebook-schoolbell-btn:hover { background: rgba(34,197,94,0.18); border-color: rgba(34,197,94,0.45); color: #15803d; }
   .notebook-expand-btn.active {
     background: rgba(59,130,246,0.18);
     border-color: rgba(59,130,246,0.45);
@@ -1994,9 +2156,16 @@
     font-size: 1.1rem;
     line-height: 1.8;
     color: #2d2a26;
-    resize: none;
     outline: none;
     box-shadow: 0 12px 32px rgba(0,0,0,0.06);
+    overflow-y: auto;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+  }
+  .notebook-panel-textarea:empty::before {
+    content: attr(data-placeholder);
+    color: rgba(0,0,0,0.25);
+    pointer-events: none;
   }
   .notebook-panel-textarea:focus {
     border-color: rgba(59, 130, 246, 0.42);

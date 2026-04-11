@@ -1144,14 +1144,14 @@ function switchTab(tabName) {
   document.getElementById('tabNotice').style.display = tabName === 'notice' ? '' : 'none';
 
   if (tabName === 'notebook') {
-    const notebookText = viewData.notebook || '';
-    document.getElementById('notebookArea').value = notebookText;
-    const overlayArea = document.getElementById('notebookPanelTextarea');
-    if (overlayArea) overlayArea.value = notebookText;
+    const notebookHTML = viewData.notebook || '';
+    setNotebookHTML('notebookArea', notebookHTML);
+    setNotebookHTML('notebookPanelTextarea', notebookHTML);
     applyNotebookFontSize();
   }
   if (tabName === 'notice') {
     renderNotices();
+    applyNoticeFontSize();
   }
   applyNotebookPanelFill();
 }
@@ -1164,31 +1164,73 @@ function initTabs() {
 // =============================================
 // NOTEBOOK (알림장)
 // =============================================
-function onNotebookInput() {
-  const value = document.getElementById('notebookArea').value;
-  const overlayArea = document.getElementById('notebookPanelTextarea');
-  if (overlayArea && overlayArea.value !== value) overlayArea.value = value;
+function sendToSchoolbell() {
+  var area = document.getElementById('notebookArea');
+  var text = (area ? area.innerText : '').trim();
+  if (!text) {
+    showToast('알림장에 내용을 먼저 입력해주세요');
+    return;
+  }
+  navigator.clipboard.writeText(text).then(function() {
+    showToast('알림장 내용이 복사되었습니다. 학교종이 사이트로 이동합니다.');
+    setTimeout(function() {
+      window.open('https://schoolbell-e.com/ko/main/home', '_blank');
+    }, 800);
+  }).catch(function() {
+    // fallback
+    var tmp = document.createElement('textarea');
+    tmp.value = text;
+    tmp.style.position = 'fixed';
+    tmp.style.opacity = '0';
+    document.body.appendChild(tmp);
+    tmp.select();
+    document.execCommand('copy');
+    document.body.removeChild(tmp);
+    showToast('알림장 내용이 복사되었습니다. 학교종이 사이트로 이동합니다.');
+    setTimeout(function() {
+      window.open('https://schoolbell-e.com/ko/main/home', '_blank');
+    }, 800);
+  });
+}
+
+function getNotebookHTML(id) {
+  var el = document.getElementById(id);
+  return el ? el.innerHTML : '';
+}
+
+function setNotebookHTML(id, html) {
+  var el = document.getElementById(id);
+  if (el && el.innerHTML !== html) el.innerHTML = html;
+}
+
+function saveNotebookContent(html) {
   clearTimeout(notebookTimer);
-  notebookTimer = setTimeout(() => {
-    viewData.notebook = value;
+  notebookTimer = setTimeout(function() {
+    viewData.notebook = html;
     saveViewData();
   }, 500);
 }
 
+function onNotebookInput() {
+  var html = getNotebookHTML('notebookArea');
+  setNotebookHTML('notebookPanelTextarea', html);
+  saveNotebookContent(html);
+}
+
 function onNotebookPanelInput() {
-  const value = document.getElementById('notebookPanelTextarea').value;
-  const area = document.getElementById('notebookArea');
-  if (area && area.value !== value) area.value = value;
-  clearTimeout(notebookTimer);
-  notebookTimer = setTimeout(() => {
-    viewData.notebook = value;
-    saveViewData();
-  }, 500);
+  var html = getNotebookHTML('notebookPanelTextarea');
+  setNotebookHTML('notebookArea', html);
+  saveNotebookContent(html);
+}
+
+function onNotebookFullscreenInput() {
+  var html = getNotebookHTML('notebookFullscreenBody');
+  saveNotebookContent(html);
 }
 
 function changeNotebookFontSize(delta) {
   const fontSize = (viewData.notebookFontSize || 18) + delta;
-  const clamped = Math.max(12, Math.min(80, fontSize));
+  const clamped = Math.max(12, Math.min(120, fontSize));
   viewData.notebookFontSize = clamped;
   saveViewData();
   applyNotebookFontSize();
@@ -1196,10 +1238,47 @@ function changeNotebookFontSize(delta) {
 
 function setNotebookFontSize(val) {
   var size = parseInt(val) || 18;
-  size = Math.max(12, Math.min(80, size));
+  size = Math.max(12, Math.min(120, size));
   viewData.notebookFontSize = size;
   saveViewData();
   applyNotebookFontSize();
+  // Close dropdowns
+  document.querySelectorAll('.notebook-fontsize-dropdown').forEach(function(d) { d.classList.remove('open'); });
+}
+
+var NOTEBOOK_SIZE_PRESETS = [10,20,30,40,50,60,70,80,90,100,110,120];
+
+function buildNotebookSizeDropdown(id) {
+  var container = document.getElementById(id);
+  if (!container || container.children.length > 0) return;
+  var current = viewData.notebookFontSize || 18;
+  NOTEBOOK_SIZE_PRESETS.forEach(function(s) {
+    var btn = document.createElement('button');
+    btn.className = 'notebook-fontsize-option' + (s === current ? ' active' : '');
+    btn.textContent = s;
+    btn.setAttribute('data-size', s);
+    btn.onclick = function(e) { e.stopPropagation(); setNotebookFontSize(s); };
+    container.appendChild(btn);
+  });
+}
+
+function toggleNotebookSizeDropdown(id) {
+  var dropdown = document.getElementById(id);
+  var otherId = id === 'fontSizeDropdown' ? 'fontSizeDropdownFs' : 'fontSizeDropdown';
+  var other = document.getElementById(otherId);
+  if (other) other.classList.remove('open');
+  buildNotebookSizeDropdown(id);
+  // Update active state
+  var current = viewData.notebookFontSize || 18;
+  dropdown.querySelectorAll('.notebook-fontsize-option').forEach(function(btn) {
+    btn.classList.toggle('active', parseInt(btn.getAttribute('data-size')) === current);
+  });
+  dropdown.classList.toggle('open');
+  // Scroll active item into view
+  if (dropdown.classList.contains('open')) {
+    var activeBtn = dropdown.querySelector('.active');
+    if (activeBtn) activeBtn.scrollIntoView({ block: 'center', behavior: 'smooth' });
+  }
 }
 
 function applyNotebookFontSize() {
@@ -1214,6 +1293,90 @@ function applyNotebookFontSize() {
   if (input) input.value = size;
   const inputFs = document.getElementById('fontSizeInputFullscreen');
   if (inputFs) inputFs.value = size;
+}
+
+var NOTEBOOK_COLORS = [
+  '#000000','#444444','#888888',
+  '#d32f2f','#e64a19','#f9a825',
+  '#388e3c','#1976d2','#7b1fa2',
+  '#0097a7','#c2185b','#5d4037',
+  '#1a237e','#004d40','#ff6f00',
+  '#ad1457','#283593','#ffffff'
+];
+
+function buildNotebookPalette(id) {
+  var container = document.getElementById(id);
+  if (!container || container.children.length > 0) return;
+  var current = viewData.notebookColor || '#000000';
+  NOTEBOOK_COLORS.forEach(function(c) {
+    var dot = document.createElement('span');
+    dot.className = 'notebook-palette-color' + (c === current ? ' active' : '');
+    dot.style.background = c;
+    if (c === '#ffffff') dot.style.border = '2px solid rgba(0,0,0,0.15)';
+    dot.setAttribute('data-color', c);
+    dot.onclick = function() { pickNotebookColor(c); };
+    container.appendChild(dot);
+  });
+}
+
+function toggleNotebookPalette(variant) {
+  var id = variant === 'fs' ? 'notebookPaletteFs' : 'notebookPalette';
+  var otherId = variant === 'fs' ? 'notebookPalette' : 'notebookPaletteFs';
+  var panel = document.getElementById(id);
+  var otherPanel = document.getElementById(otherId);
+  if (otherPanel) otherPanel.classList.remove('open');
+  buildNotebookPalette(id);
+  panel.classList.toggle('open');
+}
+
+function pickNotebookColor(color) {
+  document.querySelectorAll('.notebook-palette').forEach(function(p) { p.classList.remove('open'); });
+  document.execCommand('foreColor', false, color);
+  // Update swatch to picked color
+  ['notebookColorSwatch', 'notebookColorSwatchFs'].forEach(function(id) {
+    var sw = document.getElementById(id);
+    if (sw) sw.style.background = color;
+  });
+  document.querySelectorAll('.notebook-palette-color').forEach(function(dot) {
+    dot.classList.toggle('active', dot.getAttribute('data-color') === color);
+  });
+  syncNotebookFromActive();
+}
+
+function toggleNotebookStyle(style) {
+  if (style === 'bold') document.execCommand('bold');
+  else if (style === 'italic') document.execCommand('italic');
+  else if (style === 'underline') document.execCommand('underline');
+  syncNotebookFromActive();
+}
+
+function syncNotebookFromActive() {
+  // After applying formatting, save the active editor's content
+  var areas = ['notebookArea', 'notebookPanelTextarea', 'notebookFullscreenBody'];
+  for (var i = 0; i < areas.length; i++) {
+    var el = document.getElementById(areas[i]);
+    if (el && el.contains(document.activeElement) || el === document.activeElement) {
+      var html = el.innerHTML;
+      // Sync to other editors
+      areas.forEach(function(otherId) {
+        if (otherId !== areas[i]) setNotebookHTML(otherId, html);
+      });
+      clearTimeout(notebookTimer);
+      notebookTimer = setTimeout(function() {
+        viewData.notebook = html;
+        saveViewData();
+      }, 300);
+      break;
+    }
+  }
+}
+
+function initNotebookSwatches() {
+  var color = '#000000';
+  ['notebookColorSwatch', 'notebookColorSwatchFs'].forEach(function(id) {
+    var sw = document.getElementById(id);
+    if (sw) sw.style.background = color;
+  });
 }
 
 function toggleNotebookPanelFill() {
@@ -1233,7 +1396,7 @@ function applyNotebookPanelFill() {
   if (overlay) overlay.setAttribute('aria-hidden', enabled ? 'false' : 'true');
   if (enabled) {
     if (overlayArea) {
-      overlayArea.value = viewData.notebook || '';
+      overlayArea.innerHTML = viewData.notebook || '';
       overlayArea.focus();
     }
   }
@@ -1260,6 +1423,7 @@ function renderNotices() {
     content.contentEditable = true;
     content.spellcheck = false;
     content.textContent = notice.text;
+    content.style.fontSize = (viewData.noticeFontSize || 24) + 'px';
     content.addEventListener('blur', () => {
       viewData.notices[i].text = content.textContent.trim() || '새 공지';
       saveViewData();
@@ -1300,6 +1464,37 @@ function addNotice() {
     const last = items[items.length - 1];
     if (last) { last.focus(); document.execCommand('selectAll', false, null); }
   }, 100);
+}
+
+function changeNoticeFontSize(delta) {
+  var size = (viewData.noticeFontSize || 24) + delta;
+  size = Math.max(12, Math.min(120, size));
+  viewData.noticeFontSize = size;
+  saveViewData();
+  applyNoticeFontSize();
+}
+
+function setNoticeFontSize(val) {
+  var size = parseInt(val) || 24;
+  size = Math.max(12, Math.min(120, size));
+  viewData.noticeFontSize = size;
+  saveViewData();
+  applyNoticeFontSize();
+}
+
+function applyNoticeFontSize() {
+  var size = viewData.noticeFontSize || 24;
+  document.querySelectorAll('.notice-content').forEach(function(el) {
+    el.style.fontSize = size + 'px';
+  });
+  var input = document.getElementById('noticeFontSizeInput');
+  if (input) input.value = size;
+  // Update preset button active states
+  var presets = [16, 24, 36, 48];
+  var btns = document.querySelectorAll('.notice-preset-btn');
+  btns.forEach(function(btn, idx) {
+    btn.classList.toggle('active', presets[idx] === size);
+  });
 }
 
 // =============================================
@@ -1971,9 +2166,9 @@ document.addEventListener('fullscreenchange', function() {
 // NOTEBOOK FULLSCREEN
 // =============================================
 function openNotebookFullscreen() {
-  var text = document.getElementById('notebookArea').value || '';
+  var html = viewData.notebook || '';
   var fullscreenBody = document.getElementById('notebookFullscreenBody');
-  fullscreenBody.value = text;
+  fullscreenBody.innerHTML = html;
   fullscreenBody.style.fontSize = (viewData.notebookFontSize || 18) + 'px';
   document.getElementById('notebookFullscreen').classList.add('open');
   fullscreenBody.focus();
@@ -1981,9 +2176,10 @@ function openNotebookFullscreen() {
 
 function closeNotebookFullscreen() {
   var fullscreenBody = document.getElementById('notebookFullscreenBody');
-  var text = fullscreenBody.value;
-  document.getElementById('notebookArea').value = text;
-  viewData.notebook = text;
+  var html = fullscreenBody.innerHTML;
+  setNotebookHTML('notebookArea', html);
+  setNotebookHTML('notebookPanelTextarea', html);
+  viewData.notebook = html;
   saveViewData();
   document.getElementById('notebookFullscreen').classList.remove('open');
 }
@@ -1993,6 +2189,15 @@ document.addEventListener('keydown', function(e) {
     closeNotebookFullscreen();
   } else if (e.key === 'Escape' && viewData.activeTab === 'notebook' && viewData.notebookPanelFill) {
     toggleNotebookPanelFill();
+  }
+});
+
+document.addEventListener('click', function(e) {
+  if (!e.target.closest('.notebook-color-btn') && !e.target.closest('.notebook-palette')) {
+    document.querySelectorAll('.notebook-palette').forEach(function(p) { p.classList.remove('open'); });
+  }
+  if (!e.target.closest('.notebook-fontsize-wrap')) {
+    document.querySelectorAll('.notebook-fontsize-dropdown').forEach(function(d) { d.classList.remove('open'); });
   }
 });
 
@@ -2289,6 +2494,7 @@ loadViewData();
 loadRandomStudents();
 renderRules();
 initTabs();
+initNotebookSwatches();
 initAudio();
 applySecondsVisibility();
 updateAcademicEventSelectionBar();

@@ -55,12 +55,23 @@
     <div class="notebook-toolbar">
       <span class="notebook-toolbar-label">글자 크기</span>
       <button class="font-size-btn" onclick="changeNotebookFontSize(-2)">−</button>
-      <input type="number" class="font-size-input" id="fontSizeInput" value="18" min="12" max="80" onchange="setNotebookFontSize(this.value)">
+      <div class="notebook-fontsize-wrap">
+        <input type="number" class="font-size-input" id="fontSizeInput" value="18" min="12" max="120" onchange="setNotebookFontSize(this.value)" onclick="toggleNotebookSizeDropdown('fontSizeDropdown')">
+        <div class="notebook-fontsize-dropdown" id="fontSizeDropdown"></div>
+      </div>
       <button class="font-size-btn" onclick="changeNotebookFontSize(2)">+</button>
+      <span class="notebook-toolbar-divider"></span>
+      <button class="notebook-color-btn" id="notebookColorBtn" onclick="toggleNotebookPalette()" title="글자색"><span class="notebook-color-btn-swatch" id="notebookColorSwatch"></span></button>
+      <div class="notebook-palette" id="notebookPalette"></div>
+      <button class="notebook-style-btn" id="notebookBoldBtn" onclick="toggleNotebookStyle('bold')" title="볼드"><b>B</b></button>
+      <button class="notebook-style-btn" id="notebookItalicBtn" onclick="toggleNotebookStyle('italic')" title="이탤릭"><i>I</i></button>
+      <button class="notebook-style-btn" id="notebookUnderlineBtn" onclick="toggleNotebookStyle('underline')" title="밑줄"><u>U</u></button>
+      <span class="notebook-toolbar-divider"></span>
       <button class="notebook-expand-btn" id="notebookPanelFillBtn" onclick="toggleNotebookPanelFill()">패널 채우기</button>
       <button class="notebook-expand-btn" onclick="openNotebookFullscreen()">&#x26F6; 전체화면</button>
+      <button class="notebook-expand-btn notebook-schoolbell-btn" onclick="sendToSchoolbell()">&#x1F514; 학교종이</button>
     </div>
-    <textarea id="notebookArea" class="notebook-textarea" placeholder="오늘의 알림을 입력하세요..." oninput="onNotebookInput()"></textarea>
+    <div id="notebookArea" class="notebook-textarea" contenteditable="true" data-placeholder="오늘의 알림을 입력하세요..." oninput="onNotebookInput()"></div>
   </div>
 
   <div class="tab-content" id="tabNotice" style="display:none">
@@ -69,13 +80,26 @@
       <button class="edit-toggle-btn" onclick="addNotice()">+ 추가</button>
     </div>
     <div class="rules-subtitle">NOTICE</div>
+    <div class="notice-toolbar">
+      <span class="notebook-toolbar-label">글자 크기</span>
+      <button class="font-size-btn" onclick="changeNoticeFontSize(-2)">−</button>
+      <input type="number" class="font-size-input" id="noticeFontSizeInput" value="24" min="12" max="120" onchange="setNoticeFontSize(this.value)">
+      <button class="font-size-btn" onclick="changeNoticeFontSize(2)">+</button>
+      <span class="notebook-toolbar-divider"></span>
+      <div class="notice-size-presets" id="noticeSizePresets">
+        <button class="notice-preset-btn" onclick="setNoticeFontSize(16)">작게</button>
+        <button class="notice-preset-btn" onclick="setNoticeFontSize(24)">보통</button>
+        <button class="notice-preset-btn" onclick="setNoticeFontSize(36)">크게</button>
+        <button class="notice-preset-btn" onclick="setNoticeFontSize(48)">아주 크게</button>
+      </div>
+    </div>
     <div id="noticeContainer"></div>
     <button class="add-notice-btn" onclick="addNotice()">+ 새 공지 추가</button>
   </div>
 
   <div class="notebook-panel-overlay" id="notebookPanelOverlay">
     <button class="notebook-focus-exit-btn" id="notebookFocusExitBtn" onclick="toggleNotebookPanelFill()">패널 닫기</button>
-    <textarea id="notebookPanelTextarea" class="notebook-panel-textarea" placeholder="오늘의 알림을 입력하세요..." oninput="onNotebookPanelInput()"></textarea>
+    <div id="notebookPanelTextarea" class="notebook-panel-textarea" contenteditable="true" data-placeholder="오늘의 알림을 입력하세요..." oninput="onNotebookPanelInput()"></div>
   </div>
 </div>
 
@@ -374,12 +398,21 @@
     <div class="notebook-toolbar" style="margin-bottom:0;">
       <span class="notebook-toolbar-label">글자 크기</span>
       <button class="font-size-btn" onclick="changeNotebookFontSize(-2)">−</button>
-      <input type="number" class="font-size-input" id="fontSizeInputFullscreen" value="18" min="12" max="80" onchange="setNotebookFontSize(this.value)">
+      <div class="notebook-fontsize-wrap">
+        <input type="number" class="font-size-input" id="fontSizeInputFullscreen" value="18" min="12" max="120" onchange="setNotebookFontSize(this.value)" onclick="toggleNotebookSizeDropdown('fontSizeDropdownFs')">
+        <div class="notebook-fontsize-dropdown" id="fontSizeDropdownFs"></div>
+      </div>
       <button class="font-size-btn" onclick="changeNotebookFontSize(2)">+</button>
+      <span class="notebook-toolbar-divider"></span>
+      <button class="notebook-color-btn" id="notebookColorBtnFs" onclick="toggleNotebookPalette('fs')" title="글자색"><span class="notebook-color-btn-swatch" id="notebookColorSwatchFs"></span></button>
+      <div class="notebook-palette" id="notebookPaletteFs"></div>
+      <button class="notebook-style-btn" id="notebookBoldBtnFs" onclick="toggleNotebookStyle('bold')" title="볼드"><b>B</b></button>
+      <button class="notebook-style-btn" id="notebookItalicBtnFs" onclick="toggleNotebookStyle('italic')" title="이탤릭"><i>I</i></button>
+      <button class="notebook-style-btn" id="notebookUnderlineBtnFs" onclick="toggleNotebookStyle('underline')" title="밑줄"><u>U</u></button>
     </div>
     <button class="notebook-fullscreen-close" onclick="closeNotebookFullscreen()">&#10005;</button>
   </div>
-  <textarea class="notebook-fullscreen-body" id="notebookFullscreenBody" placeholder="알림 내용을 입력하세요..."></textarea>
+  <div class="notebook-fullscreen-body" id="notebookFullscreenBody" contenteditable="true" data-placeholder="알림 내용을 입력하세요..." oninput="onNotebookFullscreenInput()"></div>
 </div>
 
 <script src="script.js"></script>
