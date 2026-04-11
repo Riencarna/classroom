@@ -29,7 +29,7 @@ const DEFAULT_TIMETABLE = [
 let rules = [];
 let isEditing = false;
 let timetable = [];
-let settings = { showRemaining: true, chimeEnabled: true, colonBlink: true, showSeconds: true, timetableMode: false, dailyPeriods: { 1:5, 2:6, 3:5, 4:5, 5:5 }, morningSlotMigrated: false };
+let settings = { showRemaining: true, chimeEnabled: true, colonBlink: true, showSeconds: true, timetableMode: false, dailyPeriods: { 1:5, 2:6, 3:5, 4:5, 5:5 }, morningSlotMigrated: false, schoolbellUrl: '' };
 let viewData = { activeTab: 'rules', notebook: '', notices: [], academicEvents: [], selectedAcademicEventDate: '' };
 let lastPeriodLabel = null;
 let lastChimeTime = 0;
@@ -205,6 +205,7 @@ function loadSettings() {
       if (settings.timetableMode === undefined) settings.timetableMode = false;
       if (settings.morningSlotMigrated === undefined) settings.morningSlotMigrated = false;
       if (settings.voiceAlertEnabled === undefined) settings.voiceAlertEnabled = false;
+      if (settings.schoolbellUrl === undefined) settings.schoolbellUrl = '';
     }
   } catch { /* keep defaults */ }
 }
@@ -439,6 +440,7 @@ function openSettings() {
   document.getElementById('secondsToggle').checked = settings.showSeconds;
   document.getElementById('timetableModeToggle').checked = settings.timetableMode;
   document.getElementById('voiceAlertToggle').checked = settings.voiceAlertEnabled;
+  document.getElementById('schoolbellUrlInput').value = settings.schoolbellUrl || '';
   renderDailyPeriods();
   renderTimetableEditor();
   renderSubjectGrid();
@@ -1213,10 +1215,29 @@ function execCommandCopy(text) {
 }
 
 function openSchoolbell() {
-  showToast('알림장 내용이 복사되었습니다. 학교종이에서 알림장 작성 후 붙여넣어 주세요.');
+  var baseUrl = (settings.schoolbellUrl || '').trim();
+  var url;
+  if (baseUrl) {
+    // 설정된 URL에서 그룹 ID를 추출하여 알림장 작성 페이지로 이동
+    var match = baseUrl.match(/group\/(\d+)/);
+    if (match) {
+      url = 'https://schoolbell-e.com/ko/main/group/' + match[1] + '/boards/write/classnews';
+    } else {
+      url = baseUrl;
+    }
+  } else {
+    url = 'https://v4.schoolbell-e.com';
+  }
+  showToast('알림장 내용이 복사되었습니다. 학교종이에서 Ctrl+V로 붙여넣어 주세요.');
   setTimeout(function() {
-    window.open('https://v4.schoolbell-e.com', '_blank');
+    window.open(url, '_blank');
   }, 800);
+}
+
+function saveSchoolbellUrl() {
+  settings.schoolbellUrl = document.getElementById('schoolbellUrlInput').value.trim();
+  saveSettings();
+  showToast('학교종이 URL이 저장되었습니다.');
 }
 
 function getNotebookHTML(id) {
