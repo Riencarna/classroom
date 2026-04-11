@@ -1,6 +1,14 @@
 // =============================================
 // CONSTANTS
 // =============================================
+const APP_VERSION = 'v1.7.0';
+const UPDATE_NOTES = [
+  '알림장에서 글자를 꾸밀 수 있어요 (굵게, 기울임, 밑줄, 글자색)',
+  '다양한 색상을 골라서 글자 색을 바꿀 수 있어요',
+  '글자 크기를 원하는 크기로 간편하게 바꿀 수 있어요',
+  '공지사항의 글자 크기도 조절할 수 있어요',
+  '학교종이 연동 버튼이 추가되었어요'
+];
 const COLORS = ['#3b82f6','#8b5cf6','#f97316','#10b981','#ef4444','#ec4899','#14b8a6','#f59e0b'];
 const DAYS_KR = ['일요일','월요일','화요일','수요일','목요일','금요일','토요일'];
 const DAY_LABELS = ['월','화','수','목','금'];
@@ -422,6 +430,31 @@ function showToast(msg) {
   t.classList.add('show');
   clearTimeout(t._timer);
   t._timer = setTimeout(() => t.classList.remove('show'), 2000);
+}
+
+// =============================================
+// UPDATE NOTIFICATION
+// =============================================
+function checkUpdateNotification() {
+  var lastSeen = localStorage.getItem('classroom_lastSeenVersion') || '';
+  if (lastSeen === APP_VERSION) return;
+  var popup = document.getElementById('updateNotification');
+  if (popup) {
+    document.getElementById('updateVersion').textContent = APP_VERSION;
+    var listEl = document.getElementById('updateNotesList');
+    listEl.innerHTML = '';
+    UPDATE_NOTES.forEach(function(note) {
+      var li = document.createElement('li');
+      li.textContent = note;
+      listEl.appendChild(li);
+    });
+    popup.classList.add('open');
+  }
+}
+
+function dismissUpdateNotification() {
+  localStorage.setItem('classroom_lastSeenVersion', APP_VERSION);
+  document.getElementById('updateNotification').classList.remove('open');
 }
 
 // =============================================
@@ -1167,6 +1200,9 @@ function initTabs() {
 // NOTEBOOK (알림장)
 // =============================================
 function sendToSchoolbell() {
+  showToast('테스트 중입니다. 추후 업데이트를 기다려주세요.');
+  return;
+  /* --- 아래 기능은 테스트 완료 후 활성화 예정 ---
   var area = document.getElementById('notebookArea');
   var text = (area ? area.innerText : '').trim();
   if (!text) {
@@ -1187,6 +1223,7 @@ function sendToSchoolbell() {
   } else {
     fallbackCopyAndOpen(text);
   }
+  */
 }
 
 function fallbackCopyAndOpen(text) {
@@ -2547,6 +2584,7 @@ applySecondsVisibility();
 updateAcademicEventSelectionBar();
 applyTimetableMode();
 updateClock();
+checkUpdateNotification();
 
 // Web Worker로 1초 타이머 실행 (백그라운드 탭에서도 쓰로틀링 없음)
 const timerWorker = new Worker(URL.createObjectURL(new Blob([

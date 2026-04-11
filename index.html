@@ -402,6 +402,16 @@
   </div>
 </div>
 
+<div class="modal-overlay update-notification" id="updateNotification" onclick="if(event.target===this)dismissUpdateNotification()">
+  <div class="update-card">
+    <div class="update-icon">&#x1F389;</div>
+    <div class="update-title">새로운 업데이트</div>
+    <div class="update-version" id="updateVersion"></div>
+    <ul class="update-notes" id="updateNotesList"></ul>
+    <button class="update-dismiss-btn" onclick="dismissUpdateNotification()">확인</button>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 <div class="corner-label">Our Classroom</div>
 <div class="watermark">Created by Riencarna</div>
