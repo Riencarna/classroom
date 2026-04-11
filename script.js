@@ -1171,26 +1171,52 @@ function sendToSchoolbell() {
     showToast('알림장에 내용을 먼저 입력해주세요');
     return;
   }
-  navigator.clipboard.writeText(text).then(function() {
-    showToast('알림장 내용이 복사되었습니다. 학교종이 사이트로 이동합니다.');
-    setTimeout(function() {
-      window.open('https://schoolbell-e.com/ko/main/home', '_blank');
-    }, 800);
-  }).catch(function() {
-    // fallback
-    var tmp = document.createElement('textarea');
-    tmp.value = text;
-    tmp.style.position = 'fixed';
-    tmp.style.opacity = '0';
-    document.body.appendChild(tmp);
-    tmp.select();
-    document.execCommand('copy');
-    document.body.removeChild(tmp);
-    showToast('알림장 내용이 복사되었습니다. 학교종이 사이트로 이동합니다.');
-    setTimeout(function() {
-      window.open('https://schoolbell-e.com/ko/main/home', '_blank');
-    }, 800);
-  });
+  var html = area ? area.innerHTML : '';
+  if (navigator.clipboard && window.ClipboardItem) {
+    var htmlBlob = new Blob([html], { type: 'text/html' });
+    var textBlob = new Blob([text], { type: 'text/plain' });
+    navigator.clipboard.write([
+      new ClipboardItem({ 'text/html': htmlBlob, 'text/plain': textBlob })
+    ]).then(function() {
+      openSchoolbell();
+    }).catch(function() {
+      fallbackCopyAndOpen(text);
+    });
+  } else {
+    fallbackCopyAndOpen(text);
+  }
+}
+
+function fallbackCopyAndOpen(text) {
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(function() {
+      openSchoolbell();
+    }).catch(function() {
+      execCommandCopy(text);
+      openSchoolbell();
+    });
+  } else {
+    execCommandCopy(text);
+    openSchoolbell();
+  }
+}
+
+function execCommandCopy(text) {
+  var tmp = document.createElement('textarea');
+  tmp.value = text;
+  tmp.style.position = 'fixed';
+  tmp.style.opacity = '0';
+  document.body.appendChild(tmp);
+  tmp.select();
+  document.execCommand('copy');
+  document.body.removeChild(tmp);
+}
+
+function openSchoolbell() {
+  showToast('알림장 내용이 복사되었습니다. 학교종이에서 알림장 작성 후 붙여넣어 주세요.');
+  setTimeout(function() {
+    window.open('https://v4.schoolbell-e.com', '_blank');
+  }, 800);
 }
 
 function getNotebookHTML(id) {
