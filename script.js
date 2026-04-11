@@ -1,13 +1,12 @@
 // =============================================
 // CONSTANTS
 // =============================================
-const APP_VERSION = 'v1.7.0';
+const APP_VERSION = 'v1.8.0';
+const FEEDBACK_URL = 'https://forms.gle/y48um84BTrBVn2Nt6';
 const UPDATE_NOTES = [
-  '알림장에서 글자를 꾸밀 수 있어요 (굵게, 기울임, 밑줄, 글자색)',
-  '다양한 색상을 골라서 글자 색을 바꿀 수 있어요',
-  '글자 크기를 원하는 크기로 간편하게 바꿀 수 있어요',
-  '공지사항의 글자 크기도 조절할 수 있어요',
-  '학교종이 연동 버튼이 추가되었어요 (현재 테스트 중)'
+  '업데이트 소식을 알림 팝업으로 알려드려요',
+  '의견 보내기 버튼이 추가되었어요 — 자유롭게 의견을 남겨주세요!',
+  '학교종이 연동 기능을 준비하고 있어요 (테스트 중)'
 ];
 const COLORS = ['#3b82f6','#8b5cf6','#f97316','#10b981','#ef4444','#ec4899','#14b8a6','#f59e0b'];
 const DAYS_KR = ['일요일','월요일','화요일','수요일','목요일','금요일','토요일'];
@@ -214,6 +213,7 @@ function loadSettings() {
       if (settings.morningSlotMigrated === undefined) settings.morningSlotMigrated = false;
       if (settings.voiceAlertEnabled === undefined) settings.voiceAlertEnabled = false;
       if (settings.schoolbellUrl === undefined) settings.schoolbellUrl = '';
+
     }
   } catch { /* keep defaults */ }
 }
@@ -1275,6 +1275,14 @@ function saveSchoolbellUrl() {
   settings.schoolbellUrl = document.getElementById('schoolbellUrlInput').value.trim();
   saveSettings();
   showToast('학교종이 URL이 저장되었습니다.');
+}
+
+function openFeedback() {
+  if (!FEEDBACK_URL) {
+    showToast('피드백 기능을 준비 중입니다.');
+    return;
+  }
+  window.open(FEEDBACK_URL, '_blank');
 }
 
 function getNotebookHTML(id) {

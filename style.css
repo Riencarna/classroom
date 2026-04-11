@@ -987,6 +987,32 @@
     color: rgba(0,0,0,0.6);
   }
 
+  .feedback-btn {
+    position: fixed;
+    bottom: 1.5rem;
+    left: 19.5rem;
+    height: 44px;
+    border-radius: 22px;
+    border: 1.5px solid rgba(0,0,0,0.08);
+    background: rgba(255,255,255,0.5);
+    backdrop-filter: blur(8px);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 1rem;
+    font-family: 'Outfit', sans-serif;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: rgba(0,0,0,0.35);
+    transition: all 0.3s;
+    z-index: 10;
+  }
+  .feedback-btn:hover {
+    background: rgba(255,255,255,0.8);
+    color: rgba(0,0,0,0.6);
+  }
+
   /* ========== Changelog ========== */
   .changelog-list {
     display: flex;

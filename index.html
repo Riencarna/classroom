@@ -106,7 +106,8 @@
 <button class="settings-btn" onclick="openSettings()">&#9881;</button>
 <button class="random-pick-btn" onclick="openRandomPicker()" title="랜덤 뽑기">&#127922;</button>
 <button class="fullscreen-btn" id="fullscreenBtn" onclick="toggleFullscreen()" title="전체화면">&#x26F6;</button>
-<button class="version-label" onclick="openChangelog()">v1.7.0</button>
+<button class="version-label" onclick="openChangelog()">v1.8.0</button>
+<button class="feedback-btn" onclick="openFeedback()" title="의견 보내기">&#x1F4EC; 의견 보내기</button>
 
 <input type="file" id="importFileInput" accept=".json" style="display:none" onchange="handleImport(event)">
 
@@ -268,6 +269,12 @@
       <button class="modal-close" onclick="closeChangelog()">&#10005;</button>
     </div>
     <div class="changelog-list">
+      <div class="changelog-item">
+        <div class="changelog-item-header">
+          <span class="changelog-version">v1.8.0</span>
+        </div>
+        <div class="changelog-desc">업데이트 알림 팝업 추가, 의견 보내기(Google Forms 피드백) 버튼 추가, 학교종이 연동 테스트 중 안내</div>
+      </div>
       <div class="changelog-item">
         <div class="changelog-item-header">
           <span class="changelog-version">v1.7.0</span>
