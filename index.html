@@ -231,6 +231,18 @@
         <input type="text" class="schoolbell-url-input" id="schoolbellUrlInput" placeholder="예: https://schoolbell-e.com/ko/main/group/123456/boards/classnews">
         <button class="data-btn data-btn-primary" onclick="saveSchoolbellUrl()">저장</button>
       </div>
+      <div class="schoolbell-bookmarklet-section">
+        <div class="schoolbell-bookmarklet-title">자동 붙여넣기 북마클릿</div>
+        <div class="schoolbell-bookmarklet-desc">아래 버튼을 브라우저 <b>북마크바</b>로 드래그하세요. 학교종이에서 클릭하면 알림장 내용이 자동 입력됩니다.</div>
+        <div class="schoolbell-bookmarklet-row">
+          <a class="schoolbell-bookmarklet-link" href="javascript:void((async()=>{try{var e=document.querySelector('.fr-element.fr-view');if(!e)return alert('%ED%95%99%EA%B5%90%EC%A2%85%EC%9D%B4%20%EC%95%8C%EB%A6%BC%EC%9E%A5%20%EC%9E%91%EC%84%B1%20%ED%8E%98%EC%9D%B4%EC%A7%80%EC%97%90%EC%84%9C%20%EC%8B%A4%ED%96%89%ED%95%B4%EC%A3%BC%EC%84%B8%EC%9A%94.');var r=await navigator.clipboard.read(),h='',t='';for(var c of r){if(c.types.includes('text/html'))h=await(await c.getType('text/html')).text();if(c.types.includes('text/plain'))t=await(await c.getType('text/plain')).text()}if(!h%26%26!t)return alert('%ED%81%B4%EB%A6%BD%EB%B3%B4%EB%93%9C%EC%97%90%20%EB%82%B4%EC%9A%A9%EC%9D%B4%20%EC%97%86%EC%8A%B5%EB%8B%88%EB%8B%A4.');e.focus();e.innerHTML=h||t.replace(/\n/g,'%3Cbr%3E');e.dispatchEvent(new Event('input',{bubbles:!0}));var p=e.parentElement.querySelector('.fr-placeholder');if(p)p.style.display='none';alert('%EC%95%8C%EB%A6%BC%EC%9E%A5%20%EB%82%B4%EC%9A%A9%EC%9D%B4%20%EC%9E%85%EB%A0%A5%EB%90%98%EC%97%88%EC%8A%B5%EB%8B%88%EB%8B%A4!')}catch(x){alert('%ED%81%B4%EB%A6%BD%EB%B3%B4%EB%93%9C%20%EC%9D%BD%EA%B8%B0%20%EC%8B%A4%ED%8C%A8:%20%ED%8E%98%EC%9D%B4%EC%A7%80%EB%A5%BC%20%ED%81%B4%EB%A6%AD%ED%95%9C%20%ED%9B%84%20%EB%8B%A4%EC%8B%9C%20%EC%8B%9C%EB%8F%84%ED%95%B4%EC%A3%BC%EC%84%B8%EC%9A%94.')}})())" onclick="event.preventDefault();alert('이 버튼을 클릭하지 말고, 브라우저 북마크바로 드래그해주세요!');">&#x1F4CB; 알림장 붙여넣기</a>
+        </div>
+        <div class="schoolbell-bookmarklet-steps">
+          <div class="schoolbell-step">1. 위 버튼을 북마크바로 드래그</div>
+          <div class="schoolbell-step">2. 알림장에서 "학교종이" 버튼 클릭 (내용 복사 + 페이지 이동)</div>
+          <div class="schoolbell-step">3. 학교종이 페이지에서 북마크바의 "알림장 붙여넣기" 클릭</div>
+        </div>
+      </div>
     </div>
 
     <div class="settings-section">

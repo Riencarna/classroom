@@ -1002,6 +1002,60 @@
     flex: none;
     padding: 0.5rem 1rem;
   }
+  .schoolbell-bookmarklet-section {
+    margin-top: 0.75rem;
+    padding-top: 0.75rem;
+    border-top: 1px dashed rgba(0,0,0,0.08);
+  }
+  .schoolbell-bookmarklet-title {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: rgba(0,0,0,0.55);
+    margin-bottom: 0.35rem;
+  }
+  .schoolbell-bookmarklet-desc {
+    font-size: 0.78rem;
+    color: rgba(0,0,0,0.4);
+    margin-bottom: 0.5rem;
+    line-height: 1.4;
+  }
+  .schoolbell-bookmarklet-row {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 0.5rem;
+  }
+  .schoolbell-bookmarklet-link {
+    display: inline-block;
+    padding: 0.5rem 1.2rem;
+    border-radius: 10px;
+    background: rgba(34,197,94,0.1);
+    border: 1.5px solid rgba(34,197,94,0.3);
+    color: #16a34a;
+    font-family: 'Noto Sans KR', sans-serif;
+    font-size: 0.9rem;
+    font-weight: 700;
+    text-decoration: none;
+    cursor: grab;
+    transition: all 0.2s;
+  }
+  .schoolbell-bookmarklet-link:hover {
+    background: rgba(34,197,94,0.2);
+    border-color: rgba(34,197,94,0.5);
+    color: #15803d;
+  }
+  .schoolbell-bookmarklet-link:active {
+    cursor: grabbing;
+  }
+  .schoolbell-bookmarklet-steps {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+  }
+  .schoolbell-step {
+    font-size: 0.75rem;
+    color: rgba(0,0,0,0.35);
+    padding-left: 0.25rem;
+  }
   .data-manage-row {
     display: flex;
     gap: 0.75rem;
