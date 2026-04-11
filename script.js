@@ -3,10 +3,18 @@
 // =============================================
 const APP_VERSION = 'v1.8.0';
 const FEEDBACK_URL = 'https://forms.gle/y48um84BTrBVn2Nt6';
-const UPDATE_NOTES = [
-  '업데이트 소식을 알림 팝업으로 알려드려요',
-  '의견 보내기 버튼이 추가되었어요 — 자유롭게 의견을 남겨주세요!',
-  '학교종이 연동 기능을 준비하고 있어요 (테스트 중)'
+const UPDATE_HISTORY = [
+  { version: 'v1.8.0', notes: [
+    '업데이트 소식을 알림 팝업으로 알려드려요',
+    '의견 보내기 버튼이 추가되었어요 — 자유롭게 의견을 남겨주세요!',
+    '학교종이 연동 기능을 준비하고 있어요 (테스트 중)'
+  ]},
+  { version: 'v1.7.0', notes: [
+    '알림장에서 글자를 꾸밀 수 있어요 (굵게, 기울임, 밑줄, 글자색)',
+    '다양한 색상을 골라서 글자 색을 바꿀 수 있어요',
+    '글자 크기를 원하는 크기로 간편하게 바꿀 수 있어요',
+    '공지사항의 글자 크기도 조절할 수 있어요'
+  ]}
 ];
 const COLORS = ['#3b82f6','#8b5cf6','#f97316','#10b981','#ef4444','#ec4899','#14b8a6','#f59e0b'];
 const DAYS_KR = ['일요일','월요일','화요일','수요일','목요일','금요일','토요일'];
@@ -435,18 +443,38 @@ function showToast(msg) {
 // =============================================
 // UPDATE NOTIFICATION
 // =============================================
+function compareVersions(a, b) {
+  var pa = (a || '').replace('v','').split('.').map(Number);
+  var pb = (b || '').replace('v','').split('.').map(Number);
+  for (var i = 0; i < 3; i++) {
+    if ((pa[i] || 0) > (pb[i] || 0)) return 1;
+    if ((pa[i] || 0) < (pb[i] || 0)) return -1;
+  }
+  return 0;
+}
+
 function checkUpdateNotification() {
   var lastSeen = localStorage.getItem('classroom_lastSeenVersion') || '';
   if (lastSeen === APP_VERSION) return;
+  var newUpdates = UPDATE_HISTORY.filter(function(entry) {
+    return compareVersions(entry.version, lastSeen) > 0;
+  });
+  if (newUpdates.length === 0) return;
   var popup = document.getElementById('updateNotification');
   if (popup) {
     document.getElementById('updateVersion').textContent = APP_VERSION;
     var listEl = document.getElementById('updateNotesList');
     listEl.innerHTML = '';
-    UPDATE_NOTES.forEach(function(note) {
-      var li = document.createElement('li');
-      li.textContent = note;
-      listEl.appendChild(li);
+    newUpdates.forEach(function(entry) {
+      var header = document.createElement('li');
+      header.className = 'update-notes-version-header';
+      header.textContent = entry.version;
+      listEl.appendChild(header);
+      entry.notes.forEach(function(note) {
+        var li = document.createElement('li');
+        li.textContent = note;
+        listEl.appendChild(li);
+      });
     });
     popup.classList.add('open');
   }

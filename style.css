@@ -910,6 +910,16 @@
     color: #f59e0b;
     font-size: 0.8rem;
   }
+  .update-notes-version-header {
+    font-weight: 700;
+    font-size: 0.85rem;
+    color: #3b82f6;
+    padding: 0.6rem 0 0.2rem;
+    list-style: none;
+  }
+  .update-notes-version-header:first-child {
+    padding-top: 0;
+  }
   .update-dismiss-btn {
     background: #2d2a26;
     color: #fff;
