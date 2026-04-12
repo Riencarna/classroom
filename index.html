@@ -15,7 +15,7 @@
 
 <div class="left-panel" id="leftPanel">
   <div class="clock-glow"></div>
-  <button class="timetable-toggle-btn" id="timetableToggleBtn" onclick="toggleTimetableMode()" title="시간표 보기">&#128197;</button>
+  <button class="timetable-toggle-btn" id="timetableToggleBtn" onclick="toggleTimetableMode()" title="시간표 보기" aria-label="시간표 보기">&#128197;</button>
   <div class="date-row">
     <div class="date-display" id="dateDisplay"></div>
     <div class="day-name" id="dayName"></div>
@@ -103,11 +103,11 @@
   </div>
 </div>
 
-<button class="settings-btn" onclick="openSettings()">&#9881;</button>
-<button class="random-pick-btn" onclick="openRandomPicker()" title="랜덤 뽑기">&#127922;</button>
-<button class="fullscreen-btn" id="fullscreenBtn" onclick="toggleFullscreen()" title="전체화면">&#x26F6;</button>
-<button class="version-label" onclick="openChangelog()">v1.8.0</button>
-<button class="feedback-btn" onclick="openFeedback()" title="의견 보내기">&#x1F4EC; 의견 보내기</button>
+<button class="settings-btn" onclick="openSettings()" title="설정" aria-label="설정">&#9881;</button>
+<button class="random-pick-btn" onclick="openRandomPicker()" title="랜덤 뽑기" aria-label="랜덤 뽑기">&#127922;</button>
+<button class="fullscreen-btn" id="fullscreenBtn" onclick="toggleFullscreen()" title="전체화면" aria-label="전체화면">&#x26F6;</button>
+<button class="version-label" onclick="openChangelog()" aria-label="버전 기록 보기">v1.8.1</button>
+<button class="feedback-btn" onclick="openFeedback()" title="의견 보내기" aria-label="의견 보내기">&#x1F4EC; 의견 보내기</button>
 
 <input type="file" id="importFileInput" accept=".json" style="display:none" onchange="handleImport(event)">
 
@@ -115,7 +115,7 @@
   <div class="modal-card">
     <div class="modal-header">
       <div class="modal-title">설정</div>
-      <button class="modal-close" onclick="closeSettings()">&#10005;</button>
+      <button class="modal-close" onclick="closeSettings()" aria-label="닫기">&#10005;</button>
     </div>
 
     <div class="settings-section">
@@ -266,9 +266,15 @@
   <div class="modal-card">
     <div class="modal-header">
       <div class="modal-title">버전 기록</div>
-      <button class="modal-close" onclick="closeChangelog()">&#10005;</button>
+      <button class="modal-close" onclick="closeChangelog()" aria-label="닫기">&#10005;</button>
     </div>
     <div class="changelog-list">
+      <div class="changelog-item">
+        <div class="changelog-item-header">
+          <span class="changelog-version">v1.8.1</span>
+        </div>
+        <div class="changelog-desc">알림장 HTML 화이트리스트 새니타이저 도입(B/I/U/FONT/SPAN 등 허용, style은 안전 속성만 통과), 외부 링크 window.open에 noopener,noreferrer 적용으로 tabnabbing·Referer 유출 차단</div>
+      </div>
       <div class="changelog-item">
         <div class="changelog-item-header">
           <span class="changelog-version">v1.8.0</span>
@@ -397,7 +403,7 @@
   <div class="modal-card random-picker-card">
     <div class="modal-header">
       <div class="modal-title">랜덤 뽑기</div>
-      <button class="modal-close" onclick="closeRandomPicker()">&#10005;</button>
+      <button class="modal-close" onclick="closeRandomPicker()" aria-label="닫기">&#10005;</button>
     </div>
     <div class="random-picker-body">
       <div class="random-display" id="randomDisplay">?</div>
@@ -459,7 +465,7 @@
       <button class="notebook-style-btn" id="notebookItalicBtnFs" onclick="toggleNotebookStyle('italic')" title="이탤릭"><i>I</i></button>
       <button class="notebook-style-btn" id="notebookUnderlineBtnFs" onclick="toggleNotebookStyle('underline')" title="밑줄"><u>U</u></button>
     </div>
-    <button class="notebook-fullscreen-close" onclick="closeNotebookFullscreen()">&#10005;</button>
+    <button class="notebook-fullscreen-close" onclick="closeNotebookFullscreen()" aria-label="닫기">&#10005;</button>
   </div>
   <div class="notebook-fullscreen-body" id="notebookFullscreenBody" contenteditable="true" data-placeholder="알림 내용을 입력하세요..." oninput="onNotebookFullscreenInput()"></div>
 </div>

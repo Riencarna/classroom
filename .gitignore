@@ -1,0 +1,12 @@
+# Claude Code 로컬 설정
+.claude/
+
+# SchoolBell-e 연동 작업 참고용 로컬 파일
+image.png
+학교종이 html 복사본.txt
+
+# OS/에디터 아티팩트
+Thumbs.db
+.DS_Store
+*.swp
+*~

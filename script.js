@@ -1,9 +1,12 @@
 // =============================================
 // CONSTANTS
 // =============================================
-const APP_VERSION = 'v1.8.0';
+const APP_VERSION = 'v1.8.1';
 const FEEDBACK_URL = 'https://forms.gle/y48um84BTrBVn2Nt6';
 const UPDATE_HISTORY = [
+  { version: 'v1.8.1', notes: [
+    '백업 파일 불러오기와 외부 링크 열기를 더 안전하게 다듬었어요'
+  ]},
   { version: 'v1.8.0', notes: [
     '업데이트 소식을 알림 팝업으로 알려드려요',
     '의견 보내기 버튼이 추가되었어요 — 자유롭게 의견을 남겨주세요!',
@@ -1295,7 +1298,7 @@ function openSchoolbell() {
   }
   showToast('알림장 내용이 복사되었습니다. 학교종이에서 Ctrl+V로 붙여넣어 주세요.');
   setTimeout(function() {
-    window.open(url, '_blank');
+    window.open(url, '_blank', 'noopener,noreferrer');
   }, 800);
 }
 
@@ -1310,7 +1313,7 @@ function openFeedback() {
     showToast('피드백 기능을 준비 중입니다.');
     return;
   }
-  window.open(FEEDBACK_URL, '_blank');
+  window.open(FEEDBACK_URL, '_blank', 'noopener,noreferrer');
 }
 
 function getNotebookHTML(id) {
@@ -1318,9 +1321,74 @@ function getNotebookHTML(id) {
   return el ? el.innerHTML : '';
 }
 
+// 알림장 HTML을 innerHTML에 넣기 전에 위험한 태그/속성을 걸러냅니다.
+// DOMParser는 파싱 과정에서 스크립트나 이미지 리소스를 실행하지 않으므로
+// 악성 백업 파일이 import 되어도 이 함수를 거친 뒤에는 안전한 서식 태그만 남습니다.
+function sanitizeNotebookHTML(html) {
+  if (!html) return '';
+  var allowedTags = { B:1, STRONG:1, I:1, EM:1, U:1, SPAN:1, FONT:1, BR:1, DIV:1, P:1 };
+  var allowedAttrs = { color:1, face:1, size:1 };
+  var allowedStyleProps = {
+    'color':1, 'background-color':1,
+    'font-size':1, 'font-weight':1, 'font-style':1,
+    'text-decoration':1, 'font-family':1
+  };
+  var unsafeValue = /url\(|javascript:|expression\(|@import/i;
+
+  var doc = new DOMParser().parseFromString('<body>' + html + '</body>', 'text/html');
+  var source = doc.body;
+  var target = document.createElement('div');
+
+  function copy(src, dest) {
+    var nodes = src.childNodes;
+    for (var i = 0; i < nodes.length; i++) {
+      var node = nodes[i];
+      if (node.nodeType === 3) {
+        dest.appendChild(document.createTextNode(node.nodeValue));
+      } else if (node.nodeType === 1) {
+        var tag = node.tagName;
+        if (allowedTags[tag]) {
+          var clone = document.createElement(tag);
+          var attrs = node.attributes;
+          for (var j = 0; j < attrs.length; j++) {
+            var aname = attrs[j].name.toLowerCase();
+            var aval = attrs[j].value;
+            if (aname === 'style') {
+              var safeStyle = [];
+              var decls = aval.split(';');
+              for (var k = 0; k < decls.length; k++) {
+                var colon = decls[k].indexOf(':');
+                if (colon < 0) continue;
+                var prop = decls[k].slice(0, colon).trim().toLowerCase();
+                var value = decls[k].slice(colon + 1).trim();
+                if (unsafeValue.test(value)) continue;
+                if (allowedStyleProps[prop]) {
+                  safeStyle.push(prop + ': ' + value);
+                }
+              }
+              if (safeStyle.length) clone.setAttribute('style', safeStyle.join('; '));
+            } else if (allowedAttrs[aname] && !unsafeValue.test(aval)) {
+              clone.setAttribute(aname, aval);
+            }
+          }
+          copy(node, clone);
+          dest.appendChild(clone);
+        } else {
+          copy(node, dest);
+        }
+      }
+    }
+  }
+
+  copy(source, target);
+  return target.innerHTML;
+}
+
 function setNotebookHTML(id, html) {
   var el = document.getElementById(id);
-  if (el && el.innerHTML !== html) el.innerHTML = html;
+  if (!el) return;
+  var safe = sanitizeNotebookHTML(html);
+  if (el.innerHTML !== safe) el.innerHTML = safe;
 }
 
 function saveNotebookContent(html) {
@@ -1516,7 +1584,7 @@ function applyNotebookPanelFill() {
   if (overlay) overlay.setAttribute('aria-hidden', enabled ? 'false' : 'true');
   if (enabled) {
     if (overlayArea) {
-      overlayArea.innerHTML = viewData.notebook || '';
+      setNotebookHTML('notebookPanelTextarea', viewData.notebook || '');
       overlayArea.focus();
     }
   }
@@ -2219,7 +2287,8 @@ function exportData() {
     classroomTimetable: localStorage.getItem('classroomTimetable'),
     classroomSettings: localStorage.getItem('classroomSettings'),
     classroomViewData: localStorage.getItem('classroomViewData'),
-    classroomRandomStudents: localStorage.getItem('classroomRandomStudents')
+    classroomRandomStudents: localStorage.getItem('classroomRandomStudents'),
+    classroomRandomPicked: localStorage.getItem('classroomRandomPicked')
   };
   const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
@@ -2250,7 +2319,7 @@ function handleImport(e) {
   reader.onload = function(ev) {
     try {
       const data = JSON.parse(ev.target.result);
-      const keys = ['classroomRules', 'classroomTimetable', 'classroomSettings', 'classroomViewData', 'classroomRandomStudents'];
+      const keys = ['classroomRules', 'classroomTimetable', 'classroomSettings', 'classroomViewData', 'classroomRandomStudents', 'classroomRandomPicked'];
       keys.forEach(function(key) {
         if (data[key] !== undefined && data[key] !== null) {
           localStorage.setItem(key, data[key]);
@@ -2288,7 +2357,7 @@ document.addEventListener('fullscreenchange', function() {
 function openNotebookFullscreen() {
   var html = viewData.notebook || '';
   var fullscreenBody = document.getElementById('notebookFullscreenBody');
-  fullscreenBody.innerHTML = html;
+  setNotebookHTML('notebookFullscreenBody', html);
   fullscreenBody.style.fontSize = (viewData.notebookFontSize || 18) + 'px';
   document.getElementById('notebookFullscreen').classList.add('open');
   fullscreenBody.focus();
@@ -2305,10 +2374,27 @@ function closeNotebookFullscreen() {
 }
 
 document.addEventListener('keydown', function(e) {
-  if (e.key === 'Escape' && document.getElementById('notebookFullscreen').classList.contains('open')) {
+  if (e.key !== 'Escape') return;
+  if (document.getElementById('notebookFullscreen').classList.contains('open')) {
     closeNotebookFullscreen();
-  } else if (e.key === 'Escape' && viewData.activeTab === 'notebook' && viewData.notebookPanelFill) {
+    return;
+  }
+  if (viewData.activeTab === 'notebook' && viewData.notebookPanelFill) {
     toggleNotebookPanelFill();
+    return;
+  }
+  const modalsByPriority = [
+    { id: 'updateNotification', close: dismissUpdateNotification },
+    { id: 'randomPickerModal', close: closeRandomPicker },
+    { id: 'changelogModal', close: closeChangelog },
+    { id: 'settingsModal', close: closeSettings },
+  ];
+  for (var i = 0; i < modalsByPriority.length; i++) {
+    var el = document.getElementById(modalsByPriority[i].id);
+    if (el && el.classList.contains('open')) {
+      modalsByPriority[i].close();
+      return;
+    }
   }
 });
 
@@ -2623,9 +2709,11 @@ updateClock();
 checkUpdateNotification();
 
 // Web Worker로 1초 타이머 실행 (백그라운드 탭에서도 쓰로틀링 없음)
-const timerWorker = new Worker(URL.createObjectURL(new Blob([
+const timerWorkerUrl = URL.createObjectURL(new Blob([
   'setInterval(() => postMessage(1), 1000);'
-], { type: 'application/javascript' })));
+], { type: 'application/javascript' }));
+const timerWorker = new Worker(timerWorkerUrl);
+URL.revokeObjectURL(timerWorkerUrl);
 timerWorker.onmessage = () => updateClock();
 
 initVisitorCounter();
