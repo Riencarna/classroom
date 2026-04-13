@@ -53,6 +53,7 @@
       <div class="rules-header" style="color:#3b82f6;-webkit-text-fill-color:#3b82f6">알림장</div>
     </div>
     <div class="rules-subtitle">NOTEBOOK</div>
+    <div class="notebook-page-bar" id="notebookPageBar" style="display:none"></div>
     <div class="notebook-toolbar">
       <span class="notebook-toolbar-label">글자 크기</span>
       <button class="font-size-btn" onclick="changeNotebookFontSize(-2)">−</button>
@@ -117,8 +118,9 @@
 <button class="settings-btn" onclick="openSettings()" title="설정" aria-label="설정">&#9881;</button>
 <button class="random-pick-btn" onclick="openRandomPicker()" title="랜덤 뽑기" aria-label="랜덤 뽑기">&#127922;</button>
 <button class="fullscreen-btn" id="fullscreenBtn" onclick="toggleFullscreen()" title="전체화면" aria-label="전체화면">&#x26F6;</button>
-<button class="version-label" onclick="openChangelog()" aria-label="버전 기록 보기">v1.9.0</button>
+<button class="version-label" onclick="openChangelog()" aria-label="버전 기록 보기">v1.10.0</button>
 <button class="feedback-btn" onclick="openFeedback()" title="의견 보내기" aria-label="의견 보내기">&#x1F4EC; 의견 보내기</button>
+<button class="dev-notes-btn" onclick="openDeveloperNotes()" title="개발자 소식" aria-label="개발자 소식">&#x1F4E2; 개발자 소식<span class="dev-notes-badge" id="devNotesBadge" style="display:none"></span></button>
 
 <input type="file" id="importFileInput" accept=".json" style="display:none" onchange="handleImport(event)">
 
@@ -170,6 +172,13 @@
         <span class="toggle-label">쉬는 시간 음성 안내<span class="help-icon">?<span class="help-tooltip">쉬는 시간에 남은 시간을 음성으로 안내합니다. 쉬는 시간 종료 3분 전과 1분 전에 안내가 나갑니다.</span></span></span>
         <label class="toggle-switch">
           <input type="checkbox" id="voiceAlertToggle" onchange="toggleVoiceAlert()">
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+      <div class="toggle-row">
+        <span class="toggle-label">알림장 여러 페이지 사용<span class="help-icon">?<span class="help-tooltip">알림장을 여러 페이지로 나눠서 쓸 수 있어요. 예: "아침 활동", "수업 시간", "알림장"을 각각 다른 페이지에 미리 써두면 지웠다 쓸 필요가 없어요. 끄면 기본 알림장 1개만 사용합니다.</span></span></span>
+        <label class="toggle-switch">
+          <input type="checkbox" id="notebookMultiPageToggle" onchange="toggleNotebookMultiPage()">
           <span class="toggle-slider"></span>
         </label>
       </div>
@@ -292,6 +301,12 @@
       <button class="modal-close" onclick="closeChangelog()" aria-label="닫기">&#10005;</button>
     </div>
     <div class="changelog-list">
+      <div class="changelog-item">
+        <div class="changelog-item-header">
+          <span class="changelog-version">v1.10.0</span>
+        </div>
+        <div class="changelog-desc">알림장 멀티 페이지 지원: 설정 "알림장 여러 페이지 사용" 토글로 활성화, 알림장 탭 상단에 페이지 탭 바(+ 추가 / × 삭제 / 더블클릭 이름 변경)가 등장. 기본 1개 페이지로 시작하며, 기존 단일 notebook 콘텐츠는 첫 페이지로 자동 마이그레이션. 글자 크기·색상·스타일은 여전히 모든 페이지에 공유. 전체화면·패널 채우기·학교종이 연동은 현재 활성 페이지 기준으로 동작. 개발자 소식 게시판 추가(DEVELOPER_NOTES 배열 기반, 최신 글 미확인 시 빨간 점 표시, localStorage로 읽음 상태 저장)</div>
+      </div>
       <div class="changelog-item">
         <div class="changelog-item-header">
           <span class="changelog-version">v1.9.0</span>
@@ -428,6 +443,17 @@
   </div>
 </div>
 
+<div class="modal-overlay" id="developerNotesModal" onclick="if(event.target===this)closeDeveloperNotes()">
+  <div class="modal-card">
+    <div class="modal-header">
+      <div class="modal-title">&#x1F4E2; 개발자 소식</div>
+      <button class="modal-close" onclick="closeDeveloperNotes()" aria-label="닫기">&#10005;</button>
+    </div>
+    <div class="dev-notes-intro">의견 보내기로 보내주신 소중한 의견에 대한 답변과 새 소식을 여기에 올려요. 궁금한 점이 있으면 언제든 "의견 보내기" 버튼으로 남겨주세요!</div>
+    <div class="dev-notes-list" id="devNotesList"></div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="randomPickerModal" onclick="if(event.target===this)closeRandomPicker()">
   <div class="modal-card random-picker-card">
     <div class="modal-header">
@@ -496,6 +522,7 @@
     </div>
     <button class="notebook-fullscreen-close" onclick="closeNotebookFullscreen()" aria-label="닫기">&#10005;</button>
   </div>
+  <div class="notebook-page-bar notebook-page-bar-fs" id="notebookPageBarFs" style="display:none"></div>
   <div class="notebook-fullscreen-body" id="notebookFullscreenBody" contenteditable="true" data-placeholder="알림 내용을 입력하세요..." oninput="onNotebookFullscreenInput()"></div>
 </div>
 

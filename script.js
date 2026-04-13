@@ -1,9 +1,16 @@
 // =============================================
 // CONSTANTS
 // =============================================
-const APP_VERSION = 'v1.9.0';
+const APP_VERSION = 'v1.10.0';
 const FEEDBACK_URL = 'https://forms.gle/y48um84BTrBVn2Nt6';
 const UPDATE_HISTORY = [
+  { version: 'v1.10.0', notes: [
+    '알림장을 여러 페이지로 나눠서 쓸 수 있어요 — 예: "아침 활동", "수업 시간", "알림장"을 따로 미리 써두세요',
+    '알림장 탭 위의 + 버튼으로 새 페이지를 추가하고, × 버튼으로 삭제할 수 있어요',
+    '페이지 이름은 두 번 클릭해서 바꿀 수 있어요',
+    '이 기능은 설정 > 표시 설정 > "알림장 여러 페이지 사용" 토글로 켜고 끌 수 있어요',
+    '"개발자 소식" 버튼이 생겼어요 — 의견 보내기로 보내주신 피드백에 대한 답변과 새 소식을 여기에 올려드려요'
+  ]},
   { version: 'v1.9.0', notes: [
     '나이스(NEIS) 학사일정을 자동으로 불러와서 왼쪽 배너에 알려드려요',
     '오른쪽 패널에 "급식" 탭이 생겼어요 — 오늘의 식단을 바로 확인할 수 있어요',
@@ -23,6 +30,17 @@ const UPDATE_HISTORY = [
     '글자 크기를 원하는 크기로 간편하게 바꿀 수 있어요',
     '공지사항의 글자 크기도 조절할 수 있어요'
   ]}
+];
+
+// 개발자 소식 게시판 — 의견 보내기로 받은 피드백에 답변하거나 소식을 전달할 때 사용합니다.
+// 최상단이 최신 글. id는 겹치지 않게(예: 날짜 + 순번) 주세요.
+const DEVELOPER_NOTES = [
+  {
+    id: '2026-04-14-welcome',
+    date: '2026-04-14',
+    title: '개발자 소식 게시판이 생겼어요!',
+    body: '안녕하세요 선생님들 :) 의견 보내기로 보내주신 의견에 답변드릴 공간이 필요해서 이 게시판을 열었어요.\n\n앞으로 보내주신 의견에 대한 답변, 새 기능 준비 소식, 버그 안내 같은 걸 여기에 올릴 예정이에요. 새 글이 있으면 버튼에 빨간 점이 표시되고, 한 번 열어보시면 사라져요.\n\n계속 많은 의견 보내주세요!'
+  }
 ];
 const COLORS = ['#3b82f6','#8b5cf6','#f97316','#10b981','#ef4444','#ec4899','#14b8a6','#f59e0b'];
 const DAYS_KR = ['일요일','월요일','화요일','수요일','목요일','금요일','토요일'];
@@ -52,8 +70,8 @@ const DEFAULT_TIMETABLE = [
 let rules = [];
 let isEditing = false;
 let timetable = [];
-let settings = { showRemaining: true, chimeEnabled: true, colonBlink: true, showSeconds: true, timetableMode: false, dailyPeriods: { 1:5, 2:6, 3:5, 4:5, 5:5 }, morningSlotMigrated: false, schoolbellUrl: '', school: null };
-let viewData = { activeTab: 'rules', notebook: '', notices: [], academicEvents: [], selectedAcademicEventDate: '' };
+let settings = { showRemaining: true, chimeEnabled: true, colonBlink: true, showSeconds: true, timetableMode: false, dailyPeriods: { 1:5, 2:6, 3:5, 4:5, 5:5 }, morningSlotMigrated: false, schoolbellUrl: '', school: null, notebookMultiPageEnabled: false };
+let viewData = { activeTab: 'rules', notebook: '', notebookPages: [], activeNotebookPageId: '', notices: [], academicEvents: [], selectedAcademicEventDate: '' };
 let lastPeriodLabel = null;
 let lastChimeTime = 0;
 let lastTimetableMin = -1;
@@ -234,6 +252,7 @@ function loadSettings() {
       if (settings.voiceAlertEnabled === undefined) settings.voiceAlertEnabled = false;
       if (settings.schoolbellUrl === undefined) settings.schoolbellUrl = '';
       if (settings.school === undefined) settings.school = null;
+      if (settings.notebookMultiPageEnabled === undefined) settings.notebookMultiPageEnabled = false;
 
     }
   } catch { /* keep defaults */ }
@@ -253,6 +272,55 @@ function loadViewData() {
   if (viewData.selectedAcademicEventDate && !getAcademicEventByDate(viewData.selectedAcademicEventDate)) {
     viewData.selectedAcademicEventDate = '';
   }
+  if (!Array.isArray(viewData.notebookPages)) viewData.notebookPages = [];
+  if (viewData.notebookPages.length === 0) {
+    viewData.notebookPages = [{
+      id: generateNotebookPageId(),
+      title: '알림장',
+      content: (typeof viewData.notebook === 'string' ? viewData.notebook : '') || '',
+    }];
+  }
+  viewData.notebookPages = viewData.notebookPages
+    .filter(p => p && typeof p === 'object')
+    .map(p => ({
+      id: (typeof p.id === 'string' && p.id) ? p.id : generateNotebookPageId(),
+      title: (typeof p.title === 'string' && p.title.trim()) ? p.title : '알림장',
+      content: typeof p.content === 'string' ? p.content : '',
+    }));
+  if (viewData.notebookPages.length === 0) {
+    viewData.notebookPages.push({ id: generateNotebookPageId(), title: '알림장', content: '' });
+  }
+  if (!viewData.activeNotebookPageId || !viewData.notebookPages.some(p => p.id === viewData.activeNotebookPageId)) {
+    viewData.activeNotebookPageId = viewData.notebookPages[0].id;
+  }
+  viewData.notebook = getActiveNotebookPage().content;
+}
+
+function generateNotebookPageId() {
+  return 'np_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 8);
+}
+
+function getActiveNotebookPage() {
+  if (!Array.isArray(viewData.notebookPages) || viewData.notebookPages.length === 0) {
+    viewData.notebookPages = [{ id: generateNotebookPageId(), title: '알림장', content: '' }];
+    viewData.activeNotebookPageId = viewData.notebookPages[0].id;
+  }
+  var page = viewData.notebookPages.find(p => p.id === viewData.activeNotebookPageId);
+  if (!page) {
+    page = viewData.notebookPages[0];
+    viewData.activeNotebookPageId = page.id;
+  }
+  return page;
+}
+
+function getActiveNotebookContent() {
+  return getActiveNotebookPage().content || '';
+}
+
+function setActiveNotebookContent(html) {
+  var page = getActiveNotebookPage();
+  page.content = html;
+  viewData.notebook = html;
 }
 function saveViewData() { localStorage.setItem('classroomViewData', JSON.stringify(viewData)); }
 
@@ -514,6 +582,8 @@ function openSettings() {
   document.getElementById('secondsToggle').checked = settings.showSeconds;
   document.getElementById('timetableModeToggle').checked = settings.timetableMode;
   document.getElementById('voiceAlertToggle').checked = settings.voiceAlertEnabled;
+  var multiPageToggle = document.getElementById('notebookMultiPageToggle');
+  if (multiPageToggle) multiPageToggle.checked = !!settings.notebookMultiPageEnabled;
   document.getElementById('schoolbellUrlInput').value = settings.schoolbellUrl || '';
   renderSchoolCurrent();
   const searchInput = document.getElementById('schoolSearchInput');
@@ -1227,10 +1297,11 @@ function switchTab(tabName) {
   document.getElementById('tabMeal').style.display = tabName === 'meal' ? '' : 'none';
 
   if (tabName === 'notebook') {
-    const notebookHTML = viewData.notebook || '';
+    const notebookHTML = getActiveNotebookContent();
     setNotebookHTML('notebookArea', notebookHTML);
     setNotebookHTML('notebookPanelTextarea', notebookHTML);
     applyNotebookFontSize();
+    renderNotebookPageBars();
   }
   if (tabName === 'notice') {
     renderNotices();
@@ -1336,6 +1407,71 @@ function openFeedback() {
   window.open(FEEDBACK_URL, '_blank', 'noopener,noreferrer');
 }
 
+// =============================================
+// DEVELOPER NOTES (개발자 소식)
+// =============================================
+function getLatestDevNoteId() {
+  return DEVELOPER_NOTES.length > 0 ? DEVELOPER_NOTES[0].id : '';
+}
+
+function checkDeveloperNotesUnread() {
+  var badge = document.getElementById('devNotesBadge');
+  if (!badge) return;
+  var latest = getLatestDevNoteId();
+  if (!latest) { badge.style.display = 'none'; return; }
+  var lastSeen = localStorage.getItem('classroom_lastSeenDevNoteId') || '';
+  badge.style.display = lastSeen === latest ? 'none' : '';
+}
+
+function openDeveloperNotes() {
+  renderDeveloperNotes();
+  document.getElementById('developerNotesModal').classList.add('open');
+  var latest = getLatestDevNoteId();
+  if (latest) localStorage.setItem('classroom_lastSeenDevNoteId', latest);
+  checkDeveloperNotesUnread();
+}
+
+function closeDeveloperNotes() {
+  document.getElementById('developerNotesModal').classList.remove('open');
+}
+
+function renderDeveloperNotes() {
+  var list = document.getElementById('devNotesList');
+  if (!list) return;
+  list.innerHTML = '';
+  if (DEVELOPER_NOTES.length === 0) {
+    var empty = document.createElement('div');
+    empty.className = 'dev-notes-empty';
+    empty.textContent = '아직 등록된 소식이 없어요.';
+    list.appendChild(empty);
+    return;
+  }
+  DEVELOPER_NOTES.forEach(function(note) {
+    var item = document.createElement('div');
+    item.className = 'dev-notes-item';
+
+    var header = document.createElement('div');
+    header.className = 'dev-notes-item-header';
+    var dateEl = document.createElement('span');
+    dateEl.className = 'dev-notes-date';
+    dateEl.textContent = note.date || '';
+    var titleEl = document.createElement('span');
+    titleEl.className = 'dev-notes-title';
+    titleEl.textContent = note.title || '';
+    header.appendChild(dateEl);
+    header.appendChild(titleEl);
+
+    var bodyEl = document.createElement('div');
+    bodyEl.className = 'dev-notes-body';
+    // 줄바꿈 유지를 위해 textContent + CSS white-space: pre-wrap 사용
+    bodyEl.textContent = note.body || '';
+
+    item.appendChild(header);
+    item.appendChild(bodyEl);
+    list.appendChild(item);
+  });
+}
+
 function getNotebookHTML(id) {
   var el = document.getElementById(id);
   return el ? el.innerHTML : '';
@@ -1412,9 +1548,9 @@ function setNotebookHTML(id, html) {
 }
 
 function saveNotebookContent(html) {
+  setActiveNotebookContent(html);
   clearTimeout(notebookTimer);
   notebookTimer = setTimeout(function() {
-    viewData.notebook = html;
     saveViewData();
   }, 500);
 }
@@ -1569,9 +1705,9 @@ function syncNotebookFromActive() {
       areas.forEach(function(otherId) {
         if (otherId !== areas[i]) setNotebookHTML(otherId, html);
       });
+      setActiveNotebookContent(html);
       clearTimeout(notebookTimer);
       notebookTimer = setTimeout(function() {
-        viewData.notebook = html;
         saveViewData();
       }, 300);
       break;
@@ -1604,10 +1740,159 @@ function applyNotebookPanelFill() {
   if (overlay) overlay.setAttribute('aria-hidden', enabled ? 'false' : 'true');
   if (enabled) {
     if (overlayArea) {
-      setNotebookHTML('notebookPanelTextarea', viewData.notebook || '');
+      setNotebookHTML('notebookPanelTextarea', getActiveNotebookContent());
       overlayArea.focus();
     }
   }
+}
+
+// =============================================
+// NOTEBOOK PAGES (알림장 여러 페이지)
+// =============================================
+function renderNotebookPageBars() {
+  ['notebookPageBar', 'notebookPageBarFs'].forEach(function(barId) {
+    renderNotebookPageBar(barId);
+  });
+}
+
+function renderNotebookPageBar(barId) {
+  var bar = document.getElementById(barId);
+  if (!bar) return;
+  var enabled = !!settings.notebookMultiPageEnabled;
+  bar.style.display = enabled ? '' : 'none';
+  if (!enabled) { bar.innerHTML = ''; return; }
+
+  var pages = viewData.notebookPages || [];
+  var activeId = viewData.activeNotebookPageId;
+  bar.innerHTML = '';
+
+  pages.forEach(function(page) {
+    var tab = document.createElement('div');
+    tab.className = 'notebook-page-tab' + (page.id === activeId ? ' active' : '');
+    tab.setAttribute('data-page-id', page.id);
+
+    var title = document.createElement('span');
+    title.className = 'notebook-page-tab-title';
+    title.textContent = page.title;
+    title.title = '클릭: 페이지 이동 / 더블클릭: 이름 변경';
+    title.onclick = function(e) { e.stopPropagation(); switchNotebookPage(page.id); };
+    title.ondblclick = function(e) { e.stopPropagation(); startRenameNotebookPage(page.id); };
+    tab.appendChild(title);
+
+    if (pages.length > 1) {
+      var del = document.createElement('button');
+      del.className = 'notebook-page-tab-del';
+      del.innerHTML = '&#10005;';
+      del.title = '이 페이지 삭제';
+      del.onclick = function(e) { e.stopPropagation(); deleteNotebookPage(page.id); };
+      tab.appendChild(del);
+    }
+    bar.appendChild(tab);
+  });
+
+  var addBtn = document.createElement('button');
+  addBtn.className = 'notebook-page-add';
+  addBtn.innerHTML = '+';
+  addBtn.title = '새 페이지 추가';
+  addBtn.onclick = function(e) { e.stopPropagation(); addNotebookPage(); };
+  bar.appendChild(addBtn);
+}
+
+function getVisibleNotebookEditorId() {
+  var fsOverlay = document.getElementById('notebookFullscreen');
+  if (fsOverlay && fsOverlay.classList.contains('open')) return 'notebookFullscreenBody';
+  if (viewData.notebookPanelFill) return 'notebookPanelTextarea';
+  return 'notebookArea';
+}
+
+function switchNotebookPage(pageId) {
+  if (viewData.activeNotebookPageId === pageId) return;
+  var visibleId = getVisibleNotebookEditorId();
+  var visibleEl = document.getElementById(visibleId);
+  if (visibleEl) setActiveNotebookContent(visibleEl.innerHTML);
+
+  viewData.activeNotebookPageId = pageId;
+  var html = getActiveNotebookContent();
+  setNotebookHTML('notebookArea', html);
+  setNotebookHTML('notebookPanelTextarea', html);
+  setNotebookHTML('notebookFullscreenBody', html);
+  viewData.notebook = html;
+  saveViewData();
+  renderNotebookPageBars();
+
+  var targetEl = document.getElementById(visibleId);
+  if (targetEl) targetEl.focus();
+}
+
+function addNotebookPage() {
+  var newPage = {
+    id: generateNotebookPageId(),
+    title: '새 페이지 ' + (viewData.notebookPages.length + 1),
+    content: '',
+  };
+  viewData.notebookPages.push(newPage);
+  viewData.activeNotebookPageId = newPage.id;
+  viewData.notebook = '';
+  setNotebookHTML('notebookArea', '');
+  setNotebookHTML('notebookPanelTextarea', '');
+  setNotebookHTML('notebookFullscreenBody', '');
+  saveViewData();
+  renderNotebookPageBars();
+  showToast('새 페이지가 추가되었어요');
+}
+
+function deleteNotebookPage(pageId) {
+  if (viewData.notebookPages.length <= 1) {
+    showToast('페이지는 최소 1개가 필요해요');
+    return;
+  }
+  var page = viewData.notebookPages.find(function(p) { return p.id === pageId; });
+  if (!page) return;
+  var plainText = (page.content || '').replace(/<[^>]*>/g, '').trim();
+  var msg = plainText
+    ? '"' + page.title + '" 페이지를 삭제할까요?\n내용이 함께 사라집니다.'
+    : '"' + page.title + '" 페이지를 삭제할까요?';
+  if (!confirm(msg)) return;
+
+  var idx = viewData.notebookPages.findIndex(function(p) { return p.id === pageId; });
+  viewData.notebookPages.splice(idx, 1);
+  if (viewData.activeNotebookPageId === pageId) {
+    var nextIdx = Math.min(idx, viewData.notebookPages.length - 1);
+    viewData.activeNotebookPageId = viewData.notebookPages[nextIdx].id;
+    var html = getActiveNotebookContent();
+    setNotebookHTML('notebookArea', html);
+    setNotebookHTML('notebookPanelTextarea', html);
+    setNotebookHTML('notebookFullscreenBody', html);
+    viewData.notebook = html;
+  }
+  saveViewData();
+  renderNotebookPageBars();
+  showToast('페이지가 삭제되었어요');
+}
+
+function startRenameNotebookPage(pageId) {
+  var page = viewData.notebookPages.find(function(p) { return p.id === pageId; });
+  if (!page) return;
+  var current = page.title;
+  var next = prompt('페이지 이름을 입력하세요', current);
+  if (next === null) return;
+  next = next.trim();
+  if (!next) { showToast('이름은 비워둘 수 없어요'); return; }
+  page.title = next.slice(0, 20);
+  saveViewData();
+  renderNotebookPageBars();
+}
+
+function toggleNotebookMultiPage() {
+  settings.notebookMultiPageEnabled = document.getElementById('notebookMultiPageToggle').checked;
+  saveSettings();
+  // Flush current editor content to active page so we don't lose edits
+  var visibleEl = document.getElementById(getVisibleNotebookEditorId());
+  if (visibleEl) {
+    setActiveNotebookContent(visibleEl.innerHTML);
+    saveViewData();
+  }
+  renderNotebookPageBars();
 }
 
 // =============================================
@@ -2393,11 +2678,12 @@ document.addEventListener('fullscreenchange', function() {
 // NOTEBOOK FULLSCREEN
 // =============================================
 function openNotebookFullscreen() {
-  var html = viewData.notebook || '';
+  var html = getActiveNotebookContent();
   var fullscreenBody = document.getElementById('notebookFullscreenBody');
   setNotebookHTML('notebookFullscreenBody', html);
   fullscreenBody.style.fontSize = (viewData.notebookFontSize || 18) + 'px';
   document.getElementById('notebookFullscreen').classList.add('open');
+  renderNotebookPageBar('notebookPageBarFs');
   fullscreenBody.focus();
 }
 
@@ -2406,7 +2692,7 @@ function closeNotebookFullscreen() {
   var html = fullscreenBody.innerHTML;
   setNotebookHTML('notebookArea', html);
   setNotebookHTML('notebookPanelTextarea', html);
-  viewData.notebook = html;
+  setActiveNotebookContent(html);
   saveViewData();
   document.getElementById('notebookFullscreen').classList.remove('open');
 }
@@ -2424,6 +2710,7 @@ document.addEventListener('keydown', function(e) {
   const modalsByPriority = [
     { id: 'updateNotification', close: dismissUpdateNotification },
     { id: 'randomPickerModal', close: closeRandomPicker },
+    { id: 'developerNotesModal', close: closeDeveloperNotes },
     { id: 'changelogModal', close: closeChangelog },
     { id: 'settingsModal', close: closeSettings },
   ];
@@ -3125,6 +3412,7 @@ updateAcademicEventSelectionBar();
 applyTimetableMode();
 updateClock();
 checkUpdateNotification();
+checkDeveloperNotesUnread();
 if (settings.school) {
   ensureNeisSchedule(getMonthKey(new Date()), new Date());
 }
