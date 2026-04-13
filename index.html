@@ -35,6 +35,7 @@
     <button class="tab-btn active" data-tab="rules" onclick="switchTab('rules')">학급 약속</button>
     <button class="tab-btn" data-tab="notebook" onclick="switchTab('notebook')">알림장</button>
     <button class="tab-btn" data-tab="notice" onclick="switchTab('notice')">공지사항</button>
+    <button class="tab-btn" data-tab="meal" onclick="switchTab('meal')">급식</button>
   </div>
 
   <div class="tab-content" id="tabRules">
@@ -97,6 +98,16 @@
     <button class="add-notice-btn" onclick="addNotice()">+ 새 공지 추가</button>
   </div>
 
+  <div class="tab-content" id="tabMeal" style="display:none">
+    <div class="rules-header-row">
+      <div class="rules-header" style="color:#10b981;-webkit-text-fill-color:#10b981">오늘의 급식</div>
+      <button class="edit-toggle-btn" onclick="refreshMealInfo()">&#x21BB; 새로고침</button>
+    </div>
+    <div class="rules-subtitle">MEAL</div>
+    <div class="meal-date-row" id="mealDateRow"></div>
+    <div id="mealContainer" class="meal-container"></div>
+  </div>
+
   <div class="notebook-panel-overlay" id="notebookPanelOverlay">
     <button class="notebook-focus-exit-btn" id="notebookFocusExitBtn" onclick="toggleNotebookPanelFill()">패널 닫기</button>
     <div id="notebookPanelTextarea" class="notebook-panel-textarea" contenteditable="true" data-placeholder="오늘의 알림을 입력하세요..." oninput="onNotebookPanelInput()"></div>
@@ -106,7 +117,7 @@
 <button class="settings-btn" onclick="openSettings()" title="설정" aria-label="설정">&#9881;</button>
 <button class="random-pick-btn" onclick="openRandomPicker()" title="랜덤 뽑기" aria-label="랜덤 뽑기">&#127922;</button>
 <button class="fullscreen-btn" id="fullscreenBtn" onclick="toggleFullscreen()" title="전체화면" aria-label="전체화면">&#x26F6;</button>
-<button class="version-label" onclick="openChangelog()" aria-label="버전 기록 보기">v1.8.1</button>
+<button class="version-label" onclick="openChangelog()" aria-label="버전 기록 보기">v1.9.0</button>
 <button class="feedback-btn" onclick="openFeedback()" title="의견 보내기" aria-label="의견 보내기">&#x1F4EC; 의견 보내기</button>
 
 <input type="file" id="importFileInput" accept=".json" style="display:none" onchange="handleImport(event)">
@@ -193,7 +204,19 @@
     </div>
 
     <div class="settings-section">
-      <div class="settings-section-title">학사 일정 / 날짜별 시간표<span class="help-icon">?<span class="help-tooltip">특정 날짜에 별도 일정과 전용 시간표를 설정합니다. 해당 날짜에만 자동 적용됩니다.</span></span></div>
+      <div class="settings-section-title">학교 선택 (나이스 연동)<span class="help-icon">?<span class="help-tooltip">학교명을 검색해 자기 학교를 선택하면, 학사일정과 오늘의 급식이 자동으로 표시됩니다. 설정은 각자 브라우저에만 저장되어 다른 선생님 설정과 섞이지 않습니다.</span></span></div>
+      <div class="school-current" id="schoolCurrent"></div>
+      <div class="school-search-row">
+        <input type="text" class="event-input school-search-input" id="schoolSearchInput" placeholder="예: 창원초등학교" onkeydown="if(event.key==='Enter'){event.preventDefault();runSchoolSearch();}">
+        <button class="data-btn data-btn-primary" onclick="runSchoolSearch()">검색</button>
+      </div>
+      <div class="school-help-text">학교 이름의 일부만 입력해도 돼요. 예: "창원초" → 창원으로 시작하는 학교 목록 표시</div>
+      <div class="school-results" id="schoolResults"></div>
+      <div class="neis-schedule-preview" id="neisSchedulePreview"></div>
+    </div>
+
+    <div class="settings-section">
+      <div class="settings-section-title">학사 일정 / 날짜별 시간표<span class="help-icon">?<span class="help-tooltip">특정 날짜에 별도 일정과 전용 시간표를 설정합니다. 해당 날짜에만 자동 적용됩니다. 나이스 학교를 선택해두면, 직접 입력하지 않은 날에도 학사일정이 왼쪽 패널 배너에 자동으로 표시됩니다.</span></span></div>
       <div class="event-selected-bar" id="eventSelectedBar">현재 선택: 새 일정 작성 중</div>
       <div class="event-help-text">1. 날짜와 일정 입력 2. 일정 저장 3. 아래 날짜 전용 시간표 수정. 배너는 해당 날짜 당일에만 표시됩니다.</div>
       <div class="event-form-grid">
@@ -269,6 +292,12 @@
       <button class="modal-close" onclick="closeChangelog()" aria-label="닫기">&#10005;</button>
     </div>
     <div class="changelog-list">
+      <div class="changelog-item">
+        <div class="changelog-item-header">
+          <span class="changelog-version">v1.9.0</span>
+        </div>
+        <div class="changelog-desc">나이스(NEIS) 교육정보 개방 포털 연동: 설정에서 학교 검색·선택 시 월별 학사일정이 왼쪽 패널 배너에 자동 노출되고, 오른쪽 패널 "급식" 탭에서 오늘의 식단(중식 포함 전체 끼니)·칼로리·원산지 조회. 학교별 코드는 개별 브라우저 localStorage에만 저장</div>
+      </div>
       <div class="changelog-item">
         <div class="changelog-item-header">
           <span class="changelog-version">v1.8.1</span>
@@ -470,6 +499,7 @@
   <div class="notebook-fullscreen-body" id="notebookFullscreenBody" contenteditable="true" data-placeholder="알림 내용을 입력하세요..." oninput="onNotebookFullscreenInput()"></div>
 </div>
 
+<script src="neis-api.js"></script>
 <script src="script.js"></script>
 </body>
 </html>

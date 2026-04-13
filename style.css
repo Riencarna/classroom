@@ -1556,6 +1556,9 @@
   .tab-btn.active[data-tab="notice"] {
     background: rgba(139, 92, 246, 0.1); color: #8b5cf6; border-color: rgba(139, 92, 246, 0.3);
   }
+  .tab-btn.active[data-tab="meal"] {
+    background: rgba(16, 185, 129, 0.1); color: #10b981; border-color: rgba(16, 185, 129, 0.3);
+  }
   .tab-content { width: 100%; }
   .right-panel.notebook-focus-mode {
     overflow-y: hidden;
@@ -2640,3 +2643,276 @@
     box-shadow: 0 0 0 3px rgba(236, 72, 153, 0.1);
   }
   .random-student-textarea::placeholder { color: rgba(0,0,0,0.25); }
+
+  /* ========== NEIS School Selection ========== */
+  .school-current {
+    display: none;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.7rem;
+    padding: 0.85rem 1rem;
+    margin-bottom: 0.7rem;
+    border-radius: 14px;
+    background: rgba(16, 185, 129, 0.08);
+    border: 1px solid rgba(16, 185, 129, 0.25);
+  }
+  .school-current.show { display: flex; }
+  .school-current-info { flex: 1; min-width: 0; }
+  .school-current-label {
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: #10b981;
+    letter-spacing: 0.05em;
+    margin-bottom: 0.15rem;
+  }
+  .school-current-name {
+    font-weight: 900;
+    font-size: 1rem;
+    color: #2d2a26;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .school-current-meta {
+    font-size: 0.82rem;
+    color: rgba(0,0,0,0.5);
+    margin-top: 0.1rem;
+  }
+  .school-remove-btn {
+    flex-shrink: 0;
+    padding: 0.45rem 0.8rem;
+    border-radius: 10px;
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    background: rgba(239, 68, 68, 0.08);
+    color: #ef4444;
+    font-family: 'Noto Sans KR', sans-serif;
+    font-weight: 700;
+    font-size: 0.82rem;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+  .school-remove-btn:hover { background: rgba(239, 68, 68, 0.15); }
+
+  .school-search-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 0.6rem;
+    margin-bottom: 0.4rem;
+  }
+  .school-search-input { font-size: 0.95rem; }
+  .school-help-text {
+    font-size: 0.82rem;
+    color: rgba(0,0,0,0.45);
+    margin-bottom: 0.6rem;
+    line-height: 1.5;
+  }
+
+  .school-results {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    max-height: 260px;
+    overflow-y: auto;
+  }
+  .school-result-item {
+    padding: 0.75rem 0.9rem;
+    border-radius: 12px;
+    background: rgba(255,255,255,0.6);
+    border: 1px solid rgba(255,255,255,0.8);
+    cursor: pointer;
+    transition: background 0.2s, border-color 0.2s, transform 0.2s;
+  }
+  .school-result-item:hover {
+    background: rgba(16, 185, 129, 0.08);
+    border-color: rgba(16, 185, 129, 0.3);
+    transform: translateY(-1px);
+  }
+  .school-result-name {
+    font-weight: 900;
+    font-size: 0.96rem;
+    color: #2d2a26;
+    margin-bottom: 0.15rem;
+  }
+  .school-result-meta {
+    font-size: 0.82rem;
+    color: rgba(0,0,0,0.5);
+    line-height: 1.4;
+  }
+  .school-result-empty {
+    padding: 1rem;
+    text-align: center;
+    font-size: 0.88rem;
+    color: rgba(0,0,0,0.4);
+  }
+
+  /* ========== Meal Tab ========== */
+  .meal-date-row {
+    font-family: 'Outfit', sans-serif;
+    font-weight: 700;
+    font-size: 0.95rem;
+    color: #10b981;
+    letter-spacing: 0.06em;
+    margin-bottom: 0.9rem;
+  }
+  .meal-container {
+    display: flex;
+    flex-direction: column;
+    gap: 0.9rem;
+  }
+  .meal-card {
+    padding: 1rem 1.1rem;
+    border-radius: 16px;
+    background: rgba(255,255,255,0.65);
+    border: 1px solid rgba(16, 185, 129, 0.2);
+  }
+  .meal-card-title {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.8rem;
+    font-weight: 900;
+    font-size: 1.05rem;
+    color: #10b981;
+    margin-bottom: 0.6rem;
+  }
+  .meal-card-cal {
+    font-family: 'Outfit', sans-serif;
+    font-weight: 700;
+    font-size: 0.82rem;
+    color: rgba(0,0,0,0.5);
+  }
+  .meal-dish-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem 0.65rem;
+    margin-bottom: 0.4rem;
+  }
+  .meal-dish-item {
+    padding: 0.35rem 0.7rem;
+    border-radius: 999px;
+    background: rgba(16, 185, 129, 0.1);
+    color: #047857;
+    font-size: 0.88rem;
+    font-weight: 700;
+  }
+  .meal-origin-toggle {
+    display: inline-block;
+    margin-top: 0.3rem;
+    padding: 0;
+    background: none;
+    border: none;
+    color: rgba(0,0,0,0.45);
+    font-family: 'Noto Sans KR', sans-serif;
+    font-size: 0.8rem;
+    cursor: pointer;
+    text-decoration: underline;
+  }
+  .meal-origin-detail {
+    display: none;
+    margin-top: 0.4rem;
+    padding: 0.65rem 0.8rem;
+    border-radius: 10px;
+    background: rgba(0,0,0,0.03);
+    font-size: 0.8rem;
+    line-height: 1.5;
+    color: rgba(0,0,0,0.55);
+    white-space: pre-wrap;
+  }
+  .meal-origin-detail.show { display: block; }
+  .meal-empty {
+    padding: 1.5rem 1rem;
+    text-align: center;
+    font-size: 0.9rem;
+    color: rgba(0,0,0,0.45);
+    line-height: 1.6;
+  }
+  .meal-empty strong { color: #10b981; display: block; margin-bottom: 0.3rem; }
+  .meal-loading {
+    padding: 1.5rem 1rem;
+    text-align: center;
+    font-size: 0.9rem;
+    color: rgba(0,0,0,0.4);
+  }
+
+  /* ========== Academic Event Banner - NEIS variant ========== */
+  .academic-event-banner.neis-source {
+    background: rgba(16, 185, 129, 0.12);
+    border-color: rgba(16, 185, 129, 0.3);
+  }
+  .academic-event-banner.neis-source .academic-event-title {
+    color: #10b981;
+  }
+
+  /* ========== NEIS Monthly Schedule Preview ========== */
+  .neis-schedule-preview {
+    display: none;
+    margin-top: 0.9rem;
+    padding: 0.9rem 1rem;
+    border-radius: 14px;
+    background: rgba(16, 185, 129, 0.05);
+    border: 1px dashed rgba(16, 185, 129, 0.35);
+  }
+  .neis-schedule-preview.show { display: block; }
+  .neis-schedule-preview-title {
+    font-weight: 900;
+    font-size: 0.92rem;
+    color: #047857;
+    margin-bottom: 0.6rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+  }
+  .neis-schedule-preview-month {
+    font-family: 'Outfit', sans-serif;
+    font-size: 0.8rem;
+    color: rgba(4, 120, 87, 0.7);
+    letter-spacing: 0.04em;
+  }
+  .neis-schedule-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    max-height: 220px;
+    overflow-y: auto;
+  }
+  .neis-schedule-row {
+    display: grid;
+    grid-template-columns: 3.5rem 1fr;
+    gap: 0.7rem;
+    padding: 0.5rem 0.7rem;
+    border-radius: 10px;
+    background: rgba(255,255,255,0.6);
+    border: 1px solid rgba(16, 185, 129, 0.15);
+    font-size: 0.88rem;
+  }
+  .neis-schedule-row.is-today {
+    background: rgba(16, 185, 129, 0.14);
+    border-color: rgba(16, 185, 129, 0.45);
+    font-weight: 700;
+  }
+  .neis-schedule-date {
+    font-family: 'Outfit', sans-serif;
+    font-weight: 700;
+    color: #10b981;
+    letter-spacing: 0.02em;
+  }
+  .neis-schedule-name {
+    color: #2d2a26;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .neis-schedule-empty {
+    font-size: 0.85rem;
+    color: rgba(0,0,0,0.45);
+    text-align: center;
+    padding: 0.4rem;
+  }
+  .neis-schedule-error {
+    font-size: 0.85rem;
+    color: #ef4444;
+    text-align: center;
+    padding: 0.4rem;
+  }
