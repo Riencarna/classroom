@@ -248,17 +248,20 @@
     flex-direction: row;
     gap: 1rem;
     margin-bottom: 0.3rem;
+    flex-shrink: 0;
   }
   .left-panel.timetable-mode .date-display { font-size: 3.5rem; }
   .left-panel.timetable-mode .day-name { font-size: 2.8rem; }
   .left-panel.timetable-mode .ampm-display { font-size: 5rem; }
   .left-panel.timetable-mode .time-display { font-size: 8.5rem; }
   .left-panel.timetable-mode .seconds-display { font-size: 3rem; }
-  .left-panel.timetable-mode .clock-container { gap: 2.2rem; }
+  .left-panel.timetable-mode .clock-container { gap: 2.2rem; flex-shrink: 0; }
+  .left-panel.timetable-mode .seconds-display { flex-shrink: 0; }
   .left-panel.timetable-mode .academic-event-banner {
     position: relative;
     top: auto;
     margin-bottom: 0.8rem;
+    flex-shrink: 0;
   }
   .left-panel.timetable-mode .period-alert {
     position: relative;
@@ -280,6 +283,8 @@
   .left-panel.timetable-mode .timetable-display {
     opacity: 1;
     max-height: 600px;
+    flex-shrink: 1;
+    min-height: 0;
     overflow-y: auto;
     margin-top: 2.5rem;
   }

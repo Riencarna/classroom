@@ -2729,7 +2729,7 @@ function updateAcademicEventBanner(now) {
   let body = '';
   if (manualEvent) {
     title = manualEvent.title;
-    body = manualEvent.notice || '오늘 일정이 적용됩니다.';
+    body = manualEvent.notice || '';
   } else {
     const neisEvent = getNeisEventForToday(now);
     if (neisEvent) {
