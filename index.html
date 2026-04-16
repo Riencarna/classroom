@@ -88,6 +88,16 @@
       <input type="number" class="font-size-input" id="noticeFontSizeInput" value="24" min="12" max="120" onchange="setNoticeFontSize(this.value)">
       <button class="font-size-btn" onclick="changeNoticeFontSize(2)">+</button>
       <span class="notebook-toolbar-divider"></span>
+      <span class="notebook-toolbar-label">글자색</span>
+      <div class="notice-color-presets">
+        <button class="notice-color-dot active" data-color="#2d2a26" style="background:#2d2a26" onclick="applyNoticeColor('#2d2a26')" title="검정"></button>
+        <button class="notice-color-dot" data-color="#d32f2f" style="background:#d32f2f" onclick="applyNoticeColor('#d32f2f')" title="빨강"></button>
+        <button class="notice-color-dot" data-color="#1976d2" style="background:#1976d2" onclick="applyNoticeColor('#1976d2')" title="파랑"></button>
+        <button class="notice-color-dot" data-color="#388e3c" style="background:#388e3c" onclick="applyNoticeColor('#388e3c')" title="초록"></button>
+        <button class="notice-color-dot" data-color="#f9a825" style="background:#f9a825" onclick="applyNoticeColor('#f9a825')" title="노랑"></button>
+        <button class="notice-color-dot" data-color="#8b5cf6" style="background:#8b5cf6" onclick="applyNoticeColor('#8b5cf6')" title="보라"></button>
+      </div>
+      <span class="notebook-toolbar-divider"></span>
       <div class="notice-size-presets" id="noticeSizePresets">
         <button class="notice-preset-btn" onclick="setNoticeFontSize(16)">작게</button>
         <button class="notice-preset-btn" onclick="setNoticeFontSize(24)">보통</button>
@@ -169,7 +179,7 @@
         </label>
       </div>
       <div class="toggle-row">
-        <span class="toggle-label">쉬는 시간 음성 안내<span class="help-icon">?<span class="help-tooltip">쉬는 시간에 남은 시간을 음성으로 안내합니다. 쉬는 시간 종료 3분 전과 1분 전에 안내가 나갑니다.</span></span></span>
+        <span class="toggle-label">쉬는 시간 음성 안내<span class="help-icon">?<span class="help-tooltip">쉬는 시간에 남은 시간을 음성으로 안내합니다. 아래에서 각 알림을 개별적으로 켜거나 끌 수 있어요.</span></span></span>
         <label class="toggle-switch">
           <input type="checkbox" id="voiceAlertToggle" onchange="toggleVoiceAlert()">
           <span class="toggle-slider"></span>
@@ -181,6 +191,20 @@
           <input type="checkbox" id="notebookMultiPageToggle" onchange="toggleNotebookMultiPage()">
           <span class="toggle-slider"></span>
         </label>
+      </div>
+      <div class="voice-alert-options" id="voiceAlertOptions">
+        <div class="voice-alert-option">
+          <label><input type="checkbox" id="voiceBreak3Toggle" onchange="saveVoiceAlertOptions()"> 쉬는시간 3분 전</label>
+        </div>
+        <div class="voice-alert-option">
+          <label><input type="checkbox" id="voiceBreak1Toggle" onchange="saveVoiceAlertOptions()"> 쉬는시간 1분 전</label>
+        </div>
+        <div class="voice-alert-option">
+          <label><input type="checkbox" id="voiceLunch5Toggle" onchange="saveVoiceAlertOptions()"> 점심시간 5분 전</label>
+        </div>
+        <div class="voice-alert-option">
+          <label><input type="checkbox" id="voiceLunch1Toggle" onchange="saveVoiceAlertOptions()"> 점심시간 1분 전</label>
+        </div>
       </div>
       <div class="voice-preview-row">
         <span class="voice-preview-label">음성 미리듣기</span>

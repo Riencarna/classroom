@@ -36,6 +36,36 @@ const UPDATE_HISTORY = [
 // 최상단이 최신 글. id는 겹치지 않게(예: 날짜 + 순번) 주세요.
 const DEVELOPER_NOTES = [
   {
+    id: '2026-04-16-05-page-reorder',
+    date: '2026-04-16',
+    title: '알림장 페이지 순서를 바꿀 수 있어요',
+    body: '의견 보내기로 "알림장 탭을 길게 누르면 순서를 바꿀 수 있으면 좋겠다"는 의견을 주셨어요.\n\n이제 알림장 페이지 탭을 0.5초 정도 길게 누르면 드래그 모드로 전환되고, 누른 채로 좌우로 옮겨서 원하는 위치에 놓을 수 있어요. 탭이 따라오면서 다른 탭들이 자연스럽게 밀려나요.\n\n(설정 > "알림장 여러 페이지 사용"이 켜져 있어야 합니다)'
+  },
+  {
+    id: '2026-04-16-04-panel-resize',
+    date: '2026-04-16',
+    title: '좌우 화면 크기를 조절할 수 있어요',
+    body: '"왼쪽 시간 부분과 오른쪽 화면의 크기 조절이 가능하면 좋겠다"는 의견을 주셨어요.\n\n이제 화면 가운데 구분선을 마우스로 드래그하면 좌우 패널의 비율을 자유롭게 조절할 수 있어요. 공지사항을 크게 보고 싶을 때 오른쪽을 넓혀 보세요! 구분선을 더블클릭하면 원래 비율(50:50)로 돌아갑니다.\n\n설정한 비율은 자동 저장돼서 다음에 열어도 유지됩니다.'
+  },
+  {
+    id: '2026-04-16-03-voice-options',
+    date: '2026-04-16',
+    title: '쉬는시간 알림을 개별 설정할 수 있어요',
+    body: '"쉬는 시간 알림을 1분 전만으로 설정하고 싶다"는 의견을 주셨어요.\n\n이제 설정 > 쉬는 시간 음성 안내를 켜면, 그 아래에 4개의 체크박스가 나타나요:\n- 쉬는시간 3분 전 / 1분 전\n- 점심시간 5분 전 / 1분 전\n\n필요한 알림만 골라서 켤 수 있습니다!'
+  },
+  {
+    id: '2026-04-16-02-notice-color',
+    date: '2026-04-16',
+    title: '공지사항 글자에 색깔을 넣을 수 있어요',
+    body: '"공지사항 글자 색깔을 바꿀 수 있으면 좋겠다"는 의견을 주셨어요.\n\n이제 공지사항 탭의 글자 크기 옆에 6가지 색상 버튼(검정, 빨강, 파랑, 초록, 노랑, 보라)이 생겼어요. 강조하고 싶은 부분을 드래그로 선택한 뒤 색상 버튼을 누르면 해당 부분의 글자색이 바뀝니다.'
+  },
+  {
+    id: '2026-04-16-01-rules-font',
+    date: '2026-04-16',
+    title: '학급 약속 글자가 조금 커졌어요',
+    body: '"우리 반 약속 내용이 조금만 더 글자가 커지면 좋겠다"는 의견을 주셨어요.\n\n학급 약속의 제목과 설명 글자 크기를 한 단계씩 키웠습니다. 뒤에서도 잘 보이길 바랍니다!'
+  },
+  {
     id: '2026-04-14-welcome',
     date: '2026-04-14',
     title: '개발자 소식 게시판이 생겼어요!',
@@ -250,6 +280,10 @@ function loadSettings() {
       if (settings.timetableMode === undefined) settings.timetableMode = false;
       if (settings.morningSlotMigrated === undefined) settings.morningSlotMigrated = false;
       if (settings.voiceAlertEnabled === undefined) settings.voiceAlertEnabled = false;
+      if (settings.voiceAlertBreak3 === undefined) settings.voiceAlertBreak3 = true;
+      if (settings.voiceAlertBreak1 === undefined) settings.voiceAlertBreak1 = true;
+      if (settings.voiceAlertLunch5 === undefined) settings.voiceAlertLunch5 = true;
+      if (settings.voiceAlertLunch1 === undefined) settings.voiceAlertLunch1 = true;
       if (settings.schoolbellUrl === undefined) settings.schoolbellUrl = '';
       if (settings.school === undefined) settings.school = null;
       if (settings.notebookMultiPageEnabled === undefined) settings.notebookMultiPageEnabled = false;
@@ -582,6 +616,11 @@ function openSettings() {
   document.getElementById('secondsToggle').checked = settings.showSeconds;
   document.getElementById('timetableModeToggle').checked = settings.timetableMode;
   document.getElementById('voiceAlertToggle').checked = settings.voiceAlertEnabled;
+  document.getElementById('voiceBreak3Toggle').checked = settings.voiceAlertBreak3 !== false;
+  document.getElementById('voiceBreak1Toggle').checked = settings.voiceAlertBreak1 !== false;
+  document.getElementById('voiceLunch5Toggle').checked = settings.voiceAlertLunch5 !== false;
+  document.getElementById('voiceLunch1Toggle').checked = settings.voiceAlertLunch1 !== false;
+  updateVoiceAlertOptionsState();
   var multiPageToggle = document.getElementById('notebookMultiPageToggle');
   if (multiPageToggle) multiPageToggle.checked = !!settings.notebookMultiPageEnabled;
   document.getElementById('schoolbellUrlInput').value = settings.schoolbellUrl || '';
@@ -1787,6 +1826,24 @@ function renderNotebookPageBar(barId) {
       del.onclick = function(e) { e.stopPropagation(); deleteNotebookPage(page.id); };
       tab.appendChild(del);
     }
+    // Long-press drag reorder
+    (function(thisTab, thisPage) {
+      var pressTimer = null;
+      thisTab.addEventListener('mousedown', function(e) {
+        if (e.target.closest('.notebook-page-tab-del')) return;
+        if (e.button !== 0) return;
+        pressTimer = setTimeout(function() {
+          pressTimer = null;
+          startNotebookPageDrag(bar, thisTab, thisPage.id);
+        }, 500);
+      });
+      thisTab.addEventListener('mouseup', function() {
+        if (pressTimer) { clearTimeout(pressTimer); pressTimer = null; }
+      });
+      thisTab.addEventListener('mouseleave', function() {
+        if (pressTimer) { clearTimeout(pressTimer); pressTimer = null; }
+      });
+    })(tab, page);
     bar.appendChild(tab);
   });
 
@@ -1883,6 +1940,92 @@ function startRenameNotebookPage(pageId) {
   renderNotebookPageBars();
 }
 
+function startNotebookPageDrag(bar, dragTab, dragPageId) {
+  var pages = viewData.notebookPages;
+  var dragIdx = pages.findIndex(function(p) { return p.id === dragPageId; });
+  if (dragIdx === -1) return;
+
+  // Snapshot original positions of all tabs
+  var tabs = Array.from(bar.querySelectorAll('.notebook-page-tab'));
+  var origRects = tabs.map(function(t) { return t.getBoundingClientRect(); });
+  var dragRect = origRects[tabs.indexOf(dragTab)];
+  var startX = dragRect.left + dragRect.width / 2;
+
+  dragTab.classList.add('page-dragging');
+  bar.classList.add('reordering');
+
+  // Suppress clicks on this tab during & right after drag
+  var suppressClick = function(e) { e.stopImmediatePropagation(); e.preventDefault(); };
+  dragTab.addEventListener('click', suppressClick, true);
+
+  // Current order tracking (index in pages array)
+  var currentOrder = pages.map(function(p) { return p.id; });
+  var currentDragIdx = dragIdx;
+
+  function onMouseMove(e) {
+    // Move the dragged tab with cursor
+    var dx = e.clientX - startX;
+    dragTab.style.transform = 'translateX(' + dx + 'px)';
+
+    // Figure out which position the cursor is over
+    var newIdx = currentDragIdx;
+    for (var i = 0; i < origRects.length; i++) {
+      var center = origRects[i].left + origRects[i].width / 2;
+      if (i < currentDragIdx && e.clientX < center) { newIdx = i; break; }
+      if (i > currentDragIdx && e.clientX > center) { newIdx = i; }
+    }
+
+    if (newIdx !== currentDragIdx) {
+      // Reorder the data array
+      var moved = currentOrder.splice(currentDragIdx, 1)[0];
+      currentOrder.splice(newIdx, 0, moved);
+      currentDragIdx = newIdx;
+
+      // Shift other tabs to visually show the new order
+      tabs.forEach(function(t, i) {
+        if (t === dragTab) return;
+        var pageId = t.getAttribute('data-page-id');
+        var newPos = currentOrder.indexOf(pageId);
+        var shift = origRects[newPos].left - origRects[i].left;
+        t.style.transform = shift ? 'translateX(' + shift + 'px)' : '';
+      });
+    }
+  }
+
+  function onMouseUp() {
+    document.removeEventListener('mousemove', onMouseMove);
+    document.removeEventListener('mouseup', onMouseUp);
+
+    // Apply the final order to data
+    var changed = false;
+    for (var i = 0; i < currentOrder.length; i++) {
+      if (currentOrder[i] !== pages[i].id) { changed = true; break; }
+    }
+    if (changed) {
+      var map = {};
+      pages.forEach(function(p) { map[p.id] = p; });
+      viewData.notebookPages = currentOrder.map(function(id) { return map[id]; });
+      saveViewData();
+      showToast('페이지 순서가 변경되었어요');
+    }
+
+    // Clean up styles
+    tabs.forEach(function(t) {
+      t.style.transform = '';
+      t.classList.remove('page-dragging');
+    });
+    bar.classList.remove('reordering');
+    renderNotebookPageBars();
+
+    setTimeout(function() {
+      dragTab.removeEventListener('click', suppressClick, true);
+    }, 0);
+  }
+
+  document.addEventListener('mousemove', onMouseMove);
+  document.addEventListener('mouseup', onMouseUp);
+}
+
 function toggleNotebookMultiPage() {
   settings.notebookMultiPageEnabled = document.getElementById('notebookMultiPageToggle').checked;
   saveSettings();
@@ -1915,10 +2058,13 @@ function renderNotices() {
     content.className = 'notice-content';
     content.contentEditable = true;
     content.spellcheck = false;
-    content.textContent = notice.text;
+    var html = notice.html || notice.text || '';
+    content.innerHTML = sanitizeNotebookHTML(html);
     content.style.fontSize = (viewData.noticeFontSize || 24) + 'px';
     content.addEventListener('blur', () => {
-      viewData.notices[i].text = content.textContent.trim() || '새 공지';
+      var h = content.innerHTML.trim();
+      viewData.notices[i].html = sanitizeNotebookHTML(h) || '새 공지';
+      delete viewData.notices[i].text;
       saveViewData();
     });
     content.addEventListener('keydown', e => {
@@ -1948,7 +2094,7 @@ function renderNotices() {
 }
 
 function addNotice() {
-  viewData.notices.push({ text: '새 공지사항' });
+  viewData.notices.push({ html: '새 공지사항' });
   saveViewData();
   renderNotices();
   showToast('새 공지가 추가되었어요');
@@ -1957,6 +2103,21 @@ function addNotice() {
     const last = items[items.length - 1];
     if (last) { last.focus(); document.execCommand('selectAll', false, null); }
   }, 100);
+}
+
+function applyNoticeColor(color) {
+  document.execCommand('foreColor', false, color);
+  document.querySelectorAll('.notice-color-dot').forEach(function(dot) {
+    dot.classList.toggle('active', dot.getAttribute('data-color') === color);
+  });
+  // save after color change
+  document.querySelectorAll('.notice-content').forEach(function(el, i) {
+    if (viewData.notices[i]) {
+      viewData.notices[i].html = sanitizeNotebookHTML(el.innerHTML.trim()) || '새 공지';
+      delete viewData.notices[i].text;
+    }
+  });
+  saveViewData();
 }
 
 function changeNoticeFontSize(delta) {
@@ -2975,6 +3136,20 @@ function playVoiceFile(key) {
 function toggleVoiceAlert() {
   settings.voiceAlertEnabled = document.getElementById('voiceAlertToggle').checked;
   saveSettings();
+  updateVoiceAlertOptionsState();
+}
+
+function updateVoiceAlertOptionsState() {
+  var el = document.getElementById('voiceAlertOptions');
+  if (el) el.classList.toggle('disabled', !settings.voiceAlertEnabled);
+}
+
+function saveVoiceAlertOptions() {
+  settings.voiceAlertBreak3 = document.getElementById('voiceBreak3Toggle').checked;
+  settings.voiceAlertBreak1 = document.getElementById('voiceBreak1Toggle').checked;
+  settings.voiceAlertLunch5 = document.getElementById('voiceLunch5Toggle').checked;
+  settings.voiceAlertLunch1 = document.getElementById('voiceLunch1Toggle').checked;
+  saveSettings();
 }
 
 function checkVoiceAlert(now) {
@@ -2994,15 +3169,16 @@ function checkVoiceAlert(now) {
   const remaining = endSecs - currentSecs;
 
   const isLunch = period.type === 'lunch-time';
-  const alerts = isLunch
+  const allAlerts = isLunch
     ? [
-        { secs: 300, fileKey: 'lunch-5' },
-        { secs: 60, fileKey: 'lunch-1' },
+        { secs: 300, fileKey: 'lunch-5', enabled: settings.voiceAlertLunch5 !== false },
+        { secs: 60, fileKey: 'lunch-1', enabled: settings.voiceAlertLunch1 !== false },
       ]
     : [
-        { secs: 180, fileKey: 'break-3' },
-        { secs: 60, fileKey: 'break-1' },
+        { secs: 180, fileKey: 'break-3', enabled: settings.voiceAlertBreak3 !== false },
+        { secs: 60, fileKey: 'break-1', enabled: settings.voiceAlertBreak1 !== false },
       ];
+  const alerts = allAlerts.filter(a => a.enabled);
 
   // 큰 시간부터 체크하여, 해당 시점을 지났으면 한 번만 재생
   for (const alert of alerts) {
@@ -3396,6 +3572,50 @@ function ensureMealData(ymd) {
 }
 
 // =============================================
+// =============================================
+// PANEL RESIZE (좌우 패널 크기 조절)
+// =============================================
+(function() {
+  var divider = document.querySelector('.divider');
+  if (!divider) return;
+  var saved = localStorage.getItem('classroomPanelRatio');
+  if (saved) applyPanelRatio(parseFloat(saved));
+
+  var dragging = false;
+
+  divider.addEventListener('pointerdown', function(e) {
+    e.preventDefault();
+    dragging = true;
+    divider.classList.add('dragging');
+    divider.setPointerCapture(e.pointerId);
+  });
+
+  divider.addEventListener('pointermove', function(e) {
+    if (!dragging) return;
+    var ratio = (e.clientX / window.innerWidth) * 100;
+    ratio = Math.max(25, Math.min(75, ratio));
+    applyPanelRatio(ratio);
+  });
+
+  divider.addEventListener('pointerup', function(e) {
+    if (!dragging) return;
+    dragging = false;
+    divider.classList.remove('dragging');
+    var ratio = parseFloat(document.documentElement.style.getPropertyValue('--left-width')) || 50;
+    localStorage.setItem('classroomPanelRatio', ratio);
+  });
+
+  divider.addEventListener('dblclick', function() {
+    applyPanelRatio(50);
+    localStorage.removeItem('classroomPanelRatio');
+  });
+
+  function applyPanelRatio(pct) {
+    document.documentElement.style.setProperty('--left-width', pct + '%');
+    document.documentElement.style.setProperty('--right-width', (100 - pct) + '%');
+  }
+})();
+
 // INIT
 // =============================================
 loadSettings();
