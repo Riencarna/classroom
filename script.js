@@ -2936,18 +2936,26 @@ function initVisitorCounter() {
   var isNewSession = !sessionStorage.getItem('classroomSessionActive');
   if (isNewSession) {
     sessionStorage.setItem('classroomSessionActive', '1');
-    totalRef.transaction(function(current) { return (current || 0) + 1; });
-    todayRef.transaction(function(current) { return (current || 0) + 1; });
+    Promise.all([
+      totalRef.transaction(function(current) { return (current || 0) + 1; }),
+      todayRef.transaction(function(current) { return (current || 0) + 1; })
+    ]).then(function() {
+      readAndDisconnect(today);
+    });
+  } else {
+    readAndDisconnect(today);
   }
+}
 
-  // Real-time display updates
-  firebaseDB.ref('counter').on('value', function(snapshot) {
+function readAndDisconnect(today) {
+  firebaseDB.ref('counter').once('value', function(snapshot) {
     var data = snapshot.val() || {};
     var baseline = data.migrationBaseline || 0;
     var total = (data.total || 0) + baseline;
     var todayCount = (data.today && data.today[today]) || 0;
     document.getElementById('totalCount').textContent = total;
     document.getElementById('todayCount').textContent = todayCount;
+    firebaseDB.goOffline();
   });
 }
 
