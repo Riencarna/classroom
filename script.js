@@ -2901,119 +2901,54 @@ document.addEventListener('click', function(e) {
 });
 
 // =============================================
-// VISITOR COUNTER
+// VISITOR COUNTER (Firebase Realtime Database)
 // =============================================
-function getVisitorId() {
-  var id = localStorage.getItem('classroomVisitorId');
-  if (!id) {
-    id = 'v_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
-    localStorage.setItem('classroomVisitorId', id);
-  }
-  return id;
-}
+var firebaseDB = (function() {
+  firebase.initializeApp({
+    databaseURL: 'https://classroom-counter-default-rtdb.asia-southeast1.firebasedatabase.app'
+  });
+  return firebase.database();
+})();
 
 function initVisitorCounter() {
   var today = new Date().toISOString().slice(0, 10);
-  var visitorId = getVisitorId();
-  var counterData = {};
-  try {
-    counterData = JSON.parse(localStorage.getItem('classroomVisitorCounter') || '{}');
-  } catch(e) { counterData = {}; }
+  var totalRef = firebaseDB.ref('counter/total');
+  var todayRef = firebaseDB.ref('counter/today/' + today);
 
-  // One-time migration: preserve old total count as baseline for new API
-  if (!counterData.migratedToAbacus) {
-    counterData.totalCountBaseline = counterData.totalCount || 0;
-    counterData.migratedToAbacus = true;
-    localStorage.setItem('classroomVisitorCounter', JSON.stringify(counterData));
+  // One-time migration: move old localStorage total into Firebase
+  var migrated = localStorage.getItem('classroomFirebaseMigrated');
+  if (!migrated) {
+    var oldTotal = 0;
+    try {
+      var old = JSON.parse(localStorage.getItem('classroomVisitorCounter') || '{}');
+      oldTotal = old.totalCount || 0;
+    } catch(e) {}
+    if (oldTotal > 0) {
+      firebaseDB.ref('counter/migrationBaseline').transaction(function(current) {
+        // Only set baseline once (first browser to migrate wins)
+        return current === null ? oldTotal : current;
+      });
+    }
+    localStorage.setItem('classroomFirebaseMigrated', '1');
   }
 
-  // Check if this is a new session (not just a refresh)
+  // Increment on new session (not refresh)
   var isNewSession = !sessionStorage.getItem('classroomSessionActive');
   if (isNewSession) {
     sessionStorage.setItem('classroomSessionActive', '1');
-
-    // Track unique visitors per day
-    if (!counterData.todayVisitors) counterData.todayVisitors = [];
-    if (counterData.lastVisitDate !== today) {
-      counterData.lastVisitDate = today;
-      counterData.todayVisitors = [visitorId];
-      counterData.todayCount = 1;
-    } else if (!counterData.todayVisitors.includes(visitorId)) {
-      counterData.todayVisitors.push(visitorId);
-      counterData.todayCount = counterData.todayVisitors.length;
-    }
-
-    // Track unique total visitors (preserve old count during migration)
-    var oldTotal = counterData.totalCount || 0;
-    if (!counterData.allVisitors) counterData.allVisitors = [];
-    if (!counterData.allVisitors.includes(visitorId)) {
-      counterData.allVisitors.push(visitorId);
-    }
-    counterData.totalCount = Math.max(oldTotal, counterData.allVisitors.length);
-
-    localStorage.setItem('classroomVisitorCounter', JSON.stringify(counterData));
-  } else {
-    // Same session, just show existing counts
-    if (counterData.lastVisitDate !== today) {
-      counterData.lastVisitDate = today;
-      counterData.todayCount = 0;
-    }
+    totalRef.transaction(function(current) { return (current || 0) + 1; });
+    todayRef.transaction(function(current) { return (current || 0) + 1; });
   }
 
-  // Show local counts immediately
-  updateCounterDisplay(counterData.todayCount || 0, counterData.totalCount || 0);
-
-  // Try external API for cross-device total count
-  if (isNewSession) {
-    fetchExternalCounter(true);
-  } else {
-    fetchExternalCounter(false);
-  }
-}
-
-function fetchExternalCounter(increment) {
-  var namespace = 'classroom-riencarna';
-  var key = 'total-visits';
-  var todayKey = 'today-' + new Date().toISOString().slice(0, 10);
-  var action = increment ? 'hit' : 'get';
-
-  var totalUrl = 'https://abacus.jasoncameron.dev/' + action + '/' + namespace + '/' + key;
-  var todayUrl = 'https://abacus.jasoncameron.dev/' + action + '/' + namespace + '/' + todayKey;
-
-  Promise.all([
-    fetch(totalUrl).then(function(r) { return r.json(); }).catch(function() { return null; }),
-    fetch(todayUrl).then(function(r) { return r.json(); }).catch(function() { return null; })
-  ]).then(function(results) {
-    var total = results[0] && results[0].value !== undefined ? results[0].value : 0;
-    var today = results[1] && results[1].value !== undefined ? results[1].value : 0;
-
-    // Add baseline from old API to preserve historical total
-    var baseline = 0;
-    try {
-      var counterData = JSON.parse(localStorage.getItem('classroomVisitorCounter') || '{}');
-      baseline = counterData.totalCountBaseline || 0;
-    } catch(e) {}
-
-    var displayTotal = total + baseline;
-    if (displayTotal < today) displayTotal = today;
-    if (displayTotal) document.getElementById('totalCount').textContent = displayTotal;
-    if (today) document.getElementById('todayCount').textContent = today;
-
-    // Save API values back to localStorage so refresh shows correct counts
-    if (displayTotal || today) {
-      try {
-        var counterData = JSON.parse(localStorage.getItem('classroomVisitorCounter') || '{}');
-        if (displayTotal) counterData.totalCount = Math.max(counterData.totalCount || 0, displayTotal);
-        if (today) counterData.todayCount = Math.max(counterData.todayCount || 0, today);
-        localStorage.setItem('classroomVisitorCounter', JSON.stringify(counterData));
-      } catch(e) {}
-    }
+  // Real-time display updates
+  firebaseDB.ref('counter').on('value', function(snapshot) {
+    var data = snapshot.val() || {};
+    var baseline = data.migrationBaseline || 0;
+    var total = (data.total || 0) + baseline;
+    var todayCount = (data.today && data.today[today]) || 0;
+    document.getElementById('totalCount').textContent = total;
+    document.getElementById('todayCount').textContent = todayCount;
   });
-}
-
-function updateCounterDisplay(today, total) {
-  document.getElementById('todayCount').textContent = today;
-  document.getElementById('totalCount').textContent = total;
 }
 
 // =============================================
