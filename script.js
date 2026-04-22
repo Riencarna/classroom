@@ -2920,6 +2920,13 @@ function initVisitorCounter() {
     counterData = JSON.parse(localStorage.getItem('classroomVisitorCounter') || '{}');
   } catch(e) { counterData = {}; }
 
+  // One-time migration: preserve old total count as baseline for new API
+  if (!counterData.migratedToAbacus) {
+    counterData.totalCountBaseline = counterData.totalCount || 0;
+    counterData.migratedToAbacus = true;
+    localStorage.setItem('classroomVisitorCounter', JSON.stringify(counterData));
+  }
+
   // Check if this is a new session (not just a refresh)
   var isNewSession = !sessionStorage.getItem('classroomSessionActive');
   if (isNewSession) {
@@ -2968,26 +2975,35 @@ function fetchExternalCounter(increment) {
   var namespace = 'classroom-riencarna';
   var key = 'total-visits';
   var todayKey = 'today-' + new Date().toISOString().slice(0, 10);
+  var action = increment ? 'hit' : 'get';
 
-  var totalUrl = 'https://api.counterapi.dev/v1/' + namespace + '/' + key;
-  var todayUrl = 'https://api.counterapi.dev/v1/' + namespace + '/' + todayKey;
-  if (increment) { totalUrl += '/up'; todayUrl += '/up'; }
+  var totalUrl = 'https://abacus.jasoncameron.dev/' + action + '/' + namespace + '/' + key;
+  var todayUrl = 'https://abacus.jasoncameron.dev/' + action + '/' + namespace + '/' + todayKey;
 
   Promise.all([
     fetch(totalUrl).then(function(r) { return r.json(); }).catch(function() { return null; }),
     fetch(todayUrl).then(function(r) { return r.json(); }).catch(function() { return null; })
   ]).then(function(results) {
-    var total = results[0] && results[0].count !== undefined ? results[0].count : 0;
-    var today = results[1] && results[1].count !== undefined ? results[1].count : 0;
-    if (total < today) total = today;
-    if (total) document.getElementById('totalCount').textContent = total;
+    var total = results[0] && results[0].value !== undefined ? results[0].value : 0;
+    var today = results[1] && results[1].value !== undefined ? results[1].value : 0;
+
+    // Add baseline from old API to preserve historical total
+    var baseline = 0;
+    try {
+      var counterData = JSON.parse(localStorage.getItem('classroomVisitorCounter') || '{}');
+      baseline = counterData.totalCountBaseline || 0;
+    } catch(e) {}
+
+    var displayTotal = total + baseline;
+    if (displayTotal < today) displayTotal = today;
+    if (displayTotal) document.getElementById('totalCount').textContent = displayTotal;
     if (today) document.getElementById('todayCount').textContent = today;
 
     // Save API values back to localStorage so refresh shows correct counts
-    if (total || today) {
+    if (displayTotal || today) {
       try {
         var counterData = JSON.parse(localStorage.getItem('classroomVisitorCounter') || '{}');
-        if (total) counterData.totalCount = Math.max(counterData.totalCount || 0, total);
+        if (displayTotal) counterData.totalCount = Math.max(counterData.totalCount || 0, displayTotal);
         if (today) counterData.todayCount = Math.max(counterData.todayCount || 0, today);
         localStorage.setItem('classroomVisitorCounter', JSON.stringify(counterData));
       } catch(e) {}
