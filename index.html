@@ -128,7 +128,7 @@
 <button class="settings-btn" onclick="openSettings()" title="설정" aria-label="설정">&#9881;</button>
 <button class="random-pick-btn" onclick="openRandomPicker()" title="랜덤 뽑기" aria-label="랜덤 뽑기">&#127922;</button>
 <button class="fullscreen-btn" id="fullscreenBtn" onclick="toggleFullscreen()" title="전체화면" aria-label="전체화면">&#x26F6;</button>
-<button class="version-label" onclick="openChangelog()" aria-label="버전 기록 보기">v1.11.0</button>
+<button class="version-label" onclick="openChangelog()" aria-label="버전 기록 보기">v1.12.0</button>
 <button class="feedback-btn" onclick="openFeedback()" title="의견 보내기" aria-label="의견 보내기">&#x1F4EC; 의견 보내기</button>
 <button class="dev-notes-btn" onclick="openDeveloperNotes()" title="개발자 소식" aria-label="개발자 소식">&#x1F4E2; 개발자 소식<span class="dev-notes-badge" id="devNotesBadge" style="display:none"></span></button>
 
@@ -151,9 +151,16 @@
         </label>
       </div>
       <div class="toggle-row">
-        <span class="toggle-label">수업 시작 알림음<span class="help-icon">?<span class="help-tooltip">수업 시작 시 알림 차임벨을 재생합니다.</span></span></span>
+        <span class="toggle-label">수업 시작 알림음<span class="help-icon">?<span class="help-tooltip">수업 시작 시 상승 멜로디(도-미-솔) 차임벨을 재생합니다.</span></span></span>
         <label class="toggle-switch">
           <input type="checkbox" id="chimeToggle" onchange="toggleChime()">
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+      <div class="toggle-row">
+        <span class="toggle-label">수업 종료 알림음<span class="help-icon">?<span class="help-tooltip">수업이 끝나고 쉬는 시간/점심으로 전환될 때 하강 멜로디(솔-미-도) 차임벨을 재생합니다.</span></span></span>
+        <label class="toggle-switch">
+          <input type="checkbox" id="chimeEndToggle" onchange="toggleChimeEnd()">
           <span class="toggle-slider"></span>
         </label>
       </div>
@@ -325,6 +332,12 @@
       <button class="modal-close" onclick="closeChangelog()" aria-label="닫기">&#10005;</button>
     </div>
     <div class="changelog-list">
+      <div class="changelog-item">
+        <div class="changelog-item-header">
+          <span class="changelog-version">v1.12.0</span>
+        </div>
+        <div class="changelog-desc">수업 종료 알림음 추가: 수업이 끝나고 쉬는 시간/점심으로 전환될 때 하강 멜로디(솔-미-도) 차임벨이 재생됩니다. 기존 시작 알림음(상승, 도-미-솔)과 음형으로 구분되며, 설정 &gt; 표시 설정에서 시작/종료 알림을 각각 켜고 끌 수 있습니다(60초 디바운스 적용)</div>
+      </div>
       <div class="changelog-item">
         <div class="changelog-item-header">
           <span class="changelog-version">v1.11.0</span>

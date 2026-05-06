@@ -1,9 +1,14 @@
 // =============================================
 // CONSTANTS
 // =============================================
-const APP_VERSION = 'v1.11.0';
+const APP_VERSION = 'v1.12.0';
 const FEEDBACK_URL = 'https://forms.gle/y48um84BTrBVn2Nt6';
 const UPDATE_HISTORY = [
+  { version: 'v1.12.0', notes: [
+    '수업 종료 알림음이 추가되었어요 — 수업이 끝나면 차임벨이 울려요',
+    '시작 알림은 상승 멜로디(도-미-솔), 종료 알림은 하강 멜로디(솔-미-도)로 음이 달라요',
+    '설정 > 표시 설정에서 시작/종료 알림을 각각 켜고 끌 수 있어요'
+  ]},
   { version: 'v1.11.0', notes: [
     '학급 약속 글자 크기가 조금 커졌어요',
     '공지사항에서 글자 색깔을 바꿀 수 있어요 (빨강, 파랑, 초록, 노랑, 보라)',
@@ -42,6 +47,12 @@ const UPDATE_HISTORY = [
 // 개발자 소식 게시판 — 의견 보내기로 받은 피드백에 답변하거나 소식을 전달할 때 사용합니다.
 // 최상단이 최신 글. id는 겹치지 않게(예: 날짜 + 순번) 주세요.
 const DEVELOPER_NOTES = [
+  {
+    id: '2026-05-06-01-class-end-chime',
+    date: '2026-05-06',
+    title: '수업 종료 알림음이 추가되었어요',
+    body: '수업 시작 알림음만 있으니까 수업이 끝날 때도 알림이 울리면 좋겠다는 선생님의 요청이 있었습니다. 이에 따라 수업 종료 알림음을 추가했습니다.\n\n수업이 끝나고 쉬는 시간이나 점심시간으로 바뀌는 순간 하강 멜로디(솔-미-도)가 울립니다. 시작 알림음(상승, 도-미-솔)과 음의 방향이 반대라 귀로도 쉽게 구분돼요.\n\n설정 > 표시 설정에서 "수업 시작 알림음"과 "수업 종료 알림음"을 각각 켜고 끌 수 있습니다. 처음에는 두 알림 모두 켜진 상태입니다.'
+  },
   {
     id: '2026-04-16-05-page-reorder',
     date: '2026-04-16',
@@ -107,10 +118,12 @@ const DEFAULT_TIMETABLE = [
 let rules = [];
 let isEditing = false;
 let timetable = [];
-let settings = { showRemaining: true, chimeEnabled: true, colonBlink: true, showSeconds: true, timetableMode: false, dailyPeriods: { 1:5, 2:6, 3:5, 4:5, 5:5 }, morningSlotMigrated: false, schoolbellUrl: '', school: null, notebookMultiPageEnabled: false };
+let settings = { showRemaining: true, chimeEnabled: true, chimeEndEnabled: true, colonBlink: true, showSeconds: true, timetableMode: false, dailyPeriods: { 1:5, 2:6, 3:5, 4:5, 5:5 }, morningSlotMigrated: false, schoolbellUrl: '', school: null, notebookMultiPageEnabled: false };
 let viewData = { activeTab: 'rules', notebook: '', notebookPages: [], activeNotebookPageId: '', notices: [], academicEvents: [], selectedAcademicEventDate: '' };
 let lastPeriodLabel = null;
+let lastPeriodType = null;
 let lastChimeTime = 0;
+let lastEndChimeTime = 0;
 let lastTimetableMin = -1;
 let audioCtx = null;
 let notebookTimer = null;
@@ -282,6 +295,7 @@ function loadSettings() {
       settings = { ...settings, ...saved };
       if (!settings.dailyPeriods) settings.dailyPeriods = { 1:5, 2:6, 3:5, 4:5, 5:5 };
       if (settings.chimeEnabled === undefined) settings.chimeEnabled = true;
+      if (settings.chimeEndEnabled === undefined) settings.chimeEndEnabled = true;
       if (settings.colonBlink === undefined) settings.colonBlink = true;
       if (settings.showSeconds === undefined) settings.showSeconds = true;
       if (settings.timetableMode === undefined) settings.timetableMode = false;
@@ -619,6 +633,7 @@ function openSettings() {
   document.getElementById('settingsModal').classList.add('open');
   document.getElementById('showRemainingToggle').checked = settings.showRemaining;
   document.getElementById('chimeToggle').checked = settings.chimeEnabled;
+  document.getElementById('chimeEndToggle').checked = settings.chimeEndEnabled;
   document.getElementById('colonBlinkToggle').checked = settings.colonBlink;
   document.getElementById('secondsToggle').checked = settings.showSeconds;
   document.getElementById('timetableModeToggle').checked = settings.timetableMode;
@@ -2203,7 +2218,7 @@ function generateTimetable() {
 }
 
 // =============================================
-// CHIME (수업 시작 알림음)
+// CHIME (수업 시작/종료 알림음)
 // =============================================
 function initAudio() {
   const unlock = () => {
@@ -2214,13 +2229,8 @@ function initAudio() {
   document.addEventListener('click', unlock);
 }
 
-function playChime() {
-  if (!audioCtx || !settings.chimeEnabled) return;
-  const now = Date.now();
-  if (now - lastChimeTime < 60000) return;
-  lastChimeTime = now;
-
-  const notes = [523.25, 659.25, 783.99]; // C5, E5, G5
+function playChimeNotes(notes) {
+  if (!audioCtx) return;
   notes.forEach((freq, i) => {
     const osc = audioCtx.createOscillator();
     const gain = audioCtx.createGain();
@@ -2235,8 +2245,29 @@ function playChime() {
   });
 }
 
+function playChime() {
+  if (!audioCtx || !settings.chimeEnabled) return;
+  const now = Date.now();
+  if (now - lastChimeTime < 60000) return;
+  lastChimeTime = now;
+  playChimeNotes([523.25, 659.25, 783.99]); // C5, E5, G5 (상승)
+}
+
+function playEndChime() {
+  if (!audioCtx || !settings.chimeEndEnabled) return;
+  const now = Date.now();
+  if (now - lastEndChimeTime < 60000) return;
+  lastEndChimeTime = now;
+  playChimeNotes([783.99, 659.25, 523.25]); // G5, E5, C5 (하강)
+}
+
 function toggleChime() {
   settings.chimeEnabled = document.getElementById('chimeToggle').checked;
+  saveSettings();
+}
+
+function toggleChimeEnd() {
+  settings.chimeEndEnabled = document.getElementById('chimeEndToggle').checked;
   saveSettings();
 }
 
@@ -2670,11 +2701,16 @@ function updateClock() {
   const alertEl = document.getElementById('periodAlert');
   alertEl.className = 'period-alert ' + period.type;
 
-  // Chime on period transition (수업 시작 시)
-  if (lastPeriodLabel !== null && lastPeriodLabel !== period.label && period.type === 'in-class') {
-    playChime();
+  // Chime on period transition (수업 시작/종료 시)
+  if (lastPeriodLabel !== null && lastPeriodLabel !== period.label) {
+    if (period.type === 'in-class') {
+      playChime();
+    } else if (lastPeriodType === 'in-class') {
+      playEndChime();
+    }
   }
   lastPeriodLabel = period.label;
+  lastPeriodType = period.type;
 
   // 과목명이 있으면 "3교시 · 수학" 형태로 표시
   const displayLabel = period.subject ? period.label + ' · ' + period.subject : period.label;
