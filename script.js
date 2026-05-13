@@ -1,9 +1,12 @@
 // =============================================
 // CONSTANTS
 // =============================================
-const APP_VERSION = 'v1.13.1';
+const APP_VERSION = 'v1.13.2';
 const FEEDBACK_URL = 'https://forms.gle/y48um84BTrBVn2Nt6';
 const UPDATE_HISTORY = [
+  { version: 'v1.13.2', notes: [
+    '업데이트 소식 팝업의 내용이 길 때 확인 버튼이 잘리던 문제를 해결했어요 — 이제 본문만 스크롤되고 버튼은 항상 보여요'
+  ]},
   { version: 'v1.13.1', notes: [
     '시간표 모드에서도 대표 디데이 칩이 보이도록 다듬었어요'
   ]},

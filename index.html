@@ -146,7 +146,7 @@
 <button class="settings-btn" onclick="openSettings()" title="설정" aria-label="설정">&#9881;</button>
 <button class="random-pick-btn" onclick="openRandomPicker()" title="랜덤 뽑기" aria-label="랜덤 뽑기">&#127922;</button>
 <button class="fullscreen-btn" id="fullscreenBtn" onclick="toggleFullscreen()" title="전체화면" aria-label="전체화면">&#x26F6;</button>
-<button class="version-label" onclick="openChangelog()" aria-label="버전 기록 보기">v1.13.1</button>
+<button class="version-label" onclick="openChangelog()" aria-label="버전 기록 보기">v1.13.2</button>
 <button class="feedback-btn" onclick="openFeedback()" title="의견 보내기" aria-label="의견 보내기">&#x1F4EC; 의견 보내기</button>
 <button class="dev-notes-btn" onclick="openDeveloperNotes()" title="개발자 소식" aria-label="개발자 소식">&#x1F4E2; 개발자 소식<span class="dev-notes-badge" id="devNotesBadge" style="display:none"></span></button>
 
@@ -350,6 +350,12 @@
       <button class="modal-close" onclick="closeChangelog()" aria-label="닫기">&#10005;</button>
     </div>
     <div class="changelog-list">
+      <div class="changelog-item">
+        <div class="changelog-item-header">
+          <span class="changelog-version">v1.13.2</span>
+        </div>
+        <div class="changelog-desc">업데이트 알림 팝업의 카드를 flex column + max-height: 85vh로 제한하고, 본문(.update-notes)만 overflow-y:auto로 스크롤되도록 변경. 아이콘·제목·버전·확인 버튼은 flex-shrink:0으로 고정되어 노트 길이와 무관하게 확인 버튼이 항상 카드 하단에 노출. 노트 영역 전용 4px 스크롤바 추가</div>
+      </div>
       <div class="changelog-item">
         <div class="changelog-item-header">
           <span class="changelog-version">v1.13.1</span>

@@ -884,10 +884,22 @@
     padding: 2.5rem 2rem 2rem;
     max-width: 420px;
     width: 90%;
+    max-height: 85vh;
+    display: flex;
+    flex-direction: column;
     text-align: center;
     box-shadow: 0 20px 60px rgba(0,0,0,0.25);
     transform: translateY(20px) scale(0.97);
     transition: transform 0.3s cubic-bezier(0.2, 0.9, 0.3, 1);
+  }
+  .update-notification .update-icon,
+  .update-notification .update-title,
+  .update-notification .update-version,
+  .update-notification .update-dismiss-btn {
+    flex-shrink: 0;
+  }
+  .update-notification .update-dismiss-btn {
+    align-self: center;
   }
   .update-notification.open .update-card {
     transform: translateY(0) scale(1);
@@ -915,9 +927,14 @@
   .update-notes {
     text-align: left;
     list-style: none;
-    padding: 0;
+    padding: 0 0.5rem 0 0;
     margin: 0 0 1.5rem;
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
   }
+  .update-notes::-webkit-scrollbar { width: 4px; }
+  .update-notes::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.12); border-radius: 4px; }
   .update-notes li {
     position: relative;
     padding: 0.4rem 0 0.4rem 1.4rem;
