@@ -146,7 +146,7 @@
 <button class="settings-btn" onclick="openSettings()" title="설정" aria-label="설정">&#9881;</button>
 <button class="random-pick-btn" onclick="openRandomPicker()" title="랜덤 뽑기" aria-label="랜덤 뽑기">&#127922;</button>
 <button class="fullscreen-btn" id="fullscreenBtn" onclick="toggleFullscreen()" title="전체화면" aria-label="전체화면">&#x26F6;</button>
-<button class="version-label" onclick="openChangelog()" aria-label="버전 기록 보기">v1.13.2</button>
+<button class="version-label" onclick="openChangelog()" aria-label="버전 기록 보기">v1.13.3</button>
 <button class="feedback-btn" onclick="openFeedback()" title="의견 보내기" aria-label="의견 보내기">&#x1F4EC; 의견 보내기</button>
 <button class="dev-notes-btn" onclick="openDeveloperNotes()" title="개발자 소식" aria-label="개발자 소식">&#x1F4E2; 개발자 소식<span class="dev-notes-badge" id="devNotesBadge" style="display:none"></span></button>
 
@@ -350,6 +350,12 @@
       <button class="modal-close" onclick="closeChangelog()" aria-label="닫기">&#10005;</button>
     </div>
     <div class="changelog-list">
+      <div class="changelog-item">
+        <div class="changelog-item-header">
+          <span class="changelog-version">v1.13.3</span>
+        </div>
+        <div class="changelog-desc">급식 탭 dish 셀 글자 크기 1.35rem → 1.65rem로 증가, padding(0.8→0.9rem)과 gap(0.55→0.6rem) 미세 조정으로 시각적 여백 확보. 뒷자리 가시성을 위한 직전 v1.10.x 결정의 연장선상 개선 (2열 그리드 구조 유지)</div>
+      </div>
       <div class="changelog-item">
         <div class="changelog-item-header">
           <span class="changelog-version">v1.13.2</span>
