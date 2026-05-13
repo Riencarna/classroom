@@ -1,9 +1,17 @@
 // =============================================
 // CONSTANTS
 // =============================================
-const APP_VERSION = 'v1.12.0';
+const APP_VERSION = 'v1.13.1';
 const FEEDBACK_URL = 'https://forms.gle/y48um84BTrBVn2Nt6';
 const UPDATE_HISTORY = [
+  { version: 'v1.13.1', notes: [
+    '시간표 모드에서도 대표 디데이 칩이 보이도록 다듬었어요'
+  ]},
+  { version: 'v1.13.0', notes: [
+    '디데이 탭이 새로 생겼어요 — 졸업식, 체험학습, 시험 같은 중요한 날까지 며칠 남았는지 한눈에 보여드려요',
+    '카드의 별 버튼을 누르면 "대표 디데이"로 지정돼요 — 왼쪽 패널 위쪽에 항상 표시되어 매일 보여요',
+    '설정 > 학사 일정에서 등록한 일정을 "+ 디데이" 버튼으로 한 번에 디데이로 가져올 수 있어요'
+  ]},
   { version: 'v1.12.0', notes: [
     '수업 종료 알림음이 추가되었어요 — 수업이 끝나면 차임벨이 울려요',
     '시작 알림은 상승 멜로디(도-미-솔), 종료 알림은 하강 멜로디(솔-미-도)로 음이 달라요',
@@ -119,7 +127,8 @@ let rules = [];
 let isEditing = false;
 let timetable = [];
 let settings = { showRemaining: true, chimeEnabled: true, chimeEndEnabled: true, colonBlink: true, showSeconds: true, timetableMode: false, dailyPeriods: { 1:5, 2:6, 3:5, 4:5, 5:5 }, morningSlotMigrated: false, schoolbellUrl: '', school: null, notebookMultiPageEnabled: false };
-let viewData = { activeTab: 'rules', notebook: '', notebookPages: [], activeNotebookPageId: '', notices: [], academicEvents: [], selectedAcademicEventDate: '' };
+let viewData = { activeTab: 'rules', notebook: '', notebookPages: [], activeNotebookPageId: '', notices: [], academicEvents: [], selectedAcademicEventDate: '', ddays: [], featuredDdayId: '' };
+let lastFeaturedDdayKey = '';
 let lastPeriodLabel = null;
 let lastPeriodType = null;
 let lastChimeTime = 0;
@@ -320,6 +329,19 @@ function loadViewData() {
     if (s) viewData = { ...viewData, ...JSON.parse(s) };
   } catch { /* keep defaults */ }
   if (!Array.isArray(viewData.notices)) viewData.notices = [];
+  if (!Array.isArray(viewData.ddays)) viewData.ddays = [];
+  viewData.ddays = viewData.ddays
+    .filter(d => d && typeof d === 'object')
+    .map(d => ({
+      id: (typeof d.id === 'string' && d.id) ? d.id : generateDdayId(),
+      title: typeof d.title === 'string' ? d.title.slice(0, 40) : '',
+      date: (typeof d.date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(d.date)) ? d.date : '',
+    }))
+    .filter(d => d.title && d.date);
+  if (typeof viewData.featuredDdayId !== 'string') viewData.featuredDdayId = '';
+  if (viewData.featuredDdayId && !viewData.ddays.some(d => d.id === viewData.featuredDdayId)) {
+    viewData.featuredDdayId = '';
+  }
   if (!Array.isArray(viewData.academicEvents)) viewData.academicEvents = [];
   viewData.academicEvents = viewData.academicEvents
     .map(normalizeAcademicEvent)
@@ -353,6 +375,26 @@ function loadViewData() {
 
 function generateNotebookPageId() {
   return 'np_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 8);
+}
+
+function generateDdayId() {
+  return 'dd_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 8);
+}
+
+function computeDdayDiff(dateStr) {
+  if (!dateStr) return null;
+  const parts = dateStr.split('-').map(Number);
+  if (parts.length !== 3 || parts.some(isNaN)) return null;
+  const target = new Date(parts[0], parts[1] - 1, parts[2]);
+  target.setHours(0, 0, 0, 0);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const diffDays = Math.round((target - today) / 86400000);
+  let label;
+  if (diffDays === 0) label = 'D-DAY';
+  else if (diffDays > 0) label = 'D-' + diffDays;
+  else label = 'D+' + Math.abs(diffDays);
+  return { diff: diffDays, label, isToday: diffDays === 0, isPast: diffDays < 0 };
 }
 
 function getActiveNotebookPage() {
@@ -796,12 +838,22 @@ function renderAcademicEventList() {
       selectAcademicEvent(event.date, { source: 'button' });
     });
 
+    const ddayBtn = document.createElement('button');
+    ddayBtn.className = 'event-mini-btn';
+    const alreadyDday = getDdays().some(d => d.date === event.date && d.title === event.title);
+    ddayBtn.textContent = alreadyDday ? '디데이 ✓' : '+ 디데이';
+    ddayBtn.disabled = alreadyDday;
+    if (!alreadyDday) {
+      ddayBtn.addEventListener('click', () => addDdayFromAcademicEvent(event.date));
+    }
+
     const delBtn = document.createElement('button');
     delBtn.className = 'event-mini-btn delete';
     delBtn.textContent = '삭제';
     delBtn.addEventListener('click', () => deleteAcademicEvent(event.date));
 
     actions.appendChild(editBtn);
+    actions.appendChild(ddayBtn);
     actions.appendChild(delBtn);
     item.appendChild(body);
     item.appendChild(actions);
@@ -1356,6 +1408,7 @@ function switchTab(tabName) {
   document.getElementById('tabNotebook').style.display = tabName === 'notebook' ? '' : 'none';
   document.getElementById('tabNotice').style.display = tabName === 'notice' ? '' : 'none';
   document.getElementById('tabMeal').style.display = tabName === 'meal' ? '' : 'none';
+  document.getElementById('tabDday').style.display = tabName === 'dday' ? '' : 'none';
 
   if (tabName === 'notebook') {
     const notebookHTML = getActiveNotebookContent();
@@ -1371,7 +1424,14 @@ function switchTab(tabName) {
   if (tabName === 'meal') {
     renderMealTab();
   }
+  if (tabName === 'dday') {
+    renderDdays();
+  }
   applyNotebookPanelFill();
+}
+
+function switchToDdayTab() {
+  switchTab('dday');
 }
 
 function initTabs() {
@@ -2158,6 +2218,224 @@ function setNoticeFontSize(val) {
   applyNoticeFontSize();
 }
 
+// =============================================
+// D-DAY (디데이)
+// =============================================
+function getDdays() {
+  if (!Array.isArray(viewData.ddays)) viewData.ddays = [];
+  return viewData.ddays;
+}
+
+function sortedDdays() {
+  return getDdays().slice().sort((a, b) => {
+    const da = computeDdayDiff(a.date);
+    const db = computeDdayDiff(b.date);
+    const va = da ? da.diff : Number.MAX_SAFE_INTEGER;
+    const vb = db ? db.diff : Number.MAX_SAFE_INTEGER;
+    // upcoming first (smallest positive), then today, then past (largest negative shows last)
+    const ka = va >= 0 ? va : 1e9 - va;
+    const kb = vb >= 0 ? vb : 1e9 - vb;
+    return ka - kb;
+  });
+}
+
+function renderDdays() {
+  const container = document.getElementById('ddayContainer');
+  if (!container) return;
+  container.innerHTML = '';
+  const list = sortedDdays();
+  if (!list.length) {
+    const empty = document.createElement('div');
+    empty.className = 'dday-empty';
+    empty.textContent = '아직 등록된 디데이가 없어요. 위에서 추가해보세요!';
+    container.appendChild(empty);
+    return;
+  }
+  list.forEach(item => {
+    const diff = computeDdayDiff(item.date);
+    const card = document.createElement('div');
+    card.className = 'dday-card';
+    if (viewData.featuredDdayId === item.id) card.classList.add('featured');
+    if (diff && diff.isPast) card.classList.add('past');
+
+    const starBtn = document.createElement('button');
+    starBtn.className = 'dday-star-btn';
+    starBtn.type = 'button';
+    starBtn.innerHTML = viewData.featuredDdayId === item.id ? '&#9733;' : '&#9734;';
+    starBtn.title = viewData.featuredDdayId === item.id ? '대표 해제' : '대표 디데이로 지정';
+    if (viewData.featuredDdayId === item.id) starBtn.classList.add('active');
+    starBtn.onclick = () => toggleFeaturedDday(item.id);
+
+    const info = document.createElement('div');
+    info.className = 'dday-info';
+
+    const titleRow = document.createElement('div');
+    titleRow.className = 'dday-title-row';
+    const titleInput = document.createElement('input');
+    titleInput.type = 'text';
+    titleInput.className = 'dday-title-input';
+    titleInput.value = item.title;
+    titleInput.maxLength = 40;
+    titleInput.addEventListener('blur', () => updateDdayTitle(item.id, titleInput.value));
+    titleInput.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); titleInput.blur(); } });
+    titleRow.appendChild(titleInput);
+
+    const dateInput = document.createElement('input');
+    dateInput.type = 'date';
+    dateInput.className = 'dday-date-input';
+    dateInput.value = item.date;
+    dateInput.addEventListener('change', () => updateDday(item.id, { date: dateInput.value }));
+
+    info.appendChild(titleRow);
+    info.appendChild(dateInput);
+
+    const count = document.createElement('div');
+    count.className = 'dday-count';
+    if (diff) {
+      count.textContent = diff.label;
+      if (diff.isToday) count.classList.add('today');
+      else if (diff.isPast) count.classList.add('past');
+    } else {
+      count.textContent = '-';
+    }
+
+    const del = document.createElement('button');
+    del.className = 'dday-delete-btn';
+    del.type = 'button';
+    del.innerHTML = '&#10005;';
+    del.title = '삭제';
+    del.onclick = () => removeDday(item.id);
+
+    card.appendChild(starBtn);
+    card.appendChild(info);
+    card.appendChild(count);
+    card.appendChild(del);
+    container.appendChild(card);
+  });
+}
+
+function addDdayFromForm() {
+  const titleEl = document.getElementById('ddayTitleInput');
+  const dateEl = document.getElementById('ddayDateInput');
+  const title = (titleEl?.value || '').trim().slice(0, 40);
+  const date = (dateEl?.value || '').trim();
+  if (!title) { showToast('디데이 제목을 입력해주세요'); return; }
+  if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) { showToast('날짜를 선택해주세요'); return; }
+  addDday(title, date, { setFeaturedIfFirst: true });
+  if (titleEl) titleEl.value = '';
+  if (dateEl) dateEl.value = '';
+  showToast('디데이가 추가되었어요');
+}
+
+function addDday(title, date, opts) {
+  const ddays = getDdays();
+  const item = { id: generateDdayId(), title: title.slice(0, 40), date };
+  ddays.push(item);
+  if (opts && opts.setFeaturedIfFirst && !viewData.featuredDdayId) {
+    viewData.featuredDdayId = item.id;
+  }
+  saveViewData();
+  renderDdays();
+  updateFeaturedDday();
+  return item;
+}
+
+function updateDdayTitle(id, rawTitle) {
+  const item = getDdays().find(d => d.id === id);
+  if (!item) return;
+  const t = (rawTitle || '').trim().slice(0, 40);
+  if (!t || t === item.title) return;
+  item.title = t;
+  saveViewData();
+  lastFeaturedDdayKey = '';
+  updateFeaturedDday();
+}
+
+function updateDday(id, patch) {
+  const ddays = getDdays();
+  const item = ddays.find(d => d.id === id);
+  if (!item) return;
+  if (typeof patch.title === 'string') {
+    const t = patch.title.trim().slice(0, 40);
+    if (t) item.title = t;
+  }
+  if (typeof patch.date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(patch.date)) {
+    item.date = patch.date;
+  }
+  saveViewData();
+  renderDdays();
+  updateFeaturedDday();
+}
+
+function removeDday(id) {
+  if (!confirm('이 디데이를 삭제할까요?')) return;
+  viewData.ddays = getDdays().filter(d => d.id !== id);
+  if (viewData.featuredDdayId === id) viewData.featuredDdayId = '';
+  saveViewData();
+  renderDdays();
+  updateFeaturedDday();
+  showToast('디데이가 삭제되었어요');
+}
+
+function toggleFeaturedDday(id) {
+  if (viewData.featuredDdayId === id) {
+    viewData.featuredDdayId = '';
+    showToast('대표 디데이 표시를 해제했어요');
+  } else {
+    viewData.featuredDdayId = id;
+    showToast('대표 디데이로 지정했어요');
+  }
+  saveViewData();
+  renderDdays();
+  updateFeaturedDday();
+}
+
+function addDdayFromAcademicEvent(eventDate) {
+  const event = getAcademicEventByDate(eventDate);
+  if (!event) return;
+  const existing = getDdays().find(d => d.date === event.date && d.title === event.title);
+  if (existing) {
+    showToast('이미 등록된 디데이예요');
+    return;
+  }
+  addDday(event.title, event.date, { setFeaturedIfFirst: true });
+  showToast('학사일정을 디데이로 추가했어요');
+  renderAcademicEventList();
+}
+
+function updateFeaturedDday() {
+  const el = document.getElementById('featuredDday');
+  if (!el) return;
+  const id = viewData.featuredDdayId;
+  const item = id ? getDdays().find(d => d.id === id) : null;
+  if (!item) {
+    el.style.display = 'none';
+    el.textContent = '';
+    lastFeaturedDdayKey = '';
+    return;
+  }
+  const diff = computeDdayDiff(item.date);
+  if (!diff) {
+    el.style.display = 'none';
+    el.textContent = '';
+    lastFeaturedDdayKey = '';
+    return;
+  }
+  const key = item.id + '|' + item.title + '|' + item.date + '|' + diff.label;
+  if (key === lastFeaturedDdayKey) return;
+  lastFeaturedDdayKey = key;
+  el.textContent = '';
+  const title = document.createElement('span');
+  title.className = 'featured-dday-title';
+  title.textContent = item.title;
+  const count = document.createElement('span');
+  count.className = 'featured-dday-count' + (diff.isToday ? ' today' : (diff.isPast ? ' past' : ''));
+  count.textContent = diff.label;
+  el.appendChild(title);
+  el.appendChild(count);
+  el.style.display = '';
+}
+
 function applyNoticeFontSize() {
   var size = viewData.noticeFontSize || 24;
   document.querySelectorAll('.notice-content').forEach(function(el) {
@@ -2695,6 +2973,7 @@ function updateClock() {
     n.getFullYear() + '. ' + String(n.getMonth() + 1).padStart(2, '0') + '. ' + String(n.getDate()).padStart(2, '0');
   document.getElementById('dayName').textContent = DAYS_KR[n.getDay()];
   updateAcademicEventBanner(n);
+  updateFeaturedDday();
 
   // Period alert with optional remaining time
   const period = getCurrentPeriod(n);

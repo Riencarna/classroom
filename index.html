@@ -20,6 +20,7 @@
     <div class="date-display" id="dateDisplay"></div>
     <div class="day-name" id="dayName"></div>
   </div>
+  <button class="featured-dday" id="featuredDday" style="display:none" onclick="switchToDdayTab()" title="디데이 보기"></button>
   <div class="academic-event-banner" id="academicEventBanner"></div>
   <div class="clock-container">
     <div class="ampm-display" id="ampmDisplay">오전</div>
@@ -36,6 +37,7 @@
     <button class="tab-btn" data-tab="notebook" onclick="switchTab('notebook')">알림장</button>
     <button class="tab-btn" data-tab="notice" onclick="switchTab('notice')">공지사항</button>
     <button class="tab-btn" data-tab="meal" onclick="switchTab('meal')">급식</button>
+    <button class="tab-btn" data-tab="dday" onclick="switchTab('dday')">디데이</button>
   </div>
 
   <div class="tab-content" id="tabRules">
@@ -109,6 +111,22 @@
     <button class="add-notice-btn" onclick="addNotice()">+ 새 공지 추가</button>
   </div>
 
+  <div class="tab-content" id="tabDday" style="display:none">
+    <div class="rules-header-row">
+      <div class="rules-header" style="color:#ec4899;-webkit-text-fill-color:#ec4899">디데이</div>
+    </div>
+    <div class="rules-subtitle">D-DAY</div>
+    <div class="dday-add-card">
+      <div class="dday-add-row">
+        <input type="text" class="dday-add-title" id="ddayTitleInput" placeholder="예: 졸업식, 체험학습" maxlength="40">
+        <input type="date" class="dday-add-date" id="ddayDateInput">
+        <button class="dday-add-btn" onclick="addDdayFromForm()">+ 추가</button>
+      </div>
+      <div class="dday-add-hint">제목과 날짜를 입력하고 추가하세요. 카드의 별 버튼으로 왼쪽 패널에 표시할 대표 디데이를 정할 수 있어요.</div>
+    </div>
+    <div id="ddayContainer" class="dday-container"></div>
+  </div>
+
   <div class="tab-content" id="tabMeal" style="display:none">
     <div class="rules-header-row">
       <div class="rules-header" style="color:#10b981;-webkit-text-fill-color:#10b981">오늘의 급식</div>
@@ -128,7 +146,7 @@
 <button class="settings-btn" onclick="openSettings()" title="설정" aria-label="설정">&#9881;</button>
 <button class="random-pick-btn" onclick="openRandomPicker()" title="랜덤 뽑기" aria-label="랜덤 뽑기">&#127922;</button>
 <button class="fullscreen-btn" id="fullscreenBtn" onclick="toggleFullscreen()" title="전체화면" aria-label="전체화면">&#x26F6;</button>
-<button class="version-label" onclick="openChangelog()" aria-label="버전 기록 보기">v1.12.0</button>
+<button class="version-label" onclick="openChangelog()" aria-label="버전 기록 보기">v1.13.1</button>
 <button class="feedback-btn" onclick="openFeedback()" title="의견 보내기" aria-label="의견 보내기">&#x1F4EC; 의견 보내기</button>
 <button class="dev-notes-btn" onclick="openDeveloperNotes()" title="개발자 소식" aria-label="개발자 소식">&#x1F4E2; 개발자 소식<span class="dev-notes-badge" id="devNotesBadge" style="display:none"></span></button>
 
@@ -332,6 +350,18 @@
       <button class="modal-close" onclick="closeChangelog()" aria-label="닫기">&#10005;</button>
     </div>
     <div class="changelog-list">
+      <div class="changelog-item">
+        <div class="changelog-item-header">
+          <span class="changelog-version">v1.13.1</span>
+        </div>
+        <div class="changelog-desc">시간표 모드에서도 대표 디데이 칩이 노출되도록 수정: 기존 v1.13.0에서 시간표 모드 시 `.featured-dday`를 `display:none`으로 가렸으나, 학사일정 배너처럼 position을 relative로 전환해 정상 흐름에 배치하고 글자/패딩을 시간표 모드에 맞게 조정</div>
+      </div>
+      <div class="changelog-item">
+        <div class="changelog-item-header">
+          <span class="changelog-version">v1.13.0</span>
+        </div>
+        <div class="changelog-desc">디데이 기능 추가: 오른쪽 패널에 "디데이" 탭 신설(제목·날짜로 추가, 인라인 편집, D-N/D-DAY/D+N 자동 계산, 임박순 정렬, 지난 항목은 흐리게 표시). 카드의 별 버튼으로 대표 디데이를 지정하면 왼쪽 패널 상단에 핑크 칩으로 항상 노출되어 매 분 자동 갱신. 설정 &gt; 학사 일정 목록의 "+ 디데이" 버튼으로 기존 학사 일정을 1-click 디데이로 변환. localStorage(classroomViewData)에 ddays/featuredDdayId 필드로 저장되어 내보내기·불러오기에 포함</div>
+      </div>
       <div class="changelog-item">
         <div class="changelog-item-header">
           <span class="changelog-version">v1.12.0</span>
