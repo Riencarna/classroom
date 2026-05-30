@@ -1421,6 +1421,82 @@
   }
   .modal-close:hover { background: rgba(0,0,0,0.12); }
 
+  /* ========== Notebook Archive (알림장 보관함) ========== */
+  .archive-intro {
+    font-size: 0.9rem;
+    color: #6b645c;
+    margin-bottom: 1.2rem;
+    line-height: 1.5;
+  }
+  .archive-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.7rem;
+  }
+  .archive-empty {
+    text-align: center;
+    color: #9a9088;
+    padding: 2.5rem 1rem;
+    line-height: 1.7;
+  }
+  .archive-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.9rem 1.1rem;
+    background: rgba(255,255,255,0.6);
+    border-radius: 14px;
+    border: 1px solid rgba(255,255,255,0.8);
+  }
+  .archive-item-info {
+    min-width: 0;
+    flex: 1;
+  }
+  .archive-item-date {
+    font-weight: 800;
+    font-size: 1rem;
+    color: #2d2a26;
+  }
+  .archive-item-preview {
+    font-size: 0.85rem;
+    color: #8a817a;
+    margin-top: 0.2rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .archive-item-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    flex-shrink: 0;
+  }
+  .archive-dl-btn {
+    border: none;
+    background: rgba(59,130,246,0.12);
+    color: #2563eb;
+    font-weight: 700;
+    font-size: 0.8rem;
+    padding: 0.45rem 0.7rem;
+    border-radius: 9px;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+  .archive-dl-btn:hover { background: rgba(59,130,246,0.22); }
+  .archive-del-btn {
+    border: none;
+    background: rgba(0,0,0,0.06);
+    color: #999;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 0.8rem;
+    transition: all 0.2s;
+  }
+  .archive-del-btn:hover { background: rgba(211,47,47,0.12); color: #d32f2f; }
+
   /* ========== Settings Sections ========== */
   .settings-section {
     margin-bottom: 1.8rem;
@@ -1840,6 +1916,33 @@
     align-items: center;
     gap: 0.4rem;
     margin-bottom: 0.6rem;
+  }
+  /* 제목 줄 오른쪽 — 알림장 저장/보관 버튼 (공지 탭 "+ 추가"와 같은 위치) */
+  .notebook-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-left: auto;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+  .notebook-header-btn {
+    padding: 0.5rem 1.1rem;
+    border-radius: 12px;
+    border: 1.5px solid rgba(59,130,246,0.25);
+    background: rgba(59,130,246,0.08);
+    font-family: 'Noto Sans KR', sans-serif;
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: #3b82f6;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.2s ease;
+    backdrop-filter: blur(8px);
+  }
+  .notebook-header-btn:hover {
+    background: rgba(59,130,246,0.16);
+    border-color: rgba(59,130,246,0.45);
   }
   .notebook-toolbar-label {
     font-weight: 700;

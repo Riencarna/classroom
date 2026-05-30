@@ -1,9 +1,15 @@
 // =============================================
 // CONSTANTS
 // =============================================
-const APP_VERSION = 'v1.13.3';
+const APP_VERSION = 'v1.14.0';
 const FEEDBACK_URL = 'https://forms.gle/y48um84BTrBVn2Nt6';
 const UPDATE_HISTORY = [
+  { version: 'v1.14.0', notes: [
+    '알림장이 날짜별로 자동으로 차곡차곡 보관돼요 — 날짜가 바뀌면 전날 알림장이 저장돼요',
+    '알림장 제목 옆 "📚 보관한 알림장" 버튼을 누르면 지난 알림장을 날짜별로 다시 볼 수 있어요',
+    '보관된 알림장은 날짜 옆 HTML이나 TXT 버튼으로 파일로 내려받을 수 있어요',
+    '지금 쓴 알림장을 바로 담고 싶을 땐 "💾 오늘 알림장 보관" 버튼을 눌러주세요'
+  ]},
   { version: 'v1.13.3', notes: [
     '급식 메뉴 글자가 더 커졌어요 — 뒷자리에서도 메뉴가 잘 보여요'
   ]},
@@ -61,6 +67,12 @@ const UPDATE_HISTORY = [
 // 개발자 소식 게시판 — 의견 보내기로 받은 피드백에 답변하거나 소식을 전달할 때 사용합니다.
 // 최상단이 최신 글. id는 겹치지 않게(예: 날짜 + 순번) 주세요.
 const DEVELOPER_NOTES = [
+  {
+    id: '2026-05-30-01-notebook-archive',
+    date: '2026-05-30',
+    title: '알림장 보관함이 생겼어요 — 날짜별로 쌓이고 내려받을 수 있어요',
+    body: '알림장을 저장하면 좋겠다고 의견 주신 선생님들, 그리고 "①·② 합쳐서 날짜별로 쫙 정리되고 클릭하면 내려받게 해달라"는 구체적인 그림을 보내주신 선생님께 감사드려요. 말씀해주신 모습 그대로 만들었습니다!\n\n이제 날짜가 바뀌면 전날 알림장이 자동으로 차곡차곡 보관돼요. 알림장 제목 옆의 📚 보관한 알림장 버튼을 누르면 지난 날짜들이 쭉 정리되어 있고, 각 날짜 옆의 HTML / TXT 버튼으로 그날 알림장을 파일로 내려받을 수 있어요. 지금 쓴 내용을 바로 담고 싶으면 💾 오늘 알림장 보관 버튼을 누르시면 됩니다.\n\n스프레드시트 연동은 말씀처럼 로그인 연동이 번거롭고 충돌 위험도 있어서, 우선 가볍고 안전한 파일 내려받기 방식으로 준비했어요. 써보시고 불편한 점이나 더 있으면 좋겠는 기능은 언제든 의견 보내주세요!'
+  },
   {
     id: '2026-05-23-01-notebook-save',
     date: '2026-05-23',
@@ -139,7 +151,7 @@ let rules = [];
 let isEditing = false;
 let timetable = [];
 let settings = { showRemaining: true, chimeEnabled: true, chimeEndEnabled: true, colonBlink: true, showSeconds: true, timetableMode: false, dailyPeriods: { 1:5, 2:6, 3:5, 4:5, 5:5 }, morningSlotMigrated: false, schoolbellUrl: '', school: null, notebookMultiPageEnabled: false };
-let viewData = { activeTab: 'rules', notebook: '', notebookPages: [], activeNotebookPageId: '', notices: [], academicEvents: [], selectedAcademicEventDate: '', ddays: [], featuredDdayId: '' };
+let viewData = { activeTab: 'rules', notebook: '', notebookPages: [], activeNotebookPageId: '', notebookArchive: {}, notebookArchiveDate: '', notices: [], academicEvents: [], selectedAcademicEventDate: '', ddays: [], featuredDdayId: '' };
 let lastFeaturedDdayKey = '';
 let lastPeriodLabel = null;
 let lastPeriodType = null;
@@ -383,6 +395,34 @@ function loadViewData() {
     viewData.activeNotebookPageId = viewData.notebookPages[0].id;
   }
   viewData.notebook = getActiveNotebookPage().content;
+
+  // 알림장 보관함(날짜별 누적) 정규화 — 잘못된 키/구조는 버립니다.
+  if (!viewData.notebookArchive || typeof viewData.notebookArchive !== 'object' || Array.isArray(viewData.notebookArchive)) {
+    viewData.notebookArchive = {};
+  }
+  const cleanArchive = {};
+  Object.keys(viewData.notebookArchive).forEach(function(key) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(key)) return;
+    const e = viewData.notebookArchive[key];
+    if (!e || typeof e !== 'object') return;
+    let pages = Array.isArray(e.pages) ? e.pages : [];
+    pages = pages
+      .filter(p => p && typeof p === 'object')
+      .map(p => ({
+        title: (typeof p.title === 'string' && p.title.trim()) ? p.title : '알림장',
+        content: typeof p.content === 'string' ? p.content : '',
+      }));
+    if (pages.length === 0) return;
+    cleanArchive[key] = {
+      date: key,
+      savedAt: typeof e.savedAt === 'number' ? e.savedAt : Date.now(),
+      pages: pages,
+    };
+  });
+  viewData.notebookArchive = cleanArchive;
+  if (typeof viewData.notebookArchiveDate !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(viewData.notebookArchiveDate)) {
+    viewData.notebookArchiveDate = '';
+  }
 }
 
 function generateNotebookPageId() {
@@ -1688,6 +1728,227 @@ function saveNotebookContent(html) {
   }, 500);
 }
 
+// =============================================
+// NOTEBOOK ARCHIVE (알림장 보관함 — 날짜별 누적)
+// =============================================
+// 알림장 HTML을 줄바꿈을 살린 순수 텍스트로 변환합니다 (미리보기·TXT 내보내기용).
+function notebookHtmlToText(html) {
+  if (!html) return '';
+  var safe = sanitizeNotebookHTML(html)
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<\/(div|p)>/gi, '\n');
+  var div = document.createElement('div');
+  div.innerHTML = safe;
+  return (div.textContent || '').replace(/\n{3,}/g, '\n\n');
+}
+
+function escapeArchiveText(str) {
+  var div = document.createElement('div');
+  div.textContent = str == null ? '' : String(str);
+  return div.innerHTML;
+}
+
+// "2026-05-29" → "2026년 5월 29일 (목)"
+function formatArchiveDateLabel(key) {
+  var p = (key || '').split('-').map(Number);
+  if (p.length !== 3 || p.some(isNaN)) return key || '';
+  var d = new Date(p[0], p[1] - 1, p[2]);
+  return p[0] + '년 ' + p[1] + '월 ' + p[2] + '일 (' + DAYS_KR[d.getDay()].charAt(0) + ')';
+}
+
+// 현재 알림장 페이지들을 보관용 스냅샷으로 복사합니다.
+function snapshotNotebookPages() {
+  return (viewData.notebookPages || []).map(function(p) {
+    return {
+      title: (typeof p.title === 'string' && p.title.trim()) ? p.title : '알림장',
+      content: typeof p.content === 'string' ? p.content : '',
+    };
+  });
+}
+
+function notebookSnapshotHasContent(pages) {
+  return (pages || []).some(function(p) {
+    return notebookHtmlToText(p.content).trim().length > 0;
+  });
+}
+
+// 지정한 날짜로 현재 알림장 내용을 보관함에 저장합니다.
+function archiveNotebookForDate(dateKey, opts) {
+  opts = opts || {};
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(dateKey || '')) return false;
+  var pages = snapshotNotebookPages();
+  if (!notebookSnapshotHasContent(pages)) return false;
+  if (!viewData.notebookArchive || typeof viewData.notebookArchive !== 'object') {
+    viewData.notebookArchive = {};
+  }
+  viewData.notebookArchive[dateKey] = { date: dateKey, savedAt: Date.now(), pages: pages };
+  saveViewData();
+  return true;
+}
+
+// 날짜가 바뀌면 전날 알림장을 자동으로 보관합니다. updateClock에서 매 틱 호출됩니다.
+function checkNotebookDateRollover() {
+  var todayKey = formatDateKey(new Date());
+  if (!viewData.notebookArchiveDate) {
+    viewData.notebookArchiveDate = todayKey;
+    saveViewData();
+    return;
+  }
+  if (viewData.notebookArchiveDate === todayKey) return;
+  archiveNotebookForDate(viewData.notebookArchiveDate);
+  viewData.notebookArchiveDate = todayKey;
+  saveViewData();
+}
+
+// "오늘 저장" 버튼 — 지금 알림장을 오늘 날짜로 즉시 보관합니다.
+function saveNotebookToday() {
+  var todayKey = formatDateKey(new Date());
+  viewData.notebookArchiveDate = todayKey;
+  if (archiveNotebookForDate(todayKey)) {
+    showToast('오늘 알림장을 보관했어요');
+    var modal = document.getElementById('notebookArchiveModal');
+    if (modal && modal.classList.contains('open')) renderNotebookArchive();
+  } else {
+    saveViewData();
+    showToast('알림장에 저장할 내용이 없어요');
+  }
+}
+
+function openNotebookArchive() {
+  renderNotebookArchive();
+  var modal = document.getElementById('notebookArchiveModal');
+  if (modal) modal.classList.add('open');
+}
+
+function closeNotebookArchive() {
+  var modal = document.getElementById('notebookArchiveModal');
+  if (modal) modal.classList.remove('open');
+}
+
+function buildArchivePreview(entry) {
+  var pages = (entry && entry.pages) || [];
+  var text = pages
+    .map(function(p) { return notebookHtmlToText(p.content); })
+    .join(' / ')
+    .replace(/\s+/g, ' ')
+    .trim();
+  if (!text) return '(내용 없음)';
+  return text.length > 60 ? text.slice(0, 60) + '…' : text;
+}
+
+function renderNotebookArchive() {
+  var listEl = document.getElementById('notebookArchiveList');
+  if (!listEl) return;
+  listEl.innerHTML = '';
+  var archive = viewData.notebookArchive || {};
+  var keys = Object.keys(archive).sort().reverse();
+  if (keys.length === 0) {
+    var empty = document.createElement('div');
+    empty.className = 'archive-empty';
+    empty.innerHTML = '아직 보관된 알림장이 없어요.<br>날짜가 바뀌면 전날 알림장이 자동으로 여기 쌓여요.';
+    listEl.appendChild(empty);
+    return;
+  }
+  keys.forEach(function(key) {
+    var entry = archive[key];
+    var row = document.createElement('div');
+    row.className = 'archive-item';
+
+    var info = document.createElement('div');
+    info.className = 'archive-item-info';
+    var dateEl = document.createElement('div');
+    dateEl.className = 'archive-item-date';
+    dateEl.textContent = formatArchiveDateLabel(key);
+    var preview = document.createElement('div');
+    preview.className = 'archive-item-preview';
+    preview.textContent = buildArchivePreview(entry);
+    info.appendChild(dateEl);
+    info.appendChild(preview);
+
+    var actions = document.createElement('div');
+    actions.className = 'archive-item-actions';
+    var htmlBtn = document.createElement('button');
+    htmlBtn.className = 'archive-dl-btn';
+    htmlBtn.textContent = 'HTML';
+    htmlBtn.title = 'HTML 파일로 내려받기 (꾸밈 유지)';
+    htmlBtn.onclick = function() { downloadArchiveEntry(key, 'html'); };
+    var txtBtn = document.createElement('button');
+    txtBtn.className = 'archive-dl-btn';
+    txtBtn.textContent = 'TXT';
+    txtBtn.title = '텍스트 파일로 내려받기';
+    txtBtn.onclick = function() { downloadArchiveEntry(key, 'txt'); };
+    var delBtn = document.createElement('button');
+    delBtn.className = 'archive-del-btn';
+    delBtn.innerHTML = '&#10005;';
+    delBtn.title = '이 날짜 삭제';
+    delBtn.onclick = function() { deleteArchiveEntry(key); };
+    actions.appendChild(htmlBtn);
+    actions.appendChild(txtBtn);
+    actions.appendChild(delBtn);
+
+    row.appendChild(info);
+    row.appendChild(actions);
+    listEl.appendChild(row);
+  });
+}
+
+function deleteArchiveEntry(key) {
+  if (!confirm(formatArchiveDateLabel(key) + ' 알림장을 보관함에서 삭제할까요?')) return;
+  if (viewData.notebookArchive) delete viewData.notebookArchive[key];
+  saveViewData();
+  renderNotebookArchive();
+}
+
+function buildArchiveTxt(entry, multi) {
+  var lines = [formatArchiveDateLabel(entry.date) + ' 알림장', ''];
+  (entry.pages || []).forEach(function(p) {
+    if (multi) lines.push('[' + p.title + ']');
+    lines.push(notebookHtmlToText(p.content).trim());
+    lines.push('');
+  });
+  return lines.join('\r\n');
+}
+
+function buildArchiveHtmlDoc(entry, multi) {
+  var label = escapeArchiveText(formatArchiveDateLabel(entry.date) + ' 알림장');
+  var body = '';
+  (entry.pages || []).forEach(function(p) {
+    if (multi) body += '<h2>' + escapeArchiveText(p.title) + '</h2>';
+    body += '<div class="page">' + sanitizeNotebookHTML(p.content) + '</div>';
+  });
+  return '<!DOCTYPE html><html lang="ko"><head><meta charset="utf-8">' +
+    '<meta name="viewport" content="width=device-width, initial-scale=1">' +
+    '<title>' + label + '</title>' +
+    '<style>body{font-family:\'Malgun Gothic\',\'Apple SD Gothic Neo\',sans-serif;max-width:720px;' +
+    'margin:40px auto;padding:0 24px;line-height:1.7;color:#2d2a26}' +
+    'h1{font-size:1.6rem;border-bottom:2px solid #eee;padding-bottom:0.4em}' +
+    'h2{font-size:1.15rem;margin-top:1.6em;color:#3b82f6}' +
+    '.page{font-size:1.05rem}</style></head><body><h1>' + label + '</h1>' + body + '</body></html>';
+}
+
+function downloadArchiveEntry(key, format) {
+  var entry = (viewData.notebookArchive || {})[key];
+  if (!entry) return;
+  var multi = !!settings.notebookMultiPageEnabled && (entry.pages || []).length > 1;
+  var content, mime;
+  if (format === 'html') {
+    content = buildArchiveHtmlDoc(entry, multi);
+    mime = 'text/html;charset=utf-8';
+  } else {
+    content = buildArchiveTxt(entry, multi);
+    mime = 'text/plain;charset=utf-8';
+  }
+  var blob = new Blob([content], { type: mime });
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a');
+  a.href = url;
+  a.download = '알림장_' + key + (format === 'html' ? '.html' : '.txt');
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(function() { URL.revokeObjectURL(url); }, 1000);
+}
+
 function onNotebookInput() {
   var html = getNotebookHTML('notebookArea');
   setNotebookHTML('notebookPanelTextarea', html);
@@ -2984,6 +3245,7 @@ function updateClock() {
   document.getElementById('dateDisplay').textContent =
     n.getFullYear() + '. ' + String(n.getMonth() + 1).padStart(2, '0') + '. ' + String(n.getDate()).padStart(2, '0');
   document.getElementById('dayName').textContent = DAYS_KR[n.getDay()];
+  checkNotebookDateRollover();
   updateAcademicEventBanner(n);
   updateFeaturedDday();
 

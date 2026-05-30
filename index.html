@@ -53,6 +53,10 @@
   <div class="tab-content" id="tabNotebook" style="display:none">
     <div class="rules-header-row">
       <div class="rules-header" style="color:#3b82f6;-webkit-text-fill-color:#3b82f6">알림장</div>
+      <div class="notebook-header-actions">
+        <button class="notebook-header-btn" onclick="saveNotebookToday()">&#x1F4BE; 오늘 알림장 보관</button>
+        <button class="notebook-header-btn" onclick="openNotebookArchive()">&#x1F4DA; 보관한 알림장</button>
+      </div>
     </div>
     <div class="rules-subtitle">NOTEBOOK</div>
     <div class="notebook-page-bar" id="notebookPageBar" style="display:none"></div>
@@ -146,7 +150,7 @@
 <button class="settings-btn" onclick="openSettings()" title="설정" aria-label="설정">&#9881;</button>
 <button class="random-pick-btn" onclick="openRandomPicker()" title="랜덤 뽑기" aria-label="랜덤 뽑기">&#127922;</button>
 <button class="fullscreen-btn" id="fullscreenBtn" onclick="toggleFullscreen()" title="전체화면" aria-label="전체화면">&#x26F6;</button>
-<button class="version-label" onclick="openChangelog()" aria-label="버전 기록 보기">v1.13.3</button>
+<button class="version-label" onclick="openChangelog()" aria-label="버전 기록 보기">v1.14.0</button>
 <button class="feedback-btn" onclick="openFeedback()" title="의견 보내기" aria-label="의견 보내기">&#x1F4EC; 의견 보내기</button>
 <button class="dev-notes-btn" onclick="openDeveloperNotes()" title="개발자 소식" aria-label="개발자 소식">&#x1F4E2; 개발자 소식<span class="dev-notes-badge" id="devNotesBadge" style="display:none"></span></button>
 
@@ -343,6 +347,17 @@
   </div>
 </div>
 
+<div class="modal-overlay" id="notebookArchiveModal" onclick="if(event.target===this)closeNotebookArchive()">
+  <div class="modal-card">
+    <div class="modal-header">
+      <div class="modal-title">보관한 알림장</div>
+      <button class="modal-close" onclick="closeNotebookArchive()" aria-label="닫기">&#10005;</button>
+    </div>
+    <div class="archive-intro">날짜가 바뀌면 전날 알림장이 자동으로 차곡차곡 쌓여요. 날짜 옆 버튼으로 HTML(꾸밈 유지) 또는 TXT 파일로 내려받을 수 있어요.</div>
+    <div class="archive-list" id="notebookArchiveList"></div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="changelogModal" onclick="if(event.target===this)closeChangelog()">
   <div class="modal-card">
     <div class="modal-header">
@@ -350,6 +365,12 @@
       <button class="modal-close" onclick="closeChangelog()" aria-label="닫기">&#10005;</button>
     </div>
     <div class="changelog-list">
+      <div class="changelog-item">
+        <div class="changelog-item-header">
+          <span class="changelog-version">v1.14.0</span>
+        </div>
+        <div class="changelog-desc">알림장 날짜별 자동 보관함 도입: viewData.notebookArchive(날짜키→pages 스냅샷)에 일자별 누적 저장, updateClock 내 checkNotebookDateRollover로 날짜 변경 시 전날 내용 자동 아카이브. 보관함 모달에서 날짜별 목록·미리보기 제공, 항목별 HTML/TXT 내보내기(Blob 다운로드, 저장 시 sanitizeNotebookHTML 재적용)와 삭제 지원. "오늘 저장" 수동 버튼 추가</div>
+      </div>
       <div class="changelog-item">
         <div class="changelog-item-header">
           <span class="changelog-version">v1.13.3</span>
