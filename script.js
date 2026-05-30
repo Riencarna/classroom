@@ -1,9 +1,13 @@
 // =============================================
 // CONSTANTS
 // =============================================
-const APP_VERSION = 'v1.14.0';
+const APP_VERSION = 'v1.14.1';
 const FEEDBACK_URL = 'https://forms.gle/y48um84BTrBVn2Nt6';
 const UPDATE_HISTORY = [
+  { version: 'v1.14.1', notes: [
+    '알림장 글자를 복사해서 학교종이 등에 붙여넣을 때 연한 배경색이 같이 따라오던 문제를 고쳤어요 — 이제 글자 꾸밈(굵게·기울임·밑줄·색깔)은 그대로 살고, 배경은 깔끔하게 빠져요',
+    '전체화면 알림장에서 글자 크기 목록(10·20·30…)이 눌리지 않던 문제도 고쳤어요'
+  ]},
   { version: 'v1.14.0', notes: [
     '알림장이 날짜별로 자동으로 차곡차곡 보관돼요 — 날짜가 바뀌면 전날 알림장이 저장돼요',
     '알림장 제목 옆 "📚 보관한 알림장" 버튼을 누르면 지난 알림장을 날짜별로 다시 볼 수 있어요',
@@ -67,6 +71,12 @@ const UPDATE_HISTORY = [
 // 개발자 소식 게시판 — 의견 보내기로 받은 피드백에 답변하거나 소식을 전달할 때 사용합니다.
 // 최상단이 최신 글. id는 겹치지 않게(예: 날짜 + 순번) 주세요.
 const DEVELOPER_NOTES = [
+  {
+    id: '2026-05-30-02-notebook-copy-clean',
+    date: '2026-05-30',
+    title: '알림장을 복사하면 배경색이 따라오던 문제를 고쳤어요',
+    body: '전체화면으로 알림장을 쓴 뒤 복사해서 학교종이에 붙여넣으면 연한 베이지색 배경이 같이 따라온다고 알려주신 선생님, 감사합니다! 알림장이 종이 느낌의 배경 위에 놓여 있다 보니, 글자를 복사할 때 그 배경색까지 함께 복사되던 것이 원인이었어요.\n\n이제 알림장 안에서 글자를 복사(또는 잘라내기)하면 굵게·기울임·밑줄·글자색 같은 꾸밈은 그대로 유지하면서 배경색만 쏙 빠지도록 했어요. 학교종이에 붙여넣으면 깔끔하게 글자만 들어갑니다. 불편 드려 죄송했고, 앞으로도 이상한 점 있으면 언제든 의견 보내주세요!'
+  },
   {
     id: '2026-05-30-01-notebook-archive',
     date: '2026-05-30',
@@ -1727,6 +1737,60 @@ function saveNotebookContent(html) {
     saveViewData();
   }, 500);
 }
+
+// 알림장 글자를 복사/잘라낼 때 베이지색 종이 배경이 함께 따라오지 않도록 처리합니다.
+// 편집 영역은 배경색(예: 전체화면의 #f5f0e8) 위에 놓여 있어서, 그냥 복사하면
+// 브라우저가 그 배경색까지 클립보드에 담습니다. 그러면 학교종이처럼 서식을 유지하는
+// 편집기에 붙여넣을 때 배경이 남습니다. 아래 핸들러는 선택한 글자의 서식(굵게·기울임·
+// 밑줄·색)은 살리고 배경만 제거한 내용을 클립보드에 넣습니다.
+var NOTEBOOK_EDITOR_SELECTOR = '#notebookArea, #notebookPanelTextarea, #notebookFullscreenBody';
+
+function getNotebookEditorFromSelection(sel) {
+  if (!sel || sel.rangeCount === 0) return null;
+  var node = sel.anchorNode;
+  if (node && node.nodeType === 3) node = node.parentElement;
+  return (node && node.closest) ? node.closest(NOTEBOOK_EDITOR_SELECTOR) : null;
+}
+
+function buildCleanNotebookClipboardHTML(range) {
+  var holder = document.createElement('div');
+  holder.appendChild(range.cloneContents());
+  // 선택 영역 안에 혹시 남아있을 배경 관련 스타일/속성을 제거합니다.
+  var els = holder.querySelectorAll('*');
+  for (var i = 0; i < els.length; i++) {
+    var el = els[i];
+    if (el.style) {
+      el.style.removeProperty('background');
+      el.style.removeProperty('background-color');
+      if (!el.getAttribute('style')) el.removeAttribute('style');
+    }
+    el.removeAttribute('bgcolor');
+  }
+  // 허용된 서식 태그만 남기도록 한 번 더 정리합니다(배경색은 위에서 이미 제거됨).
+  return sanitizeNotebookHTML(holder.innerHTML);
+}
+
+function handleNotebookClipboard(e) {
+  if (!e.clipboardData) return;
+  var sel = window.getSelection();
+  if (!sel || sel.isCollapsed || sel.rangeCount === 0) return;
+  var editor = getNotebookEditorFromSelection(sel);
+  if (!editor) return;
+  var range = sel.getRangeAt(0);
+  e.clipboardData.setData('text/html', buildCleanNotebookClipboardHTML(range));
+  e.clipboardData.setData('text/plain', sel.toString());
+  e.preventDefault();
+  if (e.type === 'cut') {
+    range.deleteContents();
+    range.collapse(true);
+    sel.removeAllRanges();
+    sel.addRange(range);
+    editor.dispatchEvent(new Event('input', { bubbles: true }));
+  }
+}
+
+document.addEventListener('copy', handleNotebookClipboard);
+document.addEventListener('cut', handleNotebookClipboard);
 
 // =============================================
 // NOTEBOOK ARCHIVE (알림장 보관함 — 날짜별 누적)

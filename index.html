@@ -150,7 +150,7 @@
 <button class="settings-btn" onclick="openSettings()" title="설정" aria-label="설정">&#9881;</button>
 <button class="random-pick-btn" onclick="openRandomPicker()" title="랜덤 뽑기" aria-label="랜덤 뽑기">&#127922;</button>
 <button class="fullscreen-btn" id="fullscreenBtn" onclick="toggleFullscreen()" title="전체화면" aria-label="전체화면">&#x26F6;</button>
-<button class="version-label" onclick="openChangelog()" aria-label="버전 기록 보기">v1.14.0</button>
+<button class="version-label" onclick="openChangelog()" aria-label="버전 기록 보기">v1.14.1</button>
 <button class="feedback-btn" onclick="openFeedback()" title="의견 보내기" aria-label="의견 보내기">&#x1F4EC; 의견 보내기</button>
 <button class="dev-notes-btn" onclick="openDeveloperNotes()" title="개발자 소식" aria-label="개발자 소식">&#x1F4E2; 개발자 소식<span class="dev-notes-badge" id="devNotesBadge" style="display:none"></span></button>
 
@@ -365,6 +365,12 @@
       <button class="modal-close" onclick="closeChangelog()" aria-label="닫기">&#10005;</button>
     </div>
     <div class="changelog-list">
+      <div class="changelog-item">
+        <div class="changelog-item-header">
+          <span class="changelog-version">v1.14.1</span>
+        </div>
+        <div class="changelog-desc">알림장 편집 영역(#notebookArea·#notebookPanelTextarea·#notebookFullscreenBody)에서 복사·잘라내기 시 조상 배경색이 클립보드 HTML에 inline으로 묻어 학교종이 등 리치 에디터 붙여넣기에서 배경이 남던 문제 수정. document copy/cut을 가로채 선택 영역을 cloneContents로 재직렬화하고 background·background-color·bgcolor 제거 후 sanitizeNotebookHTML로 정리한 text/html과 selection text/plain을 클립보드에 기록. cut은 deleteContents 후 input 이벤트 디스패치로 저장 동기화. 또한 전체화면 글자 크기 드롭다운이 .notebook-fullscreen-header(z-index:1)와 .notebook-fullscreen-body(z-index:1)의 형제 스택 순서상 본문 아래로 깔려 클릭되지 않던 문제를 헤더 z-index를 10으로 올려 해결(글자색 팔레트도 동일 적용)</div>
+      </div>
       <div class="changelog-item">
         <div class="changelog-item-header">
           <span class="changelog-version">v1.14.0</span>

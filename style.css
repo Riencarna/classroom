@@ -2798,7 +2798,7 @@
     justify-content: space-between;
     padding: 1.5rem 3rem;
     border-bottom: 1px solid rgba(0,0,0,0.06);
-    z-index: 1;
+    z-index: 10; /* 글자 크기·글자색 드롭다운이 본문(z-index:1) 위에 오도록 (전체화면) */
   }
   .notebook-fullscreen-title {
     font-family: 'Black Han Sans', sans-serif;
