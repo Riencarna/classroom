@@ -150,7 +150,7 @@
 <button class="settings-btn" onclick="openSettings()" title="설정" aria-label="설정">&#9881;</button>
 <button class="random-pick-btn" onclick="openRandomPicker()" title="랜덤 뽑기" aria-label="랜덤 뽑기">&#127922;</button>
 <button class="fullscreen-btn" id="fullscreenBtn" onclick="toggleFullscreen()" title="전체화면" aria-label="전체화면">&#x26F6;</button>
-<button class="version-label" onclick="openChangelog()" aria-label="버전 기록 보기">v1.14.1</button>
+<button class="version-label" onclick="openChangelog()" aria-label="버전 기록 보기">v1.15.0</button>
 <button class="feedback-btn" onclick="openFeedback()" title="의견 보내기" aria-label="의견 보내기">&#x1F4EC; 의견 보내기</button>
 <button class="dev-notes-btn" onclick="openDeveloperNotes()" title="개발자 소식" aria-label="개발자 소식">&#x1F4E2; 개발자 소식<span class="dev-notes-badge" id="devNotesBadge" style="display:none"></span></button>
 
@@ -365,6 +365,12 @@
       <button class="modal-close" onclick="closeChangelog()" aria-label="닫기">&#10005;</button>
     </div>
     <div class="changelog-list">
+      <div class="changelog-item">
+        <div class="changelog-item-header">
+          <span class="changelog-version">v1.15.0</span>
+        </div>
+        <div class="changelog-desc">왼쪽 화면 배치 개선 및 디데이 자동 정리: 날짜는 위쪽, 대표 디데이와 오늘 일정은 날짜와 시계 사이, 시계는 중앙, 주말/수업 없음 상태는 아래쪽으로 분리했습니다. 날짜가 지난 디데이 항목은 다음 날 자동으로 삭제되어 D+며칠 표시가 남지 않습니다.</div>
+      </div>
       <div class="changelog-item">
         <div class="changelog-item-header">
           <span class="changelog-version">v1.14.1</span>

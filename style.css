@@ -60,11 +60,19 @@
   .left-panel  { width: var(--left-width, 50%); }
   .right-panel { width: var(--right-width, 50%); }
 
-  .left-panel { padding: 3rem; }
+  .left-panel {
+    padding: 3rem;
+    --date-top: clamp(2.5rem, 8vh, 4.75rem);
+    --event-top: clamp(9rem, 25vh, 15rem);
+    --clock-top: 50%;
+    --period-bottom: clamp(4.5rem, 9vh, 7.5rem);
+  }
 
   .date-row {
     position: absolute;
-    top: 4rem;
+    top: var(--date-top);
+    left: 0;
+    right: 0;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -74,8 +82,11 @@
 
   .academic-event-banner {
     position: absolute;
-    top: 15rem;
+    top: calc(var(--event-top) + 4rem);
+    left: 0;
+    right: 0;
     max-width: min(44rem, 90%);
+    margin: 0 auto;
     padding: 0.9rem 1.2rem;
     border-radius: 18px;
     background: rgba(139, 92, 246, 0.1);
@@ -96,11 +107,42 @@
     transform: translateY(0);
   }
 
+  .academic-event-pill {
+    max-width: 100%;
+    padding: 0.75rem 1.35rem;
+    border-radius: 18px;
+    font-weight: 700;
+    font-size: 1.15rem;
+    line-height: 1.35;
+    box-shadow: 0 10px 28px rgba(0,0,0,0.04);
+  }
+
+  .academic-event-pill.manual-source {
+    background: rgba(236, 72, 153, 0.1);
+    border: 1.5px solid rgba(236, 72, 153, 0.22);
+    color: #db2777;
+  }
+
+  .academic-event-pill.neis-source {
+    background: rgba(16, 185, 129, 0.12);
+    border: 1.5px solid rgba(16, 185, 129, 0.3);
+    color: #10b981;
+  }
+
   .academic-event-title {
     display: block;
     font-size: 1.35rem;
     font-weight: 900;
     margin-bottom: 0.2rem;
+  }
+
+  .academic-event-note {
+    display: block;
+    max-width: 34rem;
+    margin-top: 0.25rem;
+    font-size: 0.9rem;
+    line-height: 1.35;
+    opacity: 0.75;
   }
 
   .ampm-display {
@@ -120,7 +162,18 @@
     color: rgba(0,0,0,0.55);
   }
 
-  .clock-container { position: relative; animation: fadeSlideUp 1s ease-out 0.4s both; display: flex; align-items: baseline; gap: 2rem; }
+  .clock-container {
+    position: absolute;
+    top: var(--clock-top);
+    left: 0;
+    right: 0;
+    translate: 0 -50%;
+    animation: fadeSlideUp 1s ease-out 0.4s both;
+    display: flex;
+    justify-content: center;
+    align-items: baseline;
+    gap: 2rem;
+  }
 
   .time-display {
     font-family: 'Outfit', sans-serif;
@@ -140,11 +193,17 @@
   @keyframes colonBlink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
 
   .seconds-display {
+    position: absolute;
+    top: calc(var(--clock-top) + clamp(4.5rem, 11vh, 6.5rem));
+    left: 0;
+    right: 0;
+    width: max-content;
+    margin-left: auto;
+    margin-right: auto;
     font-family: 'Outfit', sans-serif;
     font-weight: 400;
     font-size: 3.5rem;
     color: rgba(59, 130, 246, 0.5);
-    margin-top: 0.25rem;
     text-align: right;
     letter-spacing: 0.1em;
     animation: fadeSlideUp 1s ease-out 0.6s both;
@@ -162,7 +221,11 @@
 
   .period-alert {
     position: absolute;
-    bottom: 12%;
+    bottom: var(--period-bottom);
+    left: 50%;
+    translate: -50% 0;
+    width: max-content;
+    max-width: 90%;
     padding: 0.8rem 2rem;
     border-radius: 16px;
     font-family: 'Noto Sans KR', sans-serif;
@@ -245,6 +308,8 @@
   .left-panel.timetable-mode .date-row {
     position: relative;
     top: auto;
+    left: auto;
+    right: auto;
     flex-direction: row;
     gap: 1rem;
     margin-bottom: 0.3rem;
@@ -256,16 +321,33 @@
   .left-panel.timetable-mode .time-display { font-size: 8.5rem; }
   .left-panel.timetable-mode .seconds-display { font-size: 3rem; }
   .left-panel.timetable-mode .clock-container { gap: 2.2rem; flex-shrink: 0; }
+  .left-panel.timetable-mode .clock-container {
+    position: relative;
+    top: auto;
+    left: auto;
+    right: auto;
+    translate: none;
+  }
   .left-panel.timetable-mode .seconds-display { flex-shrink: 0; }
+  .left-panel.timetable-mode .seconds-display {
+    position: relative;
+    top: auto;
+    left: auto;
+    right: auto;
+  }
   .left-panel.timetable-mode .academic-event-banner {
     position: relative;
     top: auto;
+    left: auto;
+    right: auto;
     margin-bottom: 0.8rem;
     flex-shrink: 0;
   }
   .left-panel.timetable-mode .period-alert {
     position: relative;
     bottom: auto;
+    left: auto;
+    translate: none;
     margin-top: 1rem;
     font-size: 2rem;
     flex-shrink: 0;
@@ -2292,8 +2374,9 @@
   /* ========== Featured D-Day badge (left panel) ========== */
   .featured-dday {
     position: absolute;
-    top: 1.5rem;
-    left: 3rem;
+    top: var(--event-top);
+    left: 50%;
+    translate: -50% 0;
     display: inline-flex; align-items: center; gap: 0.6rem;
     padding: 0.55rem 0.95rem;
     border-radius: 999px;
@@ -2308,7 +2391,7 @@
     box-shadow: 0 4px 16px rgba(236,72,153,0.12);
     transition: all 0.25s ease;
     z-index: 5;
-    max-width: calc(100% - 6rem);
+    max-width: min(90%, 34rem);
   }
   .featured-dday:hover {
     background: rgba(253, 242, 248, 1);
@@ -2330,6 +2413,7 @@
     position: relative;
     top: auto;
     left: auto;
+    translate: none;
     align-self: center;
     margin-bottom: 0.4rem;
     padding: 0.5rem 1rem;

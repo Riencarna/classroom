@@ -1,9 +1,14 @@
 // =============================================
 // CONSTANTS
 // =============================================
-const APP_VERSION = 'v1.14.1';
+const APP_VERSION = 'v1.15.0';
 const FEEDBACK_URL = 'https://forms.gle/y48um84BTrBVn2Nt6';
 const UPDATE_HISTORY = [
+  { version: 'v1.15.0', notes: [
+    '왼쪽 화면에서 날짜, 디데이, 오늘 일정, 시계, 현재 상태 위치가 더 보기 좋게 분리되었어요',
+    '날짜가 지난 디데이는 다음 날 자동으로 삭제돼요 — 더 이상 D+며칠로 남지 않아요',
+    '주말이나 수업 없음 같은 상태 표시는 아래쪽으로 분리해 화면 가운데가 덜 복잡해졌어요'
+  ]},
   { version: 'v1.14.1', notes: [
     '알림장 글자를 복사해서 학교종이 등에 붙여넣을 때 연한 배경색이 같이 따라오던 문제를 고쳤어요 — 이제 글자 꾸밈(굵게·기울임·밑줄·색깔)은 그대로 살고, 배경은 깔끔하게 빠져요',
     '전체화면 알림장에서 글자 크기 목록(10·20·30…)이 눌리지 않던 문제도 고쳤어요'
@@ -71,6 +76,12 @@ const UPDATE_HISTORY = [
 // 개발자 소식 게시판 — 의견 보내기로 받은 피드백에 답변하거나 소식을 전달할 때 사용합니다.
 // 최상단이 최신 글. id는 겹치지 않게(예: 날짜 + 순번) 주세요.
 const DEVELOPER_NOTES = [
+  {
+    id: '2026-06-09-01-dday-auto-cleanup',
+    date: '2026-06-09',
+    title: 'D-day가 지나면 자동으로 정리돼요',
+    body: 'D-day를 지정해두면 화면에 잘 보이지만, 날짜가 지난 뒤에도 D+며칠처럼 남아 있어 아쉽다는 의견을 보내주셨습니다. 그래서 이제 지난 디데이는 다음 날 자동으로 삭제되도록 바꿨습니다.\n\n왼쪽 화면 배치도 함께 정리했습니다. 날짜는 위쪽에, 시계는 가운데에 두고, 디데이와 오늘 일정은 그 사이에 배치했습니다. 주말이나 수업 없음 같은 상태 표시는 아래쪽으로 분리해서 화면 가운데가 한꺼번에 몰려 보이지 않도록 조정했습니다.\n\n의견 보내주신 선생님께 감사드립니다. 실제 교실에서 불편했던 지점을 알려주시면 이렇게 바로 다듬어가겠습니다.'
+  },
   {
     id: '2026-05-30-02-notebook-copy-clean',
     date: '2026-05-30',
@@ -172,6 +183,7 @@ let audioCtx = null;
 let notebookTimer = null;
 let lastAcademicEventToastKey = '';
 let specialTimetableDirty = false;
+let lastDdayPruneDateKey = '';
 
 const neisScheduleCache = new Map();
 const mealCache = new Map();
@@ -204,6 +216,35 @@ function formatDateKey(date) {
   const month = String(date.getMonth() + 1).padStart(2, '0');
   const day = String(date.getDate()).padStart(2, '0');
   return year + '-' + month + '-' + day;
+}
+
+function dateKeyToDate(dateKey) {
+  const parts = String(dateKey || '').split('-').map(Number);
+  if (parts.length !== 3 || parts.some(Number.isNaN)) return null;
+  return new Date(parts[0], parts[1] - 1, parts[2]);
+}
+
+function prunePastDdays(now, options) {
+  const todayKey = formatDateKey(now || new Date());
+  const force = !!(options && options.force);
+  if (!force && lastDdayPruneDateKey === todayKey) return false;
+  lastDdayPruneDateKey = todayKey;
+
+  const ddays = getDdays();
+  const featuredBefore = viewData.featuredDdayId || '';
+  const upcomingDdays = ddays.filter(item => item.date >= todayKey);
+  if (upcomingDdays.length === ddays.length) return false;
+
+  viewData.ddays = upcomingDdays;
+  if (featuredBefore && !viewData.ddays.some(item => item.id === featuredBefore)) {
+    viewData.featuredDdayId = '';
+    lastFeaturedDdayKey = '';
+  }
+  saveViewData();
+
+  renderDdays();
+  updateFeaturedDday();
+  return true;
 }
 
 function cloneEntry(entry) {
@@ -380,6 +421,7 @@ function loadViewData() {
   viewData.academicEvents = viewData.academicEvents
     .map(normalizeAcademicEvent)
     .filter(event => event.date && event.title.trim());
+  prunePastDdays(new Date(), { force: true });
   if (viewData.selectedAcademicEventDate && !getAcademicEventByDate(viewData.selectedAcademicEventDate)) {
     viewData.selectedAcademicEventDate = '';
   }
@@ -2658,6 +2700,7 @@ function addDdayFromForm() {
   const date = (dateEl?.value || '').trim();
   if (!title) { showToast('디데이 제목을 입력해주세요'); return; }
   if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) { showToast('날짜를 선택해주세요'); return; }
+  if (date < formatDateKey(new Date())) { showToast('오늘 이후 날짜를 선택해주세요'); return; }
   addDday(title, date, { setFeaturedIfFirst: true });
   if (titleEl) titleEl.value = '';
   if (dateEl) dateEl.value = '';
@@ -2700,6 +2743,11 @@ function updateDday(id, patch) {
     item.date = patch.date;
   }
   saveViewData();
+  const removedPastDdays = prunePastDdays(new Date(), { force: true });
+  if (removedPastDdays && !getDdays().some(d => d.id === id)) {
+    showToast('지난 디데이는 자동 삭제되었어요');
+    return;
+  }
   renderDdays();
   updateFeaturedDday();
 }
@@ -2730,6 +2778,10 @@ function toggleFeaturedDday(id) {
 function addDdayFromAcademicEvent(eventDate) {
   const event = getAcademicEventByDate(eventDate);
   if (!event) return;
+  if (event.date < formatDateKey(new Date())) {
+    showToast('지난 일정은 디데이로 추가할 수 없어요');
+    return;
+  }
   const existing = getDdays().find(d => d.date === event.date && d.title === event.title);
   if (existing) {
     showToast('이미 등록된 디데이예요');
@@ -3299,6 +3351,7 @@ function getCurrentPeriod(now) {
 
 function updateClock() {
   const n = new Date();
+  prunePastDdays(n);
   let h = n.getHours();
   const ampm = h < 12 ? '오전' : '오후';
   h = h % 12 || 12;
