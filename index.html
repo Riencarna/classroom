@@ -150,7 +150,7 @@
 <button class="settings-btn" onclick="openSettings()" title="설정" aria-label="설정">&#9881;</button>
 <button class="random-pick-btn" onclick="openRandomPicker()" title="랜덤 뽑기" aria-label="랜덤 뽑기">&#127922;</button>
 <button class="fullscreen-btn" id="fullscreenBtn" onclick="toggleFullscreen()" title="전체화면" aria-label="전체화면">&#x26F6;</button>
-<button class="version-label" onclick="openChangelog()" aria-label="버전 기록 보기">v1.14.3</button>
+<button class="version-label" onclick="openChangelog()" aria-label="버전 기록 보기">v1.14.4</button>
 <button class="feedback-btn" onclick="openFeedback()" title="의견 보내기" aria-label="의견 보내기">&#x1F4EC; 의견 보내기</button>
 <button class="dev-notes-btn" onclick="openDeveloperNotes()" title="개발자 소식" aria-label="개발자 소식">&#x1F4E2; 개발자 소식<span class="dev-notes-badge" id="devNotesBadge" style="display:none"></span></button>
 
@@ -287,7 +287,7 @@
       </div>
       <textarea class="event-textarea" id="eventNoticeInput" placeholder="왼쪽 패널에 보여줄 안내 문구를 입력하세요."></textarea>
       <div class="event-actions">
-        <button class="data-btn" onclick="setAcademicEventDateToday()">오늘 날짜</button>
+        <button class="data-btn" onclick="setAcademicEventDateToday()">오늘로 설정</button>
         <button class="tt-auto-btn" onclick="saveAcademicEvent()">일정 저장</button>
         <button class="tt-reset-btn" onclick="startNewAcademicEvent()">새 일정</button>
       </div>
@@ -365,6 +365,12 @@
       <button class="modal-close" onclick="closeChangelog()" aria-label="닫기">&#10005;</button>
     </div>
     <div class="changelog-list">
+      <div class="changelog-item">
+        <div class="changelog-item-header">
+          <span class="changelog-version">v1.14.4</span>
+        </div>
+        <div class="changelog-desc">쉬는시간 음성 안내 문구를 더 부드럽게 교체했습니다. 학사 일정 목록의 디데이 버튼은 다시 눌러 해제할 수 있도록 토글 방식으로 바꾸고, 학사 일정 작성 영역의 "오늘 날짜" 버튼은 "오늘로 설정"으로 더 직관적으로 바꿨습니다.</div>
+      </div>
       <div class="changelog-item">
         <div class="changelog-item-header">
           <span class="changelog-version">v1.14.3</span>

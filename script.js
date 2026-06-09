@@ -1,9 +1,14 @@
 // =============================================
 // CONSTANTS
 // =============================================
-const APP_VERSION = 'v1.14.3';
+const APP_VERSION = 'v1.14.4';
 const FEEDBACK_URL = 'https://forms.gle/y48um84BTrBVn2Nt6';
 const UPDATE_HISTORY = [
+  { version: 'v1.14.4', notes: [
+    '학사 일정의 디데이 버튼을 다시 누르면 디데이 해제가 되도록 바꿨어요',
+    '설정의 "오늘 날짜" 버튼 이름을 "오늘로 설정"으로 더 직관적으로 바꿨어요',
+    '쉬는시간 3분 전과 1분 전 음성 안내 문구를 더 부드럽게 다듬었어요'
+  ]},
   { version: 'v1.14.3', notes: [
     '대표 디데이 표시 위치를 다듬고 일반 모드와 시간표 모드에서 같은 크기로 보이도록 정리했어요',
     '시간표 모드에서 시간표 영역에 불필요한 내부 스크롤이 생기던 문제를 줄였어요'
@@ -78,6 +83,12 @@ const UPDATE_HISTORY = [
 // 개발자 소식 게시판 — 의견 보내기로 받은 피드백에 답변하거나 소식을 전달할 때 사용합니다.
 // 최상단이 최신 글. id는 겹치지 않게(예: 날짜 + 순번) 주세요.
 const DEVELOPER_NOTES = [
+  {
+    id: '2026-06-09-02-voice-message-feedback',
+    date: '2026-06-09',
+    title: '쉬는시간 음성 안내 문구를 다듬었어요',
+    body: '쉬는시간 3분 전과 1분 전 안내 음성을 조금 더 부드러운 문장으로 바꿨습니다.\n\n3분 전에는 "쉬는 시간이 곧 끝나요. 하던 일을 정리하고 수업 준비를 시작해 주세요.", 1분 전에는 "이제 자리로 돌아와 수업 준비를 마쳐 주세요."라고 안내됩니다. 3분 전에는 정리 시작, 1분 전에는 자리 복귀와 준비 마무리로 역할이 나뉘도록 했어요.\n\n혹시 실제 교실에서 듣기에 더 자연스럽거나 효과적인 문구가 있다면 "의견 보내기"로 알려주세요. 선생님들이 쓰시는 말투와 교실 분위기에 더 잘 맞게 계속 다듬어보겠습니다.'
+  },
   {
     id: '2026-06-09-01-dday-auto-cleanup',
     date: '2026-06-09',
@@ -940,13 +951,10 @@ function renderAcademicEventList() {
     });
 
     const ddayBtn = document.createElement('button');
-    ddayBtn.className = 'event-mini-btn';
     const alreadyDday = getDdays().some(d => d.date === event.date && d.title === event.title);
-    ddayBtn.textContent = alreadyDday ? '디데이 ✓' : '+ 디데이';
-    ddayBtn.disabled = alreadyDday;
-    if (!alreadyDday) {
-      ddayBtn.addEventListener('click', () => addDdayFromAcademicEvent(event.date));
-    }
+    ddayBtn.className = 'event-mini-btn' + (alreadyDday ? ' active' : '');
+    ddayBtn.textContent = alreadyDday ? '디데이 해제' : '+ 디데이';
+    ddayBtn.addEventListener('click', () => toggleDdayFromAcademicEvent(event.date));
 
     const delBtn = document.createElement('button');
     delBtn.className = 'event-mini-btn delete';
@@ -2787,6 +2795,31 @@ function addDdayFromAcademicEvent(eventDate) {
   addDday(event.title, event.date, { setFeaturedIfFirst: true });
   showToast('학사일정을 디데이로 추가했어요');
   renderAcademicEventList();
+}
+
+function removeDdayFromAcademicEvent(eventDate) {
+  const event = getAcademicEventByDate(eventDate);
+  if (!event) return;
+  const existing = getDdays().find(d => d.date === event.date && d.title === event.title);
+  if (!existing) return;
+  viewData.ddays = getDdays().filter(d => d.id !== existing.id);
+  if (viewData.featuredDdayId === existing.id) viewData.featuredDdayId = '';
+  saveViewData();
+  renderDdays();
+  updateFeaturedDday();
+  renderAcademicEventList();
+  showToast('학사일정 디데이를 해제했어요');
+}
+
+function toggleDdayFromAcademicEvent(eventDate) {
+  const event = getAcademicEventByDate(eventDate);
+  if (!event) return;
+  const existing = getDdays().find(d => d.date === event.date && d.title === event.title);
+  if (existing) {
+    removeDdayFromAcademicEvent(eventDate);
+  } else {
+    addDdayFromAcademicEvent(eventDate);
+  }
 }
 
 function updateFeaturedDday() {
