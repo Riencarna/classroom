@@ -1,9 +1,12 @@
 // =============================================
 // CONSTANTS
 // =============================================
-const APP_VERSION = 'v1.14.1';
+const APP_VERSION = 'v1.14.2';
 const FEEDBACK_URL = 'https://forms.gle/y48um84BTrBVn2Nt6';
 const UPDATE_HISTORY = [
+  { version: 'v1.14.2', notes: [
+    '날짜가 지난 디데이는 다음 날 자동으로 삭제돼요 — 더 이상 D+며칠로 남지 않아요'
+  ]},
   { version: 'v1.14.1', notes: [
     '알림장 글자를 복사해서 학교종이 등에 붙여넣을 때 연한 배경색이 같이 따라오던 문제를 고쳤어요 — 이제 글자 꾸밈(굵게·기울임·밑줄·색깔)은 그대로 살고, 배경은 깔끔하게 빠져요',
     '전체화면 알림장에서 글자 크기 목록(10·20·30…)이 눌리지 않던 문제도 고쳤어요'
@@ -71,6 +74,12 @@ const UPDATE_HISTORY = [
 // 개발자 소식 게시판 — 의견 보내기로 받은 피드백에 답변하거나 소식을 전달할 때 사용합니다.
 // 최상단이 최신 글. id는 겹치지 않게(예: 날짜 + 순번) 주세요.
 const DEVELOPER_NOTES = [
+  {
+    id: '2026-06-09-01-dday-auto-cleanup',
+    date: '2026-06-09',
+    title: '지난 디데이는 자동으로 정리돼요',
+    body: '디데이를 지정하면 화면에 표시되는데, 날짜가 지난 뒤에도 D+며칠처럼 남아 있어 사라졌으면 좋겠다는 의견을 보내주셨습니다. 그래서 이제 디데이 날짜가 지나면 다음 날 자동으로 목록에서 삭제되도록 개선했습니다.\n\nD-day 당일에는 그대로 보이고, 그 다음 날부터는 목록과 대표 디데이 표시에서 자동으로 사라집니다. 대표 디데이로 지정한 항목이 삭제되면 대표 표시도 함께 정리됩니다.\n\n의견 보내주신 선생님께 감사드립니다. 실제 사용 중 불편했던 부분을 알려주셔서 더 자연스럽게 다듬을 수 있었습니다.'
+  },
   {
     id: '2026-05-30-02-notebook-copy-clean',
     date: '2026-05-30',
@@ -172,6 +181,7 @@ let audioCtx = null;
 let notebookTimer = null;
 let lastAcademicEventToastKey = '';
 let specialTimetableDirty = false;
+let lastDdayPruneDateKey = '';
 
 const neisScheduleCache = new Map();
 const mealCache = new Map();
@@ -372,6 +382,7 @@ function loadViewData() {
       date: (typeof d.date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(d.date)) ? d.date : '',
     }))
     .filter(d => d.title && d.date);
+  prunePastDdays(new Date(), { render: false, force: true });
   if (typeof viewData.featuredDdayId !== 'string') viewData.featuredDdayId = '';
   if (viewData.featuredDdayId && !viewData.ddays.some(d => d.id === viewData.featuredDdayId)) {
     viewData.featuredDdayId = '';
@@ -457,6 +468,30 @@ function computeDdayDiff(dateStr) {
   else if (diffDays > 0) label = 'D-' + diffDays;
   else label = 'D+' + Math.abs(diffDays);
   return { diff: diffDays, label, isToday: diffDays === 0, isPast: diffDays < 0 };
+}
+
+function prunePastDdays(now, options) {
+  if (!Array.isArray(viewData.ddays)) viewData.ddays = [];
+  const todayKey = formatDateKey(now || new Date());
+  const force = !!(options && options.force);
+  if (!force && lastDdayPruneDateKey === todayKey) return false;
+  lastDdayPruneDateKey = todayKey;
+
+  const beforeCount = viewData.ddays.length;
+  const featuredBefore = viewData.featuredDdayId || '';
+  viewData.ddays = viewData.ddays.filter(d => d.date >= todayKey);
+  if (featuredBefore && !viewData.ddays.some(d => d.id === featuredBefore)) {
+    viewData.featuredDdayId = '';
+    lastFeaturedDdayKey = '';
+  }
+
+  if (viewData.ddays.length === beforeCount) return false;
+  saveViewData();
+  if (!options || options.render !== false) {
+    renderDdays();
+    updateFeaturedDday();
+  }
+  return true;
 }
 
 function getActiveNotebookPage() {
@@ -2658,6 +2693,7 @@ function addDdayFromForm() {
   const date = (dateEl?.value || '').trim();
   if (!title) { showToast('디데이 제목을 입력해주세요'); return; }
   if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) { showToast('날짜를 선택해주세요'); return; }
+  if (date < formatDateKey(new Date())) { showToast('지난 디데이는 자동 삭제돼요'); return; }
   addDday(title, date, { setFeaturedIfFirst: true });
   if (titleEl) titleEl.value = '';
   if (dateEl) dateEl.value = '';
@@ -2700,6 +2736,11 @@ function updateDday(id, patch) {
     item.date = patch.date;
   }
   saveViewData();
+  const removed = prunePastDdays(new Date(), { force: true });
+  if (removed && !getDdays().some(d => d.id === id)) {
+    showToast('지난 디데이는 자동 삭제되었어요');
+    return;
+  }
   renderDdays();
   updateFeaturedDday();
 }
@@ -2730,6 +2771,10 @@ function toggleFeaturedDday(id) {
 function addDdayFromAcademicEvent(eventDate) {
   const event = getAcademicEventByDate(eventDate);
   if (!event) return;
+  if (event.date < formatDateKey(new Date())) {
+    showToast('지난 일정은 디데이로 추가할 수 없어요');
+    return;
+  }
   const existing = getDdays().find(d => d.date === event.date && d.title === event.title);
   if (existing) {
     showToast('이미 등록된 디데이예요');
@@ -3299,6 +3344,7 @@ function getCurrentPeriod(now) {
 
 function updateClock() {
   const n = new Date();
+  prunePastDdays(n);
   let h = n.getHours();
   const ampm = h < 12 ? '오전' : '오후';
   h = h % 12 || 12;
