@@ -1,9 +1,13 @@
 // =============================================
 // CONSTANTS
 // =============================================
-const APP_VERSION = 'v1.14.2';
+const APP_VERSION = 'v1.14.3';
 const FEEDBACK_URL = 'https://forms.gle/y48um84BTrBVn2Nt6';
 const UPDATE_HISTORY = [
+  { version: 'v1.14.3', notes: [
+    '대표 디데이 표시 위치를 다듬고 일반 모드와 시간표 모드에서 같은 크기로 보이도록 정리했어요',
+    '시간표 모드에서 시간표 영역에 불필요한 내부 스크롤이 생기던 문제를 줄였어요'
+  ]},
   { version: 'v1.14.2', notes: [
     '날짜가 지난 디데이는 다음 날 자동으로 삭제돼요 — 더 이상 D+며칠로 남지 않아요'
   ]},
@@ -2788,9 +2792,11 @@ function addDdayFromAcademicEvent(eventDate) {
 function updateFeaturedDday() {
   const el = document.getElementById('featuredDday');
   if (!el) return;
+  const panel = document.getElementById('leftPanel');
   const id = viewData.featuredDdayId;
   const item = id ? getDdays().find(d => d.id === id) : null;
   if (!item) {
+    if (panel) panel.classList.remove('has-featured-dday');
     el.style.display = 'none';
     el.textContent = '';
     lastFeaturedDdayKey = '';
@@ -2798,11 +2804,13 @@ function updateFeaturedDday() {
   }
   const diff = computeDdayDiff(item.date);
   if (!diff) {
+    if (panel) panel.classList.remove('has-featured-dday');
     el.style.display = 'none';
     el.textContent = '';
     lastFeaturedDdayKey = '';
     return;
   }
+  if (panel) panel.classList.add('has-featured-dday');
   const key = item.id + '|' + item.title + '|' + item.date + '|' + diff.label;
   if (key === lastFeaturedDdayKey) return;
   lastFeaturedDdayKey = key;
