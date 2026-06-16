@@ -16,6 +16,7 @@
 <div class="left-panel" id="leftPanel">
   <div class="clock-glow"></div>
   <button class="timetable-toggle-btn" id="timetableToggleBtn" onclick="toggleTimetableMode()" title="시간표 보기" aria-label="시간표 보기">&#128197;</button>
+  <button class="today-timetable-btn" id="todayTimetableBtn" onclick="openQuickTimetableEditor()" title="오늘 시간표 빠른 변경" aria-label="오늘 시간표 빠른 변경">오늘 시간표</button>
   <div class="date-row">
     <div class="date-display" id="dateDisplay"></div>
     <div class="day-name" id="dayName"></div>
@@ -150,11 +151,35 @@
 <button class="settings-btn" onclick="openSettings()" title="설정" aria-label="설정">&#9881;</button>
 <button class="random-pick-btn" onclick="openRandomPicker()" title="랜덤 뽑기" aria-label="랜덤 뽑기">&#127922;</button>
 <button class="fullscreen-btn" id="fullscreenBtn" onclick="toggleFullscreen()" title="전체화면" aria-label="전체화면">&#x26F6;</button>
-<button class="version-label" onclick="openChangelog()" aria-label="버전 기록 보기">v1.14.4</button>
+<button class="version-label" onclick="openChangelog()" aria-label="버전 기록 보기">v1.15.0</button>
 <button class="feedback-btn" onclick="openFeedback()" title="의견 보내기" aria-label="의견 보내기">&#x1F4EC; 의견 보내기</button>
 <button class="dev-notes-btn" onclick="openDeveloperNotes()" title="개발자 소식" aria-label="개발자 소식">&#x1F4E2; 개발자 소식<span class="dev-notes-badge" id="devNotesBadge" style="display:none"></span></button>
 
 <input type="file" id="importFileInput" accept=".json" style="display:none" onchange="handleImport(event)">
+
+<div class="modal-overlay" id="quickTimetableModal" onclick="if(event.target===this)closeQuickTimetableEditor()">
+  <div class="modal-card quick-tt-card">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title">오늘 시간표</div>
+        <div class="quick-tt-date" id="quickTimetableDate"></div>
+      </div>
+      <button class="modal-close" onclick="closeQuickTimetableEditor()" aria-label="닫기">&#10005;</button>
+    </div>
+    <div class="quick-tt-intro">기본 시간표는 그대로 두고, 오늘만 다른 시간표로 바꿉니다. 변경 내용은 오늘 날짜의 전용 시간표로 저장됩니다.</div>
+    <div class="quick-tt-toolbar">
+      <button class="tt-auto-btn" onclick="copyDefaultTimetableToQuick()">기본 시간표 불러오기</button>
+      <button class="tt-add-btn quick-tt-add-btn" onclick="addQuickTimetableEntry()">+ 새 시간 추가</button>
+      <button class="tt-reset-btn" onclick="clearTodayTimetableChange()">오늘 변경 삭제</button>
+      <span class="event-save-status saved" id="quickTtSaveStatus">저장됨</span>
+    </div>
+    <div class="tt-list quick-tt-list" id="quickTtList"></div>
+    <div class="quick-tt-footer">
+      <button class="data-btn" onclick="openTodayTimetableInSettings()">설정에서 자세히 보기</button>
+      <button class="data-btn data-btn-primary" onclick="closeQuickTimetableEditor()">완료</button>
+    </div>
+  </div>
+</div>
 
 <div class="modal-overlay" id="settingsModal" onclick="if(event.target===this)closeSettings()">
   <div class="modal-card">
@@ -365,6 +390,12 @@
       <button class="modal-close" onclick="closeChangelog()" aria-label="닫기">&#10005;</button>
     </div>
     <div class="changelog-list">
+      <div class="changelog-item">
+        <div class="changelog-item-header">
+          <span class="changelog-version">v1.15.0</span>
+        </div>
+        <div class="changelog-desc">오늘 시간표 빠른 변경 추가: 시간표 모드의 "오늘 시간표" 버튼으로 기본 시간표를 건드리지 않고 오늘 날짜 전용 시간표를 바로 수정할 수 있습니다. 기본 시간표 불러오기, 새 시간 추가, 오늘 변경 삭제를 지원하며 저장 즉시 현재 교시와 시간표 화면에 반영됩니다. 대표 디데이 유무에 따라 시간표 모드 배치가 흔들려 보이지 않도록 여백도 함께 보정했습니다.</div>
+      </div>
       <div class="changelog-item">
         <div class="changelog-item-header">
           <span class="changelog-version">v1.14.4</span>

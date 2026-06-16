@@ -1,9 +1,15 @@
 // =============================================
 // CONSTANTS
 // =============================================
-const APP_VERSION = 'v1.14.4';
+const APP_VERSION = 'v1.15.0';
 const FEEDBACK_URL = 'https://forms.gle/y48um84BTrBVn2Nt6';
 const UPDATE_HISTORY = [
+  { version: 'v1.15.0', notes: [
+    '시간표 화면에서 오늘 시간표를 바로 바꿀 수 있어요',
+    '기본 시간표는 그대로 두고, 오늘만 바뀐 시간표를 날짜 전용 시간표로 저장해요',
+    '오늘 변경을 삭제하면 다시 기본 시간표로 돌아가요',
+    '시간표 모드에서 대표 디데이 유무에 따라 화면 배치가 흔들리지 않도록 다듬었어요'
+  ]},
   { version: 'v1.14.4', notes: [
     '학사 일정의 디데이 버튼을 다시 누르면 디데이 해제가 되도록 바꿨어요',
     '설정의 "오늘 날짜" 버튼 이름을 "오늘로 설정"으로 더 직관적으로 바꿨어요',
@@ -83,6 +89,12 @@ const UPDATE_HISTORY = [
 // 개발자 소식 게시판 — 의견 보내기로 받은 피드백에 답변하거나 소식을 전달할 때 사용합니다.
 // 최상단이 최신 글. id는 겹치지 않게(예: 날짜 + 순번) 주세요.
 const DEVELOPER_NOTES = [
+  {
+    id: '2026-06-16-02-quick-timetable',
+    date: '2026-06-16',
+    title: '오늘 시간표를 화면에서 바로 바꿀 수 있어요',
+    body: '시간표가 그날그날 바뀔 때마다 설정에 들어가 수정해야 해서 번거롭다는 의견을 보내주셨습니다. 그래서 시간표 화면에 "오늘 시간표" 버튼을 추가했습니다.\n\n기본 시간표는 설정에 그대로 두고, 오늘만 바뀐 시간표를 화면에서 바로 수정할 수 있습니다. 수정 내용은 오늘 날짜 전용 시간표로 저장되며, "오늘 변경 삭제"를 누르면 다시 기본 시간표로 돌아갑니다.\n\n추가로 시간표 모드에서 대표 디데이가 있을 때와 없을 때 화면 배치가 달라 보이던 부분도 함께 정리했습니다. 대표 디데이 유무와 관계없이 시계와 시간표 위치가 덜 흔들리도록 맞췄습니다.\n\n좋은 의견 보내주셔서 감사합니다. 실제 교실에서 자주 일어나는 흐름이라 바로 반영할 만한 개선이었습니다.'
+  },
   {
     id: '2026-06-16-01-notice-persistence',
     date: '2026-06-16',
@@ -202,6 +214,9 @@ let audioCtx = null;
 let notebookTimer = null;
 let lastAcademicEventToastKey = '';
 let specialTimetableDirty = false;
+let quickTimetableDirty = false;
+let quickTimetableDraft = [];
+let quickTimetableDateKey = '';
 let lastDdayPruneDateKey = '';
 
 const neisScheduleCache = new Map();
@@ -263,6 +278,8 @@ function normalizeAcademicEvent(event) {
     title: typeof event?.title === 'string' ? event.title : '',
     notice: typeof event?.notice === 'string' ? event.notice : '',
     timetable: Array.isArray(event?.timetable) ? event.timetable.map(cloneEntry) : [],
+    quickOnly: !!event?.quickOnly,
+    timetableOverride: !!event?.timetableOverride,
   };
   normalized.timetable.sort((a, b) => timeToMins(a.start) - timeToMins(b.start));
   return normalized;
@@ -1003,12 +1020,14 @@ function saveAcademicEvent() {
     selectedEvent.date = date;
     selectedEvent.title = title;
     selectedEvent.notice = notice;
+    selectedEvent.quickOnly = false;
     selectedEvent.timetable = (selectedEvent.timetable || []).map(cloneEntry).sort((a, b) => timeToMins(a.start) - timeToMins(b.start));
   } else if (existingIndex >= 0) {
     events[existingIndex].title = title;
     events[existingIndex].notice = notice;
+    events[existingIndex].quickOnly = false;
   } else {
-    events.push(normalizeAcademicEvent({ date, title, notice, timetable: [] }));
+    events.push(normalizeAcademicEvent({ date, title, notice, timetable: [], quickOnly: false }));
   }
 
   viewData.selectedAcademicEventDate = date;
@@ -1221,6 +1240,321 @@ function copyDefaultTimetableToSelectedEvent() {
   specialTimetableDirty = true;
   saveAcademicEventTimetable(true, false);
   showToast('기본 시간표를 날짜별 시간표로 불러왔어요');
+}
+
+// =============================================
+// QUICK TODAY TIMETABLE
+// =============================================
+function getTodayDateKey() {
+  return formatDateKey(new Date());
+}
+
+function getTodayAcademicEvent() {
+  return getAcademicEventByDate(getTodayDateKey());
+}
+
+function sortAcademicEvents() {
+  viewData.academicEvents = getAcademicEvents()
+    .map(normalizeAcademicEvent)
+    .sort((a, b) => a.date.localeCompare(b.date));
+}
+
+function syncAcademicEventEditors() {
+  const settingsModal = document.getElementById('settingsModal');
+  if (!settingsModal || !settingsModal.classList.contains('open')) return;
+  renderAcademicEventList();
+  updateAcademicEventSelectionBar();
+  if (viewData.selectedAcademicEventDate === getTodayDateKey()) {
+    fillAcademicEventForm();
+    renderSpecialTimetableEditor();
+  }
+}
+
+function ensureTodayTimetableEvent() {
+  const dateKey = getTodayDateKey();
+  const events = getAcademicEvents();
+  let event = getAcademicEventByDate(dateKey);
+
+  if (!event) {
+    events.push(normalizeAcademicEvent({
+      date: dateKey,
+      title: '오늘 시간표 변경',
+      notice: '',
+      timetable: buildSpecialTimetableFromBase(dateKey),
+      quickOnly: true,
+      timetableOverride: true,
+    }));
+  } else {
+    event.timetableOverride = true;
+    if (!Array.isArray(event.timetable) || !event.timetable.length) {
+      event.timetable = buildSpecialTimetableFromBase(dateKey);
+    } else {
+      event.timetable = event.timetable.map(cloneEntry).sort((a, b) => timeToMins(a.start) - timeToMins(b.start));
+    }
+    if (!event.title.trim()) event.title = '오늘 시간표 변경';
+  }
+
+  sortAcademicEvents();
+  saveViewData();
+  return getAcademicEventByDate(dateKey);
+}
+
+function getTodayTimetableSourceEntries(dateKey) {
+  const event = getAcademicEventByDate(dateKey);
+  if (event && (event.timetableOverride || (!event.quickOnly && event.timetable.length))) {
+    return event.timetable.map(cloneEntry).sort((a, b) => timeToMins(a.start) - timeToMins(b.start));
+  }
+  return buildSpecialTimetableFromBase(dateKey);
+}
+
+function prepareQuickTimetableDraft() {
+  quickTimetableDateKey = getTodayDateKey();
+  quickTimetableDraft = getTodayTimetableSourceEntries(quickTimetableDateKey);
+}
+
+function openQuickTimetableEditor() {
+  prepareQuickTimetableDraft();
+  quickTimetableDirty = false;
+  const dateEl = document.getElementById('quickTimetableDate');
+  if (dateEl) {
+    const today = new Date();
+    dateEl.textContent = quickTimetableDateKey + ' · ' + DAYS_KR[today.getDay()];
+  }
+  renderQuickTimetableEditor();
+  renderQuickTimetableShortcutState();
+  document.getElementById('quickTimetableModal').classList.add('open');
+}
+
+function closeQuickTimetableEditor() {
+  const modal = document.getElementById('quickTimetableModal');
+  if (modal) modal.classList.remove('open');
+}
+
+function markQuickTimetableDirty() {
+  quickTimetableDirty = true;
+  const statusEl = document.getElementById('quickTtSaveStatus');
+  if (statusEl) {
+    statusEl.textContent = '저장 중';
+    statusEl.className = 'event-save-status dirty';
+  }
+}
+
+function saveQuickTimetable(shouldRerender, showSavedToast) {
+  const dateKey = quickTimetableDateKey || getTodayDateKey();
+  const events = getAcademicEvents();
+  let event = getAcademicEventByDate(dateKey);
+  quickTimetableDraft = (quickTimetableDraft || []).map(cloneEntry).sort((a, b) => timeToMins(a.start) - timeToMins(b.start));
+  if (!event) {
+    events.push(normalizeAcademicEvent({
+      date: dateKey,
+      title: '오늘 시간표 변경',
+      notice: '',
+      timetable: quickTimetableDraft,
+      quickOnly: true,
+      timetableOverride: true,
+    }));
+    event = getAcademicEventByDate(dateKey);
+  }
+  if (!event) return;
+  event.timetable = quickTimetableDraft.map(cloneEntry);
+  event.timetableOverride = true;
+  if (!event.title.trim()) event.title = '오늘 시간표 변경';
+  sortAcademicEvents();
+  quickTimetableDirty = false;
+  saveViewData();
+  if (shouldRerender) renderQuickTimetableEditor();
+  const statusEl = document.getElementById('quickTtSaveStatus');
+  if (statusEl) {
+    statusEl.textContent = '저장됨';
+    statusEl.className = 'event-save-status saved';
+  }
+  renderQuickTimetableShortcutState();
+  syncAcademicEventEditors();
+  updateAcademicEventBanner(new Date());
+  updateClock();
+  if (settings.timetableMode) {
+    lastTimetableMin = -1;
+    renderTimetableDisplay();
+  }
+  if (showSavedToast) showToast('오늘 시간표가 저장되었어요');
+}
+
+function renderQuickTimetableEditor() {
+  const container = document.getElementById('quickTtList');
+  if (!container) return;
+  container.innerHTML = '';
+
+  if (!quickTimetableDraft.length) {
+    const empty = document.createElement('div');
+    empty.className = 'event-empty';
+    empty.textContent = '오늘 시간표가 비어 있습니다. 기본 시간표를 불러오거나 새 시간을 추가하세요.';
+    container.appendChild(empty);
+    return;
+  }
+
+  quickTimetableDraft.forEach((entry, i) => {
+    const row = document.createElement('div');
+    row.className = 'tt-row quick-tt-row';
+
+    const labelInput = document.createElement('input');
+    labelInput.className = 'tt-label-input';
+    labelInput.type = 'text';
+    labelInput.value = entry.label;
+    labelInput.addEventListener('change', () => {
+      entry.label = labelInput.value.trim() || '새 시간';
+      markQuickTimetableDirty();
+      saveQuickTimetable(false, false);
+    });
+
+    const startInput = document.createElement('input');
+    startInput.className = 'tt-time-input';
+    startInput.type = 'time';
+    startInput.value = entry.start;
+    startInput.addEventListener('change', () => {
+      if (!startInput.value) {
+        startInput.value = entry.start;
+        return;
+      }
+      entry.start = startInput.value;
+      markQuickTimetableDirty();
+      saveQuickTimetable(true, false);
+    });
+
+    const sep = document.createElement('span');
+    sep.className = 'tt-separator';
+    sep.textContent = '~';
+
+    const endInput = document.createElement('input');
+    endInput.className = 'tt-time-input';
+    endInput.type = 'time';
+    endInput.value = entry.end;
+    endInput.addEventListener('change', () => {
+      if (!endInput.value) {
+        endInput.value = entry.end;
+        return;
+      }
+      entry.end = endInput.value;
+      markQuickTimetableDirty();
+      saveQuickTimetable(true, false);
+    });
+
+    const typeSelect = document.createElement('select');
+    typeSelect.className = 'tt-type-select';
+    [['in-class', '수업'], ['lunch-time', '점심'], ['break-time', '쉬는시간'], ['event-time', '행사']].forEach(([val, txt]) => {
+      const opt = document.createElement('option');
+      opt.value = val;
+      opt.textContent = txt;
+      if (val === entry.type) opt.selected = true;
+      typeSelect.appendChild(opt);
+    });
+    typeSelect.addEventListener('change', () => {
+      entry.type = typeSelect.value;
+      markQuickTimetableDirty();
+      saveQuickTimetable(false, false);
+    });
+
+    const subjectInput = document.createElement('input');
+    subjectInput.className = 'subject-grid-input quick-tt-subject-input';
+    subjectInput.type = 'text';
+    subjectInput.placeholder = '과목/내용';
+    subjectInput.value = entry.subject || '';
+    subjectInput.addEventListener('input', () => {
+      entry.subject = subjectInput.value;
+      markQuickTimetableDirty();
+      saveQuickTimetable(false, false);
+    });
+
+    const delBtn = document.createElement('button');
+    delBtn.className = 'tt-delete-btn';
+    delBtn.innerHTML = '&#10005;';
+    delBtn.addEventListener('click', () => {
+      quickTimetableDraft.splice(i, 1);
+      markQuickTimetableDirty();
+      saveQuickTimetable(true, false);
+      showToast('오늘 시간이 삭제되었어요');
+    });
+
+    row.appendChild(labelInput);
+    row.appendChild(startInput);
+    row.appendChild(sep);
+    row.appendChild(endInput);
+    row.appendChild(typeSelect);
+    row.appendChild(subjectInput);
+    row.appendChild(delBtn);
+    container.appendChild(row);
+  });
+}
+
+function addQuickTimetableEntry() {
+  if (!quickTimetableDateKey) prepareQuickTimetableDraft();
+  const lastEntry = quickTimetableDraft[quickTimetableDraft.length - 1];
+  const startMins = lastEntry ? Math.min(timeToMins(lastEntry.end) + 10, 1439) : 540;
+  const endMins = Math.min(startMins + 40, 1439);
+  quickTimetableDraft.push({
+    label: (quickTimetableDraft.length + 1) + '교시',
+    start: minsToTime(startMins),
+    end: minsToTime(endMins),
+    type: 'in-class',
+    subject: '',
+    subjects: {},
+    days: [],
+  });
+  markQuickTimetableDirty();
+  saveQuickTimetable(true, true);
+}
+
+function copyDefaultTimetableToQuick() {
+  if (!quickTimetableDateKey) quickTimetableDateKey = getTodayDateKey();
+  quickTimetableDraft = buildSpecialTimetableFromBase(quickTimetableDateKey);
+  markQuickTimetableDirty();
+  saveQuickTimetable(true, true);
+}
+
+function clearTodayTimetableChange() {
+  const event = getTodayAcademicEvent();
+  if (!event || (!event.timetableOverride && !event.timetable.length)) {
+    showToast('삭제할 오늘 시간표 변경이 없어요');
+    return;
+  }
+  if (!confirm('오늘만 바꾼 시간표를 삭제하고 기본 시간표로 돌아갈까요?')) return;
+
+  if (event.quickOnly) {
+    viewData.academicEvents = getAcademicEvents().filter(item => item.date !== event.date);
+    if (viewData.selectedAcademicEventDate === event.date) viewData.selectedAcademicEventDate = '';
+  } else {
+    event.timetable = [];
+    event.timetableOverride = false;
+  }
+  sortAcademicEvents();
+  saveViewData();
+  renderQuickTimetableEditor();
+  renderQuickTimetableShortcutState();
+  syncAcademicEventEditors();
+  updateAcademicEventBanner(new Date());
+  updateClock();
+  if (settings.timetableMode) {
+    lastTimetableMin = -1;
+    renderTimetableDisplay();
+  }
+  closeQuickTimetableEditor();
+  showToast('오늘 시간표 변경을 삭제했어요');
+}
+
+function openTodayTimetableInSettings() {
+  if (!getTodayAcademicEvent() || quickTimetableDirty) saveQuickTimetable(false, false);
+  const event = getTodayAcademicEvent() || ensureTodayTimetableEvent();
+  closeQuickTimetableEditor();
+  openSettings();
+  selectAcademicEvent(event.date, { source: 'quick' });
+}
+
+function renderQuickTimetableShortcutState() {
+  const btn = document.getElementById('todayTimetableBtn');
+  if (!btn) return;
+  const event = getTodayAcademicEvent();
+  const hasOverride = !!(event && (event.timetableOverride || (!event.quickOnly && Array.isArray(event.timetable) && event.timetable.length)));
+  btn.classList.toggle('has-override', hasOverride);
+  btn.textContent = hasOverride ? '오늘 변경됨' : '오늘 시간표';
 }
 
 // =============================================
@@ -3025,6 +3359,7 @@ function applyTimetableMode() {
   panel.classList.toggle('timetable-mode', settings.timetableMode);
   btn.classList.toggle('active', settings.timetableMode);
   if (toggle) toggle.checked = settings.timetableMode;
+  renderQuickTimetableShortcutState();
 
   if (settings.timetableMode) {
     lastTimetableMin = -1; // force re-render
@@ -3339,7 +3674,7 @@ function renderDailyPeriods() {
 function getTodayEntries(now) {
   const dateKey = formatDateKey(now);
   const event = getAcademicEventByDate(dateKey);
-  if (event && event.timetable.length) {
+  if (event && (event.timetableOverride || (!event.quickOnly && event.timetable.length))) {
     return event.timetable.map(cloneEntry).sort((a, b) => timeToMins(a.start) - timeToMins(b.start));
   }
   return getBaseEntriesForDate(now);
@@ -3392,6 +3727,7 @@ function getCurrentPeriod(now) {
 function updateClock() {
   const n = new Date();
   prunePastDdays(n);
+  renderQuickTimetableShortcutState();
   let h = n.getHours();
   const ampm = h < 12 ? '오전' : '오후';
   h = h % 12 || 12;
@@ -3473,7 +3809,7 @@ function updateAcademicEventBanner(now) {
   let source = 'manual';
   let title = '';
   let body = '';
-  if (manualEvent) {
+  if (manualEvent && !(manualEvent.quickOnly && !manualEvent.notice)) {
     title = manualEvent.title;
     body = manualEvent.notice || '';
   } else {
@@ -3624,6 +3960,7 @@ document.addEventListener('keydown', function(e) {
   const modalsByPriority = [
     { id: 'updateNotification', close: dismissUpdateNotification },
     { id: 'randomPickerModal', close: closeRandomPicker },
+    { id: 'quickTimetableModal', close: closeQuickTimetableEditor },
     { id: 'developerNotesModal', close: closeDeveloperNotes },
     { id: 'changelogModal', close: closeChangelog },
     { id: 'settingsModal', close: closeSettings },

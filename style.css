@@ -603,6 +603,47 @@
     border-color: rgba(59, 130, 246, 0.3);
   }
 
+  .today-timetable-btn {
+    position: fixed;
+    bottom: 4.85rem;
+    left: 1.5rem;
+    min-width: 96px;
+    height: 40px;
+    padding: 0 0.85rem;
+    border-radius: 20px;
+    border: 1.5px solid rgba(0,0,0,0.08);
+    background: rgba(255,255,255,0.5);
+    backdrop-filter: blur(8px);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Noto Sans KR', sans-serif;
+    font-size: 0.82rem;
+    font-weight: 800;
+    color: rgba(0,0,0,0.42);
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(-4px);
+    transition: all 0.25s ease;
+    z-index: 5;
+    white-space: nowrap;
+  }
+  .left-panel.timetable-mode .today-timetable-btn {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translateY(0);
+  }
+  .today-timetable-btn:hover {
+    background: rgba(255,255,255,0.85);
+    color: rgba(0,0,0,0.65);
+  }
+  .today-timetable-btn.has-override {
+    background: rgba(139, 92, 246, 0.14);
+    color: #6d28d9;
+    border-color: rgba(139, 92, 246, 0.28);
+  }
+
   .divider {
     position: fixed;
     left: var(--left-width, 50%); top: 0;
@@ -1397,6 +1438,61 @@
   }
   .modal-card::-webkit-scrollbar { width: 4px; }
   .modal-card::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.1); border-radius: 4px; }
+
+  .quick-tt-card {
+    max-width: 920px;
+  }
+  .quick-tt-date {
+    margin-top: 0.35rem;
+    font-family: 'Outfit', 'Noto Sans KR', sans-serif;
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: rgba(0,0,0,0.45);
+  }
+  .quick-tt-intro {
+    padding: 0.85rem 1rem;
+    margin-bottom: 1rem;
+    border-radius: 14px;
+    background: rgba(59,130,246,0.07);
+    border: 1px solid rgba(59,130,246,0.14);
+    color: rgba(0,0,0,0.58);
+    font-size: 0.9rem;
+    font-weight: 600;
+    line-height: 1.55;
+  }
+  .quick-tt-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    flex-wrap: wrap;
+    margin-bottom: 0.8rem;
+  }
+  .quick-tt-add-btn {
+    width: auto;
+    margin-top: 0;
+    padding: 0.45rem 0.9rem;
+    border-style: solid;
+  }
+  .quick-tt-list {
+    margin-top: 0.4rem;
+  }
+  .quick-tt-row {
+    flex-wrap: wrap;
+  }
+  .quick-tt-row .tt-label-input {
+    width: 84px;
+  }
+  .quick-tt-row .quick-tt-subject-input {
+    flex: 1 1 150px;
+    min-width: 140px;
+  }
+  .quick-tt-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.6rem;
+    flex-wrap: wrap;
+    margin-top: 1rem;
+  }
 
   .modal-header {
     display: flex;
@@ -2351,6 +2447,9 @@
   .left-panel.timetable-mode .featured-dday:hover { transform: translateY(-1px); }
   .left-panel.timetable-mode .featured-dday-title { max-width: 18rem; }
   .left-panel.timetable-mode .featured-dday-count { font-size: 1.65rem; }
+  .left-panel.timetable-mode:not(.has-featured-dday) .clock-container {
+    margin-top: 4.25rem;
+  }
 
   /* ========== Daily Periods ========== */
   .daily-periods-grid {
@@ -3473,4 +3572,30 @@
     color: #ef4444;
     text-align: center;
     padding: 0.4rem;
+  }
+
+  @media (max-width: 900px) {
+    .quick-tt-card {
+      width: 94%;
+      padding: 1.4rem;
+    }
+    .quick-tt-row {
+      align-items: stretch;
+    }
+    .quick-tt-row .tt-label-input,
+    .quick-tt-row .tt-time-input,
+    .quick-tt-row .tt-type-select {
+      flex: 1 1 105px;
+      width: auto;
+      min-width: 0;
+    }
+    .quick-tt-row .tt-separator {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 18px;
+    }
+    .quick-tt-row .quick-tt-subject-input {
+      flex-basis: 100%;
+    }
   }
