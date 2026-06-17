@@ -3804,6 +3804,7 @@ function updateClock() {
 function updateAcademicEventBanner(now) {
   const banner = document.getElementById('academicEventBanner');
   if (!banner) return;
+  const panel = document.getElementById('leftPanel');
   const manualEvent = getAcademicEventByDate(formatDateKey(now));
 
   let source = 'manual';
@@ -3822,12 +3823,14 @@ function updateAcademicEventBanner(now) {
   }
 
   if (!title) {
+    if (panel) panel.classList.remove('has-academic-event');
     banner.classList.remove('show');
     banner.classList.remove('neis-source');
     banner.textContent = '';
     return;
   }
 
+  if (panel) panel.classList.add('has-academic-event');
   banner.textContent = '';
   banner.classList.toggle('neis-source', source === 'neis');
   const titleEl = document.createElement('span');
@@ -3835,12 +3838,15 @@ function updateAcademicEventBanner(now) {
   titleEl.textContent = title;
   banner.appendChild(titleEl);
 
+  const bodyEl = document.createElement('span');
+  bodyEl.className = 'academic-event-body';
   const lines = (body || '').split('\n');
   lines.forEach((line, index) => {
     if (!line && index === 0 && source === 'neis') return;
-    if (index > 0) banner.appendChild(document.createElement('br'));
-    banner.appendChild(document.createTextNode(line));
+    if (index > 0) bodyEl.appendChild(document.createElement('br'));
+    bodyEl.appendChild(document.createTextNode(line));
   });
+  if (bodyEl.textContent.trim()) banner.appendChild(bodyEl);
   banner.classList.add('show');
 
   const toastKey = source + '|' + formatDateKey(now) + '|' + title;
