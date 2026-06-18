@@ -1,9 +1,13 @@
 // =============================================
 // CONSTANTS
 // =============================================
-const APP_VERSION = 'v1.15.0';
+const APP_VERSION = 'v1.15.1';
 const FEEDBACK_URL = 'https://forms.gle/y48um84BTrBVn2Nt6';
 const UPDATE_HISTORY = [
+  { version: 'v1.15.1', notes: [
+    '오늘 시간표에서 입력한 내용을 완료 버튼으로 확실히 저장하도록 고쳤어요',
+    '마지막으로 수정한 교시명, 시간, 유형, 과목/내용이 누락되지 않고 오늘 시간표에 바로 반영돼요'
+  ]},
   { version: 'v1.15.0', notes: [
     '시간표 화면에서 오늘 시간표를 바로 바꿀 수 있어요',
     '기본 시간표는 그대로 두고, 오늘만 바뀐 시간표를 날짜 전용 시간표로 저장해요',
@@ -1328,6 +1332,44 @@ function openQuickTimetableEditor() {
 function closeQuickTimetableEditor() {
   const modal = document.getElementById('quickTimetableModal');
   if (modal) modal.classList.remove('open');
+}
+
+function collectQuickTimetableDraftFromEditor() {
+  const container = document.getElementById('quickTtList');
+  if (!container) return false;
+
+  const rows = Array.from(container.querySelectorAll('.quick-tt-row'));
+  const before = JSON.stringify((quickTimetableDraft || []).map(cloneEntry));
+  const nextDraft = rows.map((row, index) => {
+    const current = quickTimetableDraft[index] ? cloneEntry(quickTimetableDraft[index]) : cloneEntry({});
+    const labelInput = row.querySelector('.tt-label-input');
+    const timeInputs = row.querySelectorAll('.tt-time-input');
+    const typeSelect = row.querySelector('.tt-type-select');
+    const subjectInput = row.querySelector('.quick-tt-subject-input');
+
+    current.label = (labelInput && labelInput.value.trim()) || '새 시간';
+    current.start = (timeInputs[0] && timeInputs[0].value) || current.start || '09:00';
+    current.end = (timeInputs[1] && timeInputs[1].value) || current.end || '09:40';
+    current.type = (typeSelect && typeSelect.value) || current.type || 'in-class';
+    current.subject = subjectInput ? subjectInput.value : (current.subject || '');
+    return current;
+  });
+  const after = JSON.stringify(nextDraft.map(cloneEntry));
+
+  if (after !== before) {
+    quickTimetableDraft = nextDraft;
+    markQuickTimetableDirty();
+    return true;
+  }
+  return false;
+}
+
+function finishQuickTimetableEditor() {
+  const changed = collectQuickTimetableDraftFromEditor();
+  if (quickTimetableDirty || changed) {
+    saveQuickTimetable(false, true);
+  }
+  closeQuickTimetableEditor();
 }
 
 function markQuickTimetableDirty() {
