@@ -1,9 +1,14 @@
 // =============================================
 // CONSTANTS
 // =============================================
-const APP_VERSION = 'v1.15.1';
+const APP_VERSION = 'v1.15.2';
 const FEEDBACK_URL = 'https://forms.gle/y48um84BTrBVn2Nt6';
 const UPDATE_HISTORY = [
+  { version: 'v1.15.2', notes: [
+    '디데이를 등교일 기준으로 계산할 수 있어요',
+    '등교일 기준 디데이는 D-25처럼 짧게 보여요',
+    '주말을 빼고, 학교가 선택되어 있으면 나이스 학사일정의 공휴일·휴업일·방학도 함께 제외해요'
+  ]},
   { version: 'v1.15.1', notes: [
     '오늘 시간표에서 입력한 내용을 완료 버튼으로 확실히 저장하도록 고쳤어요',
     '마지막으로 수정한 교시명, 시간, 유형, 과목/내용이 누락되지 않고 오늘 시간표에 바로 반영돼요'
@@ -93,6 +98,12 @@ const UPDATE_HISTORY = [
 // 개발자 소식 게시판 — 의견 보내기로 받은 피드백에 답변하거나 소식을 전달할 때 사용합니다.
 // 최상단이 최신 글. id는 겹치지 않게(예: 날짜 + 순번) 주세요.
 const DEVELOPER_NOTES = [
+  {
+    id: '2026-06-19-01-school-day-dday',
+    date: '2026-06-19',
+    title: '방학 디데이를 등교일 기준으로 볼 수 있어요',
+    body: '방학까지 남은 날을 볼 때 주말이나 공휴일까지 함께 세면 실제 학교 나오는 날이 얼마나 남았는지 알기 어렵다는 의견을 보내주셨습니다. 그래서 디데이에 "등교일 기준" 옵션을 추가했습니다.\n\n디데이 추가할 때 "등교일 기준"을 켜면 주말은 자동으로 제외되고, D-25처럼 짧게 표시됩니다. 0일이 남았을 때는 기존처럼 D-DAY로 보여요. 설정에서 학교를 선택해둔 경우에는 나이스 학사일정을 함께 확인해서 공휴일, 휴업일, 방학처럼 학교에 나오지 않는 날도 계산에서 빼도록 했습니다.\n\n이미 만든 디데이도 카드 안의 "등교일 기준" 체크를 켜거나 끄면 바로 바뀝니다. 좋은 의견 감사합니다. 방학을 기다리는 마음은 달력보다 등교일로 세는 쪽이 훨씬 정직하죠.'
+  },
   {
     id: '2026-06-16-02-quick-timetable',
     date: '2026-06-16',
@@ -222,6 +233,7 @@ let quickTimetableDirty = false;
 let quickTimetableDraft = [];
 let quickTimetableDateKey = '';
 let lastDdayPruneDateKey = '';
+let lastDdayScheduleRequestKey = '';
 
 const neisScheduleCache = new Map();
 const mealCache = new Map();
@@ -254,6 +266,25 @@ function formatDateKey(date) {
   const month = String(date.getMonth() + 1).padStart(2, '0');
   const day = String(date.getDate()).padStart(2, '0');
   return year + '-' + month + '-' + day;
+}
+
+function parseDateKey(dateStr) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(dateStr || '')) return null;
+  const parts = dateStr.split('-').map(Number);
+  const date = new Date(parts[0], parts[1] - 1, parts[2]);
+  date.setHours(0, 0, 0, 0);
+  return date;
+}
+
+function dateKeyToYmd(dateKey) {
+  return (dateKey || '').replace(/-/g, '');
+}
+
+function addDays(date, amount) {
+  const next = new Date(date);
+  next.setDate(next.getDate() + amount);
+  next.setHours(0, 0, 0, 0);
+  return next;
 }
 
 function cloneEntry(entry) {
@@ -422,6 +453,7 @@ function loadViewData() {
       id: (typeof d.id === 'string' && d.id) ? d.id : generateDdayId(),
       title: typeof d.title === 'string' ? d.title.slice(0, 40) : '',
       date: (typeof d.date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(d.date)) ? d.date : '',
+      schoolDaysOnly: !!d.schoolDaysOnly,
     }))
     .filter(d => d.title && d.date);
   prunePastDdays(new Date(), { render: false, force: true });
@@ -494,22 +526,6 @@ function generateNotebookPageId() {
 
 function generateDdayId() {
   return 'dd_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 8);
-}
-
-function computeDdayDiff(dateStr) {
-  if (!dateStr) return null;
-  const parts = dateStr.split('-').map(Number);
-  if (parts.length !== 3 || parts.some(isNaN)) return null;
-  const target = new Date(parts[0], parts[1] - 1, parts[2]);
-  target.setHours(0, 0, 0, 0);
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const diffDays = Math.round((target - today) / 86400000);
-  let label;
-  if (diffDays === 0) label = 'D-DAY';
-  else if (diffDays > 0) label = 'D-' + diffDays;
-  else label = 'D+' + Math.abs(diffDays);
-  return { diff: diffDays, label, isToday: diffDays === 0, isPast: diffDays < 0 };
 }
 
 function prunePastDdays(now, options) {
@@ -2987,15 +3003,182 @@ function setNoticeFontSize(val) {
 // =============================================
 // D-DAY (디데이)
 // =============================================
+const DDAY_NON_SCHOOL_KEYWORDS = /(공휴일|대체공휴일|휴업|휴교|휴일|방학|개교기념|재량|임시휴업|토요휴업)/;
+const DDAY_SCHOOL_EVENT_EXCEPTIONS = /(방학식|개학식|졸업식|입학식)/;
+
 function getDdays() {
   if (!Array.isArray(viewData.ddays)) viewData.ddays = [];
   return viewData.ddays;
 }
 
+function getDdayScheduleMonthKeys(dateStr) {
+  const target = parseDateKey(dateStr);
+  if (!target) return [];
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const from = today <= target ? today : target;
+  const to = today <= target ? target : today;
+  const cursor = new Date(from.getFullYear(), from.getMonth(), 1);
+  const end = new Date(to.getFullYear(), to.getMonth(), 1);
+  const keys = [];
+  let guard = 0;
+  while (cursor <= end && guard < 36) {
+    keys.push(getMonthKey(cursor));
+    cursor.setMonth(cursor.getMonth() + 1);
+    guard++;
+  }
+  return keys;
+}
+
+function hasPendingDdaySchedule(dateStr) {
+  if (!settings.school) return false;
+  return getDdayScheduleMonthKeys(dateStr).some((key) => !Array.isArray(neisScheduleCache.get(key)));
+}
+
+function requestDdayScheduleData(items) {
+  if (!settings.school || !Array.isArray(items)) return;
+  const requests = [];
+  const seen = new Set();
+  items.forEach((item) => {
+    if (!item || !item.schoolDaysOnly || !item.date) return;
+    getDdayScheduleMonthKeys(item.date).forEach((key) => {
+      if (seen.has(key) || Array.isArray(neisScheduleCache.get(key))) return;
+      seen.add(key);
+      const parts = key.split('-').map(Number);
+      requests.push({ key, date: new Date(parts[0], parts[1] - 1, 1) });
+    });
+  });
+  if (!requests.length) return;
+  const schoolKey = settings.school.schoolCode || settings.school.schoolName || '';
+  const requestKey = schoolKey + '|' + requests.map((r) => r.key).sort().join('|');
+  if (requestKey === lastDdayScheduleRequestKey) return;
+  lastDdayScheduleRequestKey = requestKey;
+
+  Promise.all(requests.map((r) => ensureNeisSchedule(r.key, r.date))).then(() => {
+    if (lastDdayScheduleRequestKey === requestKey) lastDdayScheduleRequestKey = '';
+    lastFeaturedDdayKey = '';
+    if (viewData.activeTab === 'dday') renderDdays();
+    updateFeaturedDday();
+  }).catch(() => {
+    if (lastDdayScheduleRequestKey === requestKey) lastDdayScheduleRequestKey = '';
+  });
+}
+
+function getNeisEventsForDdayDate(dateKey) {
+  if (!settings.school) return [];
+  const date = parseDateKey(dateKey);
+  if (!date) return [];
+  const cached = neisScheduleCache.get(getMonthKey(date));
+  if (!Array.isArray(cached)) return [];
+  const ymd = dateKeyToYmd(dateKey);
+  return cached.filter((event) => event.date === ymd);
+}
+
+function getDdayEventText(event) {
+  if (!event) return '';
+  return [
+    event.title,
+    event.notice,
+    event.eventName,
+    event.eventContent,
+    event.dayType,
+  ].filter(Boolean).join(' ');
+}
+
+function isNonSchoolDdayEvent(event) {
+  const text = getDdayEventText(event);
+  if (!text) return false;
+  if (DDAY_SCHOOL_EVENT_EXCEPTIONS.test(text)) return false;
+  const dayType = (event.dayType || '').trim();
+  if (dayType && !/(해당없음|수업일|등교|정상)/.test(dayType)) return true;
+  return DDAY_NON_SCHOOL_KEYWORDS.test(text);
+}
+
+function isSchoolDayForDday(date) {
+  const day = date.getDay();
+  if (day === 0 || day === 6) return false;
+  const dateKey = formatDateKey(date);
+  if (getAcademicEvents().some((event) => event.date === dateKey && isNonSchoolDdayEvent(event))) {
+    return false;
+  }
+  return !getNeisEventsForDdayDate(dateKey).some(isNonSchoolDdayEvent);
+}
+
+function formatDdayDiffLabel(diffDays) {
+  if (diffDays === 0) return 'D-DAY';
+  if (diffDays > 0) return 'D-' + diffDays;
+  return 'D+' + Math.abs(diffDays);
+}
+
+function computeCalendarDdayDiff(dateStr) {
+  const target = parseDateKey(dateStr);
+  if (!target) return null;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const diffDays = Math.round((target - today) / 86400000);
+  return {
+    diff: diffDays,
+    rawDiff: diffDays,
+    label: formatDdayDiffLabel(diffDays),
+    isToday: diffDays === 0,
+    isPast: diffDays < 0,
+    schoolDaysOnly: false,
+    pending: false,
+    basisLabel: '날짜 기준',
+  };
+}
+
+function computeSchoolDayDdayDiff(dateStr) {
+  const target = parseDateKey(dateStr);
+  if (!target) return null;
+  const targetKey = formatDateKey(target);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const rawDiff = Math.round((target - today) / 86400000);
+  if (rawDiff === 0) {
+    return {
+      diff: 0,
+      rawDiff,
+      label: 'D-DAY',
+      isToday: true,
+      isPast: false,
+      schoolDaysOnly: true,
+      pending: hasPendingDdaySchedule(dateStr),
+      basisLabel: settings.school ? '등교일 기준' : '평일 기준',
+    };
+  }
+
+  const step = rawDiff > 0 ? 1 : -1;
+  let cursor = new Date(today);
+  let schoolDayCount = 0;
+  let guard = 0;
+  while (formatDateKey(cursor) !== targetKey && guard < 1500) {
+    cursor = addDays(cursor, step);
+    if (isSchoolDayForDday(cursor)) schoolDayCount += step;
+    guard++;
+  }
+
+  return {
+    diff: schoolDayCount,
+    rawDiff,
+    label: formatDdayDiffLabel(schoolDayCount),
+    isToday: schoolDayCount === 0,
+    isPast: rawDiff < 0,
+    schoolDaysOnly: true,
+    pending: hasPendingDdaySchedule(dateStr),
+    basisLabel: settings.school ? '등교일 기준' : '평일 기준',
+  };
+}
+
+function computeDdayDiff(dateStr, item) {
+  if (item && item.schoolDaysOnly) return computeSchoolDayDdayDiff(dateStr);
+  return computeCalendarDdayDiff(dateStr);
+}
+
 function sortedDdays() {
   return getDdays().slice().sort((a, b) => {
-    const da = computeDdayDiff(a.date);
-    const db = computeDdayDiff(b.date);
+    const da = computeDdayDiff(a.date, a);
+    const db = computeDdayDiff(b.date, b);
     const va = da ? da.diff : Number.MAX_SAFE_INTEGER;
     const vb = db ? db.diff : Number.MAX_SAFE_INTEGER;
     // upcoming first (smallest positive), then today, then past (largest negative shows last)
@@ -3009,6 +3192,7 @@ function renderDdays() {
   const container = document.getElementById('ddayContainer');
   if (!container) return;
   container.innerHTML = '';
+  requestDdayScheduleData(getDdays());
   const list = sortedDdays();
   if (!list.length) {
     const empty = document.createElement('div');
@@ -3018,10 +3202,11 @@ function renderDdays() {
     return;
   }
   list.forEach(item => {
-    const diff = computeDdayDiff(item.date);
+    const diff = computeDdayDiff(item.date, item);
     const card = document.createElement('div');
     card.className = 'dday-card';
     if (viewData.featuredDdayId === item.id) card.classList.add('featured');
+    if (item.schoolDaysOnly) card.classList.add('school-days');
     if (diff && diff.isPast) card.classList.add('past');
 
     const starBtn = document.createElement('button');
@@ -3052,9 +3237,27 @@ function renderDdays() {
     dateInput.value = item.date;
     dateInput.addEventListener('change', () => updateDday(item.id, { date: dateInput.value }));
 
-    info.appendChild(titleRow);
-    info.appendChild(dateInput);
+    const schoolDayToggle = document.createElement('label');
+    schoolDayToggle.className = 'dday-schoolday-toggle';
+    const schoolDayCheck = document.createElement('input');
+    schoolDayCheck.type = 'checkbox';
+    schoolDayCheck.checked = !!item.schoolDaysOnly;
+    schoolDayCheck.addEventListener('change', () => updateDday(item.id, { schoolDaysOnly: schoolDayCheck.checked }));
+    const schoolDayText = document.createElement('span');
+    schoolDayText.textContent = '등교일 기준';
+    schoolDayToggle.appendChild(schoolDayCheck);
+    schoolDayToggle.appendChild(schoolDayText);
 
+    const metaRow = document.createElement('div');
+    metaRow.className = 'dday-meta-row';
+    metaRow.appendChild(dateInput);
+    metaRow.appendChild(schoolDayToggle);
+
+    info.appendChild(titleRow);
+    info.appendChild(metaRow);
+
+    const countWrap = document.createElement('div');
+    countWrap.className = 'dday-count-wrap';
     const count = document.createElement('div');
     count.className = 'dday-count';
     if (diff) {
@@ -3063,6 +3266,13 @@ function renderDdays() {
       else if (diff.isPast) count.classList.add('past');
     } else {
       count.textContent = '-';
+    }
+    countWrap.appendChild(count);
+    if (diff && item.schoolDaysOnly) {
+      const basis = document.createElement('div');
+      basis.className = 'dday-count-basis' + (diff.pending ? ' pending' : '');
+      basis.textContent = diff.pending ? '나이스 확인 중' : diff.basisLabel;
+      countWrap.appendChild(basis);
     }
 
     const del = document.createElement('button');
@@ -3074,7 +3284,7 @@ function renderDdays() {
 
     card.appendChild(starBtn);
     card.appendChild(info);
-    card.appendChild(count);
+    card.appendChild(countWrap);
     card.appendChild(del);
     container.appendChild(card);
   });
@@ -3083,12 +3293,13 @@ function renderDdays() {
 function addDdayFromForm() {
   const titleEl = document.getElementById('ddayTitleInput');
   const dateEl = document.getElementById('ddayDateInput');
+  const schoolDayEl = document.getElementById('ddaySchoolDaysOnlyInput');
   const title = (titleEl?.value || '').trim().slice(0, 40);
   const date = (dateEl?.value || '').trim();
   if (!title) { showToast('디데이 제목을 입력해주세요'); return; }
   if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) { showToast('날짜를 선택해주세요'); return; }
   if (date < formatDateKey(new Date())) { showToast('지난 디데이는 자동 삭제돼요'); return; }
-  addDday(title, date, { setFeaturedIfFirst: true });
+  addDday(title, date, { setFeaturedIfFirst: true, schoolDaysOnly: !!schoolDayEl?.checked });
   if (titleEl) titleEl.value = '';
   if (dateEl) dateEl.value = '';
   showToast('디데이가 추가되었어요');
@@ -3096,7 +3307,7 @@ function addDdayFromForm() {
 
 function addDday(title, date, opts) {
   const ddays = getDdays();
-  const item = { id: generateDdayId(), title: title.slice(0, 40), date };
+  const item = { id: generateDdayId(), title: title.slice(0, 40), date, schoolDaysOnly: !!(opts && opts.schoolDaysOnly) };
   ddays.push(item);
   if (opts && opts.setFeaturedIfFirst && !viewData.featuredDdayId) {
     viewData.featuredDdayId = item.id;
@@ -3128,6 +3339,10 @@ function updateDday(id, patch) {
   }
   if (typeof patch.date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(patch.date)) {
     item.date = patch.date;
+  }
+  if (typeof patch.schoolDaysOnly === 'boolean') {
+    item.schoolDaysOnly = patch.schoolDaysOnly;
+    lastFeaturedDdayKey = '';
   }
   saveViewData();
   const removed = prunePastDdays(new Date(), { force: true });
@@ -3212,21 +3427,25 @@ function updateFeaturedDday() {
   const item = id ? getDdays().find(d => d.id === id) : null;
   if (!item) {
     if (panel) panel.classList.remove('has-featured-dday');
+    el.classList.remove('school-days');
     el.style.display = 'none';
     el.textContent = '';
     lastFeaturedDdayKey = '';
     return;
   }
-  const diff = computeDdayDiff(item.date);
+  requestDdayScheduleData([item]);
+  const diff = computeDdayDiff(item.date, item);
   if (!diff) {
     if (panel) panel.classList.remove('has-featured-dday');
+    el.classList.remove('school-days');
     el.style.display = 'none';
     el.textContent = '';
     lastFeaturedDdayKey = '';
     return;
   }
   if (panel) panel.classList.add('has-featured-dday');
-  const key = item.id + '|' + item.title + '|' + item.date + '|' + diff.label;
+  el.classList.toggle('school-days', !!item.schoolDaysOnly);
+  const key = item.id + '|' + item.title + '|' + item.date + '|' + !!item.schoolDaysOnly + '|' + diff.label + '|' + diff.pending;
   if (key === lastFeaturedDdayKey) return;
   lastFeaturedDdayKey = key;
   el.textContent = '';
@@ -3237,6 +3456,12 @@ function updateFeaturedDday() {
   count.className = 'featured-dday-count' + (diff.isToday ? ' today' : (diff.isPast ? ' past' : ''));
   count.textContent = diff.label;
   el.appendChild(title);
+  if (item.schoolDaysOnly) {
+    const mode = document.createElement('span');
+    mode.className = 'featured-dday-mode' + (diff.pending ? ' pending' : '');
+    mode.textContent = diff.pending ? '확인 중' : '등교일';
+    el.appendChild(mode);
+  }
   el.appendChild(count);
   el.style.display = '';
 }
@@ -4399,6 +4624,7 @@ function selectSchool(school) {
   mealCache.clear();
   lastMealTabYmd = '';
   lastAcademicEventToastKey = '';
+  lastDdayScheduleRequestKey = '';
   renderSchoolCurrent();
   const results = document.getElementById('schoolResults');
   if (results) results.textContent = '';
@@ -4406,6 +4632,9 @@ function selectSchool(school) {
   if (input) input.value = '';
   showToast(settings.school.schoolName + ' 선택됨');
   updateAcademicEventBanner(new Date());
+  lastFeaturedDdayKey = '';
+  renderDdays();
+  updateFeaturedDday();
   renderNeisSchedulePreview();
   if (viewData.activeTab === 'meal') renderMealTab();
 }
@@ -4419,9 +4648,13 @@ function removeSchool() {
   mealCache.clear();
   lastMealTabYmd = '';
   lastAcademicEventToastKey = '';
+  lastDdayScheduleRequestKey = '';
   renderSchoolCurrent();
   renderNeisSchedulePreview();
   updateAcademicEventBanner(new Date());
+  lastFeaturedDdayKey = '';
+  renderDdays();
+  updateFeaturedDday();
   if (viewData.activeTab === 'meal') renderMealTab();
   showToast('학교 선택이 해제되었어요');
 }
@@ -4545,6 +4778,10 @@ function refreshMealInfo() {
   neisScheduleCache.clear();
   lastMealTabYmd = '';
   lastAcademicEventToastKey = '';
+  lastDdayScheduleRequestKey = '';
+  lastFeaturedDdayKey = '';
+  renderDdays();
+  updateFeaturedDday();
   renderMealTab();
   if (document.getElementById('settingsModal').classList.contains('open')) {
     renderNeisSchedulePreview();

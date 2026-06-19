@@ -2349,6 +2349,19 @@
   .dday-add-row {
     display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center;
   }
+  .dday-add-option {
+    margin-top: 0.6rem;
+    display: inline-flex; align-items: center; gap: 0.35rem;
+    font-family: 'Noto Sans KR', sans-serif;
+    font-size: 0.86rem; font-weight: 800;
+    color: #be185d;
+    cursor: pointer;
+  }
+  .dday-add-option input {
+    width: 1rem; height: 1rem;
+    accent-color: #ec4899;
+    cursor: pointer;
+  }
   .dday-add-title {
     flex: 2 1 10rem; min-width: 8rem;
     font-family: 'Noto Sans KR', sans-serif; font-size: 1rem; font-weight: 700;
@@ -2391,6 +2404,9 @@
     background: rgba(253, 242, 248, 0.75);
     box-shadow: 0 6px 24px rgba(236,72,153,0.15);
   }
+  .dday-card.school-days {
+    border-color: rgba(20,184,166,0.32);
+  }
   .dday-card.past { opacity: 0.55; }
   .dday-star-btn {
     width: 36px; height: 36px; flex-shrink: 0;
@@ -2411,6 +2427,9 @@
     padding: 2px 4px; border-radius: 6px;
   }
   .dday-title-input:focus { background: #fff; box-shadow: 0 0 0 2px rgba(236,72,153,0.25); }
+  .dday-meta-row {
+    display: flex; flex-wrap: wrap; align-items: center; gap: 0.45rem 0.7rem;
+  }
   .dday-date-input {
     font-family: 'Noto Sans KR', sans-serif;
     font-size: 0.85rem; font-weight: 600; color: rgba(0,0,0,0.55);
@@ -2418,15 +2437,38 @@
     padding: 2px 4px; border-radius: 6px;
   }
   .dday-date-input:focus { background: #fff; box-shadow: 0 0 0 2px rgba(236,72,153,0.25); color:#2d2a26; }
-  .dday-count {
+  .dday-schoolday-toggle {
+    display: inline-flex; align-items: center; gap: 0.3rem;
+    font-family: 'Noto Sans KR', sans-serif;
+    font-size: 0.8rem; font-weight: 800;
+    color: rgba(15,118,110,0.9);
+    cursor: pointer; white-space: nowrap;
+  }
+  .dday-schoolday-toggle input {
+    width: 0.9rem; height: 0.9rem;
+    accent-color: #14b8a6;
+    cursor: pointer;
+  }
+  .dday-count-wrap {
     flex-shrink: 0;
+    min-width: 4.9rem;
+    display: flex; flex-direction: column; align-items: flex-end; gap: 0.08rem;
+  }
+  .dday-count {
     font-family: 'Outfit', sans-serif;
     font-size: 1.4rem; font-weight: 800;
     color: #ec4899; letter-spacing: 0.04em;
-    min-width: 4.5rem; text-align: right;
+    text-align: right;
   }
   .dday-count.today { color: #d946ef; }
   .dday-count.past { color: rgba(0,0,0,0.4); }
+  .dday-count-basis {
+    font-family: 'Noto Sans KR', sans-serif;
+    font-size: 0.68rem; font-weight: 800;
+    color: rgba(15,118,110,0.75);
+    white-space: nowrap;
+  }
+  .dday-count-basis.pending { color: rgba(0,0,0,0.42); }
   .dday-delete-btn {
     width: 32px; height: 32px; flex-shrink: 0;
     border-radius: 8px; border: none; cursor: pointer;
@@ -2481,6 +2523,19 @@
     font-family: 'Outfit', sans-serif;
     font-size: 1.65rem; font-weight: 900;
     color: #ec4899; letter-spacing: 0.04em;
+  }
+  .featured-dday-mode {
+    padding: 0.18rem 0.45rem;
+    border-radius: 999px;
+    background: rgba(20,184,166,0.13);
+    color: #0f766e;
+    font-size: 0.82rem;
+    line-height: 1;
+    white-space: nowrap;
+  }
+  .featured-dday-mode.pending {
+    background: rgba(0,0,0,0.06);
+    color: rgba(0,0,0,0.45);
   }
   .featured-dday-count.today { color: #d946ef; }
   .featured-dday-count.past { color: rgba(0,0,0,0.45); }
