@@ -1,9 +1,14 @@
 // =============================================
 // CONSTANTS
 // =============================================
-const APP_VERSION = 'v1.15.2';
+const APP_VERSION = 'v1.16.0';
 const FEEDBACK_URL = 'https://forms.gle/y48um84BTrBVn2Nt6';
 const UPDATE_HISTORY = [
+  { version: 'v1.16.0', notes: [
+    '화면 하단에 타이머 버튼이 생겼어요',
+    '분·초 직접 입력과 1분/3분/5분/10분/20분 빠른 설정을 지원해요',
+    '왼쪽 시계의 초 표시가 시·분과 같은 줄에 표시되도록 정리했어요'
+  ]},
   { version: 'v1.15.2', notes: [
     '디데이를 등교일 기준으로 계산할 수 있어요',
     '등교일 기준 디데이는 D-25처럼 짧게 보여요',
@@ -234,6 +239,13 @@ let quickTimetableDraft = [];
 let quickTimetableDateKey = '';
 let lastDdayPruneDateKey = '';
 let lastDdayScheduleRequestKey = '';
+let timerState = {
+  duration: 300,
+  remaining: 300,
+  running: false,
+  endsAt: 0,
+  notified: false,
+};
 
 const neisScheduleCache = new Map();
 const mealCache = new Map();
@@ -1944,6 +1956,162 @@ function switchToDdayTab() {
 function initTabs() {
   const tab = viewData.activeTab || 'rules';
   switchTab(tab);
+}
+
+// =============================================
+// TIMER
+// =============================================
+function openTimer() {
+  const modal = document.getElementById('timerModal');
+  if (modal) modal.classList.add('open');
+  renderTimer();
+}
+
+function closeTimer() {
+  const modal = document.getElementById('timerModal');
+  if (modal) modal.classList.remove('open');
+}
+
+function clampTimerPart(value, min, max) {
+  const n = Number.parseInt(value, 10);
+  if (!Number.isFinite(n)) return min;
+  return Math.min(max, Math.max(min, n));
+}
+
+function getTimerInputSeconds() {
+  const minInput = document.getElementById('timerMinutesInput');
+  const secInput = document.getElementById('timerSecondsInput');
+  const mins = clampTimerPart(minInput ? minInput.value : 0, 0, 999);
+  const secs = clampTimerPart(secInput ? secInput.value : 0, 0, 59);
+  return mins * 60 + secs;
+}
+
+function updateTimerInputsFromSeconds(totalSeconds) {
+  const minInput = document.getElementById('timerMinutesInput');
+  const secInput = document.getElementById('timerSecondsInput');
+  const total = Math.max(0, Math.floor(totalSeconds || 0));
+  if (minInput) minInput.value = Math.floor(total / 60);
+  if (secInput) secInput.value = total % 60;
+}
+
+function formatTimerSeconds(totalSeconds) {
+  const total = Math.max(0, Math.floor(totalSeconds || 0));
+  const hours = Math.floor(total / 3600);
+  const mins = Math.floor((total % 3600) / 60);
+  const secs = total % 60;
+  if (hours > 0) {
+    return hours + ':' + String(mins).padStart(2, '0') + ':' + String(secs).padStart(2, '0');
+  }
+  return String(mins).padStart(2, '0') + ':' + String(secs).padStart(2, '0');
+}
+
+function renderTimer() {
+  const panel = document.getElementById('timerPanel');
+  const display = document.getElementById('timerDisplay');
+  const status = document.getElementById('timerStatus');
+  const progress = document.getElementById('timerProgressFill');
+  const startBtn = document.getElementById('timerStartPauseBtn');
+  const minInput = document.getElementById('timerMinutesInput');
+  const secInput = document.getElementById('timerSecondsInput');
+  if (!panel || !display || !status || !progress || !startBtn) return;
+
+  const done = !timerState.running && timerState.duration > 0 && timerState.remaining === 0;
+  const paused = !timerState.running && timerState.remaining > 0 && timerState.remaining < timerState.duration;
+  const progressPct = timerState.duration > 0
+    ? Math.min(100, Math.max(0, ((timerState.duration - timerState.remaining) / timerState.duration) * 100))
+    : 0;
+
+  display.textContent = formatTimerSeconds(timerState.remaining);
+  progress.style.width = progressPct + '%';
+  panel.classList.toggle('running', timerState.running);
+  panel.classList.toggle('paused', paused);
+  panel.classList.toggle('done', done);
+  status.textContent = timerState.running ? '진행 중' : (done ? '완료' : (paused ? '일시정지' : '대기 중'));
+  startBtn.textContent = timerState.running ? '일시정지' : (done ? '다시 시작' : (paused ? '계속' : '시작'));
+  if (minInput) minInput.disabled = timerState.running;
+  if (secInput) secInput.disabled = timerState.running;
+}
+
+function setTimerFromInputs() {
+  if (timerState.running) return;
+  const total = getTimerInputSeconds();
+  timerState.duration = total;
+  timerState.remaining = total;
+  timerState.endsAt = 0;
+  timerState.notified = false;
+  renderTimer();
+}
+
+function setTimerPreset(seconds) {
+  const total = Math.max(0, Math.floor(seconds || 0));
+  timerState.duration = total;
+  timerState.remaining = total;
+  timerState.running = false;
+  timerState.endsAt = 0;
+  timerState.notified = false;
+  updateTimerInputsFromSeconds(total);
+  renderTimer();
+}
+
+function toggleTimer() {
+  if (timerState.running) {
+    updateTimer();
+    timerState.running = false;
+    timerState.endsAt = 0;
+    renderTimer();
+    return;
+  }
+
+  if (timerState.remaining <= 0) {
+    timerState.duration = getTimerInputSeconds();
+    timerState.remaining = timerState.duration;
+  }
+
+  if (timerState.remaining <= 0) {
+    showToast('타이머 시간을 입력해주세요');
+    renderTimer();
+    return;
+  }
+
+  timerState.running = true;
+  timerState.endsAt = Date.now() + timerState.remaining * 1000;
+  timerState.notified = false;
+  renderTimer();
+}
+
+function resetTimer() {
+  timerState.running = false;
+  timerState.remaining = timerState.duration;
+  timerState.endsAt = 0;
+  timerState.notified = false;
+  updateTimerInputsFromSeconds(timerState.duration);
+  renderTimer();
+}
+
+function updateTimer() {
+  if (!timerState.running) return;
+  timerState.remaining = Math.max(0, Math.ceil((timerState.endsAt - Date.now()) / 1000));
+
+  if (timerState.remaining <= 0) {
+    timerState.running = false;
+    timerState.endsAt = 0;
+    const shouldNotify = !timerState.notified;
+    timerState.notified = true;
+    renderTimer();
+    if (shouldNotify) {
+      showToast('타이머가 끝났어요');
+      playTimerFinishedSound();
+    }
+    return;
+  }
+
+  renderTimer();
+}
+
+function playTimerFinishedSound() {
+  const soundToggle = document.getElementById('timerSoundToggle');
+  if (soundToggle && !soundToggle.checked) return;
+  playChimeNotes([1046.5, 783.99, 1046.5]);
 }
 
 // =============================================
@@ -4232,6 +4400,7 @@ document.addEventListener('keydown', function(e) {
   }
   const modalsByPriority = [
     { id: 'updateNotification', close: dismissUpdateNotification },
+    { id: 'timerModal', close: closeTimer },
     { id: 'randomPickerModal', close: closeRandomPicker },
     { id: 'quickTimetableModal', close: closeQuickTimetableEditor },
     { id: 'developerNotesModal', close: closeDeveloperNotes },
@@ -4964,6 +5133,7 @@ initAudio();
 applySecondsVisibility();
 updateAcademicEventSelectionBar();
 applyTimetableMode();
+renderTimer();
 updateClock();
 checkUpdateNotification();
 checkDeveloperNotesUnread();
@@ -4977,7 +5147,10 @@ const timerWorkerUrl = URL.createObjectURL(new Blob([
 ], { type: 'application/javascript' }));
 const timerWorker = new Worker(timerWorkerUrl);
 URL.revokeObjectURL(timerWorkerUrl);
-timerWorker.onmessage = () => updateClock();
+timerWorker.onmessage = () => {
+  updateClock();
+  updateTimer();
+};
 
 initVisitorCounter();
 

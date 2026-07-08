@@ -28,8 +28,8 @@
   <div class="clock-container">
     <div class="ampm-display" id="ampmDisplay">오전</div>
     <div class="time-display" id="timeDisplay">12<span class="colon">:</span>00</div>
+    <div class="seconds-display" id="secondsDisplay">: 00</div>
   </div>
-  <div class="seconds-display" id="secondsDisplay">: 00</div>
   <div class="timetable-display" id="timetableDisplay"></div>
   <div class="period-alert off-time" id="periodAlert">수업 전</div>
 </div>
@@ -156,8 +156,9 @@
 
 <button class="settings-btn" onclick="openSettings()" title="설정" aria-label="설정">&#9881;</button>
 <button class="random-pick-btn" onclick="openRandomPicker()" title="랜덤 뽑기" aria-label="랜덤 뽑기">&#127922;</button>
+<button class="timer-open-btn" onclick="openTimer()" title="타이머" aria-label="타이머">&#x23F1;</button>
 <button class="fullscreen-btn" id="fullscreenBtn" onclick="toggleFullscreen()" title="전체화면" aria-label="전체화면">&#x26F6;</button>
-<button class="version-label" onclick="openChangelog()" aria-label="버전 기록 보기">v1.15.2</button>
+<button class="version-label" onclick="openChangelog()" aria-label="버전 기록 보기">v1.16.0</button>
 <button class="feedback-btn" onclick="openFeedback()" title="의견 보내기" aria-label="의견 보내기">&#x1F4EC; 의견 보내기</button>
 <button class="dev-notes-btn" onclick="openDeveloperNotes()" title="개발자 소식" aria-label="개발자 소식">&#x1F4E2; 개발자 소식<span class="dev-notes-badge" id="devNotesBadge" style="display:none"></span></button>
 
@@ -396,6 +397,12 @@
       <button class="modal-close" onclick="closeChangelog()" aria-label="닫기">&#10005;</button>
     </div>
     <div class="changelog-list">
+      <div class="changelog-item">
+        <div class="changelog-item-header">
+          <span class="changelog-version">v1.16.0</span>
+        </div>
+        <div class="changelog-desc">타이머 버튼 추가: 랜덤 뽑기처럼 화면 하단의 타이머 버튼으로 카운트다운 창을 열 수 있습니다. 분·초 직접 입력과 1분/3분/5분/10분/20분 빠른 설정, 시작, 일시정지, 초기화와 종료음 옵션을 지원합니다. 왼쪽 시계의 초 표시는 시·분과 같은 줄에 표시되도록 정리했습니다.</div>
+      </div>
       <div class="changelog-item">
         <div class="changelog-item-header">
           <span class="changelog-version">v1.15.2</span>
@@ -650,6 +657,49 @@
       <div class="random-students-section">
         <div class="random-section-title">학생 명단 <span class="random-count" id="randomStudentCount">0명</span></div>
         <textarea id="randomStudentInput" class="random-student-textarea" placeholder="학생 이름을 한 줄에 하나씩 입력하세요&#10;예:&#10;김민준&#10;이서연&#10;박지호" oninput="onRandomStudentInput()"></textarea>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="timerModal" onclick="if(event.target===this)closeTimer()">
+  <div class="modal-card timer-card">
+    <div class="modal-header">
+      <div class="modal-title">타이머</div>
+      <button class="modal-close" onclick="closeTimer()" aria-label="닫기">&#10005;</button>
+    </div>
+    <div class="timer-panel" id="timerPanel">
+      <div class="timer-display-wrap">
+        <div class="timer-display" id="timerDisplay" aria-live="polite">05:00</div>
+        <div class="timer-status" id="timerStatus">대기 중</div>
+        <div class="timer-progress" aria-hidden="true">
+          <div class="timer-progress-fill" id="timerProgressFill"></div>
+        </div>
+      </div>
+      <div class="timer-input-row">
+        <label class="timer-input-group">
+          <input type="number" id="timerMinutesInput" min="0" max="999" value="5" oninput="setTimerFromInputs()">
+          <span>분</span>
+        </label>
+        <label class="timer-input-group">
+          <input type="number" id="timerSecondsInput" min="0" max="59" value="0" oninput="setTimerFromInputs()">
+          <span>초</span>
+        </label>
+        <label class="timer-sound-toggle">
+          <input type="checkbox" id="timerSoundToggle" checked>
+          <span>종료음</span>
+        </label>
+      </div>
+      <div class="timer-controls">
+        <button class="timer-control-btn timer-primary" id="timerStartPauseBtn" onclick="toggleTimer()">시작</button>
+        <button class="timer-control-btn" onclick="resetTimer()">초기화</button>
+      </div>
+      <div class="timer-presets">
+        <button class="timer-preset-btn" onclick="setTimerPreset(60)">1분</button>
+        <button class="timer-preset-btn" onclick="setTimerPreset(180)">3분</button>
+        <button class="timer-preset-btn" onclick="setTimerPreset(300)">5분</button>
+        <button class="timer-preset-btn" onclick="setTimerPreset(600)">10분</button>
+        <button class="timer-preset-btn" onclick="setTimerPreset(1200)">20분</button>
       </div>
     </div>
   </div>

@@ -123,7 +123,7 @@
     color: rgba(0,0,0,0.55);
   }
 
-  .clock-container { position: relative; animation: fadeSlideUp 1s ease-out 0.4s both; display: flex; align-items: baseline; gap: 2rem; }
+  .clock-container { position: relative; animation: fadeSlideUp 1s ease-out 0.4s both; display: flex; align-items: baseline; justify-content: center; gap: 1.35rem; white-space: nowrap; }
 
   .time-display {
     font-family: 'Outfit', sans-serif;
@@ -147,20 +147,18 @@
     font-weight: 400;
     font-size: 3.5rem;
     color: rgba(59, 130, 246, 0.5);
-    margin-top: 0.25rem;
+    margin-top: 0;
     text-align: right;
     letter-spacing: 0.1em;
+    line-height: 1;
+    flex-shrink: 0;
+    position: relative;
+    top: -0.06em;
     animation: fadeSlideUp 1s ease-out 0.6s both;
   }
 
   .left-panel.hide-seconds .seconds-display {
-    opacity: 0;
-    visibility: hidden;
-    transform: translateY(-10px);
-    height: 0;
-    margin-top: 0;
-    overflow: hidden;
-    animation: none;
+    display: none;
   }
 
   .period-alert {
@@ -264,7 +262,7 @@
   .left-panel.timetable-mode .ampm-display { font-size: 5rem; }
   .left-panel.timetable-mode .time-display { font-size: 8.5rem; }
   .left-panel.timetable-mode .seconds-display { font-size: 3rem; }
-  .left-panel.timetable-mode .clock-container { gap: 2.2rem; flex-shrink: 0; }
+  .left-panel.timetable-mode .clock-container { gap: 1.25rem; flex-shrink: 0; }
   .left-panel.timetable-mode .seconds-display { flex-shrink: 0; }
   .left-panel.timetable-mode .left-status-row {
     display: none;
@@ -1935,6 +1933,177 @@
     transform: translateY(0);
   }
 
+  /* ========== Timer ========== */
+  .timer-card {
+    max-width: 560px;
+  }
+
+  .timer-panel {
+    width: 100%;
+    padding: 0.3rem 0 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 1.4rem;
+    animation: fadeSlideUp 1s ease-out 0.6s both;
+  }
+
+  .timer-display-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.8rem;
+  }
+
+  .timer-display {
+    font-family: 'Outfit', sans-serif;
+    font-size: 7.2rem;
+    font-weight: 900;
+    line-height: 1;
+    color: #134e4a;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0;
+    text-align: center;
+  }
+
+  .timer-status {
+    min-height: 1.6rem;
+    font-size: 1rem;
+    font-weight: 900;
+    color: rgba(0,0,0,0.42);
+    letter-spacing: 0.08em;
+  }
+
+  .timer-progress {
+    width: min(420px, 100%);
+    height: 12px;
+    border-radius: 999px;
+    overflow: hidden;
+    background: rgba(0,0,0,0.08);
+  }
+
+  .timer-progress-fill {
+    width: 0%;
+    height: 100%;
+    border-radius: inherit;
+    background: linear-gradient(90deg, #14b8a6, #f59e0b);
+    transition: width 0.25s ease;
+  }
+
+  .timer-panel.running .timer-status {
+    color: #0f766e;
+  }
+
+  .timer-panel.done .timer-display,
+  .timer-panel.done .timer-status {
+    color: #ef4444;
+  }
+
+  .timer-panel.done .timer-progress-fill {
+    background: #ef4444;
+  }
+
+  .timer-input-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.8rem;
+    flex-wrap: wrap;
+  }
+
+  .timer-input-group,
+  .timer-sound-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0.55rem 0.8rem;
+    border-radius: 12px;
+    border: 1.5px solid rgba(20,184,166,0.22);
+    background: rgba(255,255,255,0.68);
+    color: rgba(0,0,0,0.54);
+    font-weight: 800;
+  }
+
+  .timer-input-group input {
+    width: 4.8rem;
+    border: none;
+    background: transparent;
+    outline: none;
+    font-family: 'Outfit', sans-serif;
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: #134e4a;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .timer-input-group input:disabled {
+    opacity: 0.55;
+  }
+
+  .timer-sound-toggle {
+    cursor: pointer;
+    user-select: none;
+  }
+
+  .timer-sound-toggle input {
+    accent-color: #14b8a6;
+  }
+
+  .timer-controls,
+  .timer-presets {
+    display: flex;
+    justify-content: center;
+    gap: 0.65rem;
+    flex-wrap: wrap;
+  }
+
+  .timer-control-btn,
+  .timer-preset-btn {
+    border: 1.5px solid rgba(0,0,0,0.08);
+    background: rgba(255,255,255,0.68);
+    color: rgba(0,0,0,0.55);
+    font-family: 'Noto Sans KR', sans-serif;
+    font-weight: 900;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+
+  .timer-control-btn {
+    min-width: 9rem;
+    padding: 0.85rem 1.2rem;
+    border-radius: 14px;
+    font-size: 1rem;
+  }
+
+  .timer-primary {
+    background: #14b8a6;
+    color: #fff;
+    border-color: #14b8a6;
+    box-shadow: 0 8px 22px rgba(20,184,166,0.22);
+  }
+
+  .timer-control-btn:hover,
+  .timer-preset-btn:hover {
+    transform: translateY(-1px);
+    background: rgba(255,255,255,0.9);
+    border-color: rgba(20,184,166,0.42);
+    color: #0f766e;
+  }
+
+  .timer-primary:hover {
+    background: #0f766e;
+    color: #fff;
+    border-color: #0f766e;
+  }
+
+  .timer-preset-btn {
+    min-width: 4.5rem;
+    padding: 0.55rem 0.85rem;
+    border-radius: 999px;
+    font-size: 0.9rem;
+  }
+
   /* ========== Notebook ========== */
   .notebook-textarea {
     width: 100%;
@@ -3262,6 +3431,32 @@
     background: rgba(236, 72, 153, 0.12);
     color: #ec4899;
     border-color: rgba(236, 72, 153, 0.3);
+  }
+
+  /* ========== Timer Button ========== */
+  .timer-open-btn {
+    position: fixed;
+    bottom: 1.5rem;
+    left: 7.5rem;
+    height: 44px;
+    width: 44px;
+    border-radius: 50%;
+    border: 1.5px solid rgba(0,0,0,0.08);
+    background: rgba(255,255,255,0.5);
+    backdrop-filter: blur(8px);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+    color: rgba(0,0,0,0.35);
+    transition: all 0.3s;
+    z-index: 10;
+  }
+  .timer-open-btn:hover {
+    background: rgba(20, 184, 166, 0.12);
+    color: #0f766e;
+    border-color: rgba(20, 184, 166, 0.3);
   }
 
   /* ========== Random Picker Modal ========== */
