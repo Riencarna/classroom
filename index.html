@@ -46,11 +46,73 @@
   <div class="tab-content" id="tabRules">
     <div class="rules-header-row">
       <div class="rules-header">우리 반 약속</div>
+      <div class="rules-view-switch" id="rulesViewSwitch" aria-label="학급 약속 보기 전환">
+        <button class="rules-view-btn active" data-rules-view="rules" onclick="switchRulesView('rules')">약속</button>
+        <button class="rules-view-btn" data-rules-view="morning" onclick="switchRulesView('morning')">아침 활동</button>
+        <button class="rules-view-btn" data-rules-view="lunch" onclick="switchRulesView('lunch')">점심 활동</button>
+      </div>
       <button class="edit-toggle-btn" id="editToggle" onclick="toggleEdit()">편집</button>
     </div>
-    <div class="rules-subtitle">CLASS RULES</div>
-    <div id="rulesContainer"></div>
-    <button class="add-rule-btn" id="addRuleBtn" onclick="addRule()">+ 새 규칙 추가</button>
+    <div class="rules-subtitle" id="rulesSubtitle">CLASS RULES</div>
+    <div class="rules-list-view" id="rulesListView">
+      <div class="rules-toolbar" id="rulesToolbar">
+        <span class="rules-toolbar-label">글자 크기</span>
+        <button class="rules-size-btn" onclick="changeRulesFontScale(-0.1)">−</button>
+        <button class="rules-size-btn" onclick="setRulesFontScale(1)">보통</button>
+        <button class="rules-size-btn" onclick="changeRulesFontScale(0.1)">+</button>
+        <span class="rules-size-value" id="rulesFontSizeLabel">100%</span>
+      </div>
+      <div id="rulesContainer"></div>
+      <button class="add-rule-btn" id="addRuleBtn" onclick="addRule()">+ 새 규칙 추가</button>
+    </div>
+    <div class="rules-activity-view" id="rulesActivityView" style="display:none">
+      <div class="notebook-toolbar activity-toolbar">
+        <span class="notebook-toolbar-label">글자 크기</span>
+        <button class="font-size-btn" onclick="changeActivityFontSize(-2)">−</button>
+        <div class="notebook-fontsize-wrap">
+          <input type="number" class="font-size-input" id="activityFontSizeInput" value="24" min="12" max="120" onchange="setActivityFontSize(this.value)" onclick="toggleActivitySizeDropdown()">
+          <div class="notebook-fontsize-dropdown" id="activityFontSizeDropdown"></div>
+        </div>
+        <button class="font-size-btn" onclick="changeActivityFontSize(2)">+</button>
+        <span class="notebook-toolbar-divider"></span>
+        <button class="notebook-color-btn" id="activityColorBtn" onclick="toggleActivityPalette()" title="글자색"><span class="notebook-color-btn-swatch" id="activityColorSwatch"></span></button>
+        <div class="notebook-palette" id="activityPalette"></div>
+        <button class="notebook-style-btn" id="activityBoldBtn" onclick="toggleActivityStyle('bold')" title="볼드"><b>B</b></button>
+        <button class="notebook-style-btn" id="activityItalicBtn" onclick="toggleActivityStyle('italic')" title="이탤릭"><i>I</i></button>
+        <button class="notebook-style-btn" id="activityUnderlineBtn" onclick="toggleActivityStyle('underline')" title="밑줄"><u>U</u></button>
+      </div>
+      <div class="activity-container" id="activityContainer"></div>
+    </div>
+  </div>
+
+  <div class="assignment-draft-panel" id="assignmentDraftPanel" hidden aria-hidden="true">
+    <div class="rules-header-row">
+      <div class="rules-header" style="color:#14b8a6;-webkit-text-fill-color:#14b8a6">과제 제출</div>
+    </div>
+    <div class="rules-subtitle">ASSIGNMENTS</div>
+    <div class="assignment-section-wrap">
+      <div class="assignment-coming-soon">
+        <div class="coming-soon-icon">&#x1F6A7;</div>
+        <div class="coming-soon-text">작업중입니다<br>추후 업데이트를 기다려주세요</div>
+      </div>
+      <div class="assignment-layout">
+      <div class="assignment-roster-card">
+        <div class="assignment-section-title">학생 명단</div>
+        <textarea id="assignmentStudentInput" class="assignment-student-textarea" placeholder="학생 이름을 한 줄에 하나씩 입력하세요&#10;예:&#10;김민준&#10;이서연&#10;박지호" oninput="onAssignmentStudentsInput()"></textarea>
+        <div class="assignment-roster-actions">
+          <span class="assignment-count" id="assignmentStudentCount">0명</span>
+          <button class="assignment-mini-btn" onclick="importRandomStudentsToAssignments()">랜덤 명단 불러오기</button>
+        </div>
+      </div>
+      <div class="assignment-main">
+        <div class="assignment-add-row">
+          <input type="text" class="assignment-title-input" id="assignmentTitleInput" placeholder="예: 수학 익힘 42쪽" onkeydown="if(event.key==='Enter'){event.preventDefault();addAssignmentFromInput();}">
+          <button class="assignment-add-btn" onclick="addAssignmentFromInput()">+ 과제 추가</button>
+        </div>
+        <div class="assignment-list" id="assignmentList"></div>
+      </div>
+      </div>
+    </div>
   </div>
 
   <div class="tab-content" id="tabNotebook" style="display:none">
@@ -148,6 +210,15 @@
     <div id="mealContainer" class="meal-container"></div>
   </div>
 
+  <div class="work-status-strip" aria-label="다음 업데이트 예고">
+    <span class="work-status-pulse" aria-hidden="true"></span>
+    <span class="work-status-copy">
+      <span class="work-status-kicker">다음 업데이트</span>
+      <span class="work-status-title">과제 제출 체크 준비 중</span>
+    </span>
+    <span class="work-status-chip">건의 반영 중</span>
+  </div>
+
   <div class="notebook-panel-overlay" id="notebookPanelOverlay">
     <button class="notebook-focus-exit-btn" id="notebookFocusExitBtn" onclick="toggleNotebookPanelFill()">패널 닫기</button>
     <div id="notebookPanelTextarea" class="notebook-panel-textarea" contenteditable="true" data-placeholder="오늘의 알림을 입력하세요..." oninput="onNotebookPanelInput()"></div>
@@ -158,7 +229,7 @@
 <button class="random-pick-btn" onclick="openRandomPicker()" title="랜덤 뽑기" aria-label="랜덤 뽑기">&#127922;</button>
 <button class="timer-open-btn" onclick="openTimer()" title="타이머" aria-label="타이머">&#x23F1;</button>
 <button class="fullscreen-btn" id="fullscreenBtn" onclick="toggleFullscreen()" title="전체화면" aria-label="전체화면">&#x26F6;</button>
-<button class="version-label" onclick="openChangelog()" aria-label="버전 기록 보기">v1.16.0</button>
+<button class="version-label" onclick="openChangelog()" aria-label="버전 기록 보기">v1.17.0</button>
 <button class="feedback-btn" onclick="openFeedback()" title="의견 보내기" aria-label="의견 보내기">&#x1F4EC; 의견 보내기</button>
 <button class="dev-notes-btn" onclick="openDeveloperNotes()" title="개발자 소식" aria-label="개발자 소식">&#x1F4E2; 개발자 소식<span class="dev-notes-badge" id="devNotesBadge" style="display:none"></span></button>
 
@@ -397,6 +468,12 @@
       <button class="modal-close" onclick="closeChangelog()" aria-label="닫기">&#10005;</button>
     </div>
     <div class="changelog-list">
+      <div class="changelog-item">
+        <div class="changelog-item-header">
+          <span class="changelog-version">v1.17.0</span>
+        </div>
+        <div class="changelog-desc">고정 활동과 과제 제출 체크 준비: 우리 반 약속 제목 옆 버튼으로 약속, 아침 활동, 점심 활동을 바로 전환할 수 있습니다. 아침 활동과 점심 활동에는 글자 크기, 글자색, 볼드, 이탤릭, 밑줄 서식을 적용할 수 있습니다. 과제 제출 기능은 아직 작업중이라 상단 탭에서 잠시 내리고, 오른쪽 패널 하단의 다음 업데이트 예고로 표시합니다. 학급 약속 탭에는 글자 크기 조절 버튼을 추가했습니다.</div>
+      </div>
       <div class="changelog-item">
         <div class="changelog-item-header">
           <span class="changelog-version">v1.16.0</span>

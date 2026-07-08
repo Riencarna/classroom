@@ -1,9 +1,15 @@
 // =============================================
 // CONSTANTS
 // =============================================
-const APP_VERSION = 'v1.16.0';
+const APP_VERSION = 'v1.17.0';
 const FEEDBACK_URL = 'https://forms.gle/y48um84BTrBVn2Nt6';
 const UPDATE_HISTORY = [
+  { version: 'v1.17.0', notes: [
+    '우리 반 약속 제목 옆 버튼으로 약속, 아침 활동, 점심 활동을 바로 전환할 수 있어요',
+    '아침 활동과 점심 활동에도 글자 크기, 색상, 볼드, 이탤릭, 밑줄 서식을 적용할 수 있어요',
+    '과제 제출 기능은 아직 작업중이라 상단 탭 대신 오른쪽 패널 하단의 다음 업데이트 예고로 표시돼요',
+    '학급 약속 글자 크기를 조절할 수 있어요'
+  ]},
   { version: 'v1.16.0', notes: [
     '화면 하단에 타이머 버튼이 생겼어요',
     '분·초 직접 입력과 1분/3분/5분/10분/20분 빠른 설정을 지원해요',
@@ -223,7 +229,7 @@ let rules = [];
 let isEditing = false;
 let timetable = [];
 let settings = { showRemaining: true, chimeEnabled: true, chimeEndEnabled: true, colonBlink: true, showSeconds: true, timetableMode: false, dailyPeriods: { 1:5, 2:6, 3:5, 4:5, 5:5 }, morningSlotMigrated: false, schoolbellUrl: '', school: null, notebookMultiPageEnabled: false };
-let viewData = { activeTab: 'rules', notebook: '', notebookPages: [], activeNotebookPageId: '', notebookArchive: {}, notebookArchiveDate: '', notices: [], academicEvents: [], selectedAcademicEventDate: '', ddays: [], featuredDdayId: '' };
+let viewData = { activeTab: 'rules', notebook: '', notebookPages: [], activeNotebookPageId: '', notebookArchive: {}, notebookArchiveDate: '', notices: [], academicEvents: [], selectedAcademicEventDate: '', ddays: [], featuredDdayId: '', rulesFontScale: 1, rulesPanelView: 'rules', activities: [], activeActivityId: 'morning', activityFontSize: 24, activityColor: '#2d2a26', assignmentStudents: [], assignments: [] };
 let lastFeaturedDdayKey = '';
 let lastPeriodLabel = null;
 let lastPeriodType = null;
@@ -232,6 +238,8 @@ let lastEndChimeTime = 0;
 let lastTimetableMin = -1;
 let audioCtx = null;
 let notebookTimer = null;
+let activityTimer = null;
+let activitySavedRange = null;
 let lastAcademicEventToastKey = '';
 let specialTimetableDirty = false;
 let quickTimetableDirty = false;
@@ -457,6 +465,65 @@ function loadViewData() {
     const s = localStorage.getItem('classroomViewData');
     if (s) viewData = { ...viewData, ...JSON.parse(s) };
   } catch { /* keep defaults */ }
+  if (viewData.activeTab === 'activities' || viewData.activeTab === 'assignments') {
+    viewData.activeTab = 'rules';
+  }
+  if (!['rules', 'notebook', 'notice', 'meal', 'dday'].includes(viewData.activeTab)) {
+    viewData.activeTab = 'rules';
+  }
+  if (!['rules', 'morning', 'lunch'].includes(viewData.rulesPanelView)) {
+    viewData.rulesPanelView = 'rules';
+  }
+  if (typeof viewData.rulesFontScale !== 'number' || Number.isNaN(viewData.rulesFontScale)) {
+    viewData.rulesFontScale = 1;
+  }
+  viewData.rulesFontScale = Math.min(1.4, Math.max(0.85, viewData.rulesFontScale));
+  if (typeof viewData.activityFontSize !== 'number' || Number.isNaN(viewData.activityFontSize)) {
+    viewData.activityFontSize = 24;
+  }
+  viewData.activityFontSize = Math.max(12, Math.min(120, viewData.activityFontSize));
+  if (typeof viewData.activityColor !== 'string' || !viewData.activityColor.trim()) {
+    viewData.activityColor = '#2d2a26';
+  }
+  const activityDefaults = [
+    { id: 'morning', title: '아침 활동', hint: '등교 후 바로 할 활동을 적어두세요.' },
+    { id: 'lunch', title: '점심 시간 활동', hint: '점심 시간에 할 활동이나 안내를 적어두세요.' },
+  ];
+  const savedActivities = Array.isArray(viewData.activities) ? viewData.activities : [];
+  viewData.activities = activityDefaults.map(def => {
+    const saved = savedActivities.find(item => item && item.id === def.id) || {};
+    return {
+      id: def.id,
+      title: typeof saved.title === 'string' && saved.title.trim() ? saved.title.trim() : def.title,
+      body: typeof saved.body === 'string' ? saved.body : '',
+      hint: def.hint,
+    };
+  });
+  if (!viewData.activeActivityId || !viewData.activities.some(activity => activity.id === viewData.activeActivityId)) {
+    viewData.activeActivityId = viewData.activities[0].id;
+  }
+  if (!Array.isArray(viewData.assignmentStudents)) viewData.assignmentStudents = [];
+  viewData.assignmentStudents = viewData.assignmentStudents
+    .map(name => String(name || '').trim())
+    .filter(Boolean);
+  if (!Array.isArray(viewData.assignments)) viewData.assignments = [];
+  viewData.assignments = viewData.assignments
+    .filter(item => item && typeof item === 'object')
+    .map((item, index) => {
+      const submitted = {};
+      if (item.submitted && typeof item.submitted === 'object' && !Array.isArray(item.submitted)) {
+        Object.keys(item.submitted).forEach(name => {
+          const key = String(name || '').trim();
+          if (key) submitted[key] = !!item.submitted[name];
+        });
+      }
+      return {
+        id: typeof item.id === 'string' && item.id ? item.id : 'assignment-' + Date.now() + '-' + index,
+        title: typeof item.title === 'string' && item.title.trim() ? item.title.trim() : '새 과제',
+        date: typeof item.date === 'string' ? item.date : formatDateKey(new Date()),
+        submitted,
+      };
+    });
   if (!Array.isArray(viewData.notices)) viewData.notices = [];
   if (!Array.isArray(viewData.ddays)) viewData.ddays = [];
   viewData.ddays = viewData.ddays
@@ -588,6 +655,33 @@ function setActiveNotebookContent(html) {
 }
 function saveViewData() { localStorage.setItem('classroomViewData', JSON.stringify(viewData)); }
 
+function getRulesFontScale() {
+  return Math.min(1.4, Math.max(0.85, Number(viewData.rulesFontScale) || 1));
+}
+
+function applyRulesFontScale() {
+  const scale = getRulesFontScale();
+  viewData.rulesFontScale = scale;
+  const container = document.getElementById('rulesContainer');
+  if (container) {
+    container.style.setProperty('--rule-number-size', (2.6 * scale).toFixed(2) + 'rem');
+    container.style.setProperty('--rule-title-size', (1.85 * scale).toFixed(2) + 'rem');
+    container.style.setProperty('--rule-desc-size', (1.25 * scale).toFixed(2) + 'rem');
+  }
+  const label = document.getElementById('rulesFontSizeLabel');
+  if (label) label.textContent = Math.round(scale * 100) + '%';
+}
+
+function setRulesFontScale(scale) {
+  viewData.rulesFontScale = Math.min(1.4, Math.max(0.85, Number(scale) || 1));
+  saveViewData();
+  applyRulesFontScale();
+}
+
+function changeRulesFontScale(delta) {
+  setRulesFontScale(getRulesFontScale() + delta);
+}
+
 // =============================================
 // RENDER RULES
 // =============================================
@@ -595,6 +689,7 @@ function renderRules() {
   const container = document.getElementById('rulesContainer');
   container.innerHTML = '';
   document.getElementById('rightPanel').classList.toggle('edit-mode', isEditing);
+  applyRulesFontScale();
 
   rules.forEach((rule, i) => {
     const card = document.createElement('div');
@@ -665,6 +760,483 @@ function renderRules() {
     card.appendChild(numWrap);
     card.appendChild(content);
     card.appendChild(actions);
+    container.appendChild(card);
+  });
+  applyRulesView();
+}
+
+// =============================================
+// FIXED ACTIVITIES
+// =============================================
+function setRulesEditing(enabled) {
+  isEditing = !!enabled;
+  const btn = document.getElementById('editToggle');
+  if (btn) {
+    btn.textContent = isEditing ? '완료' : '편집';
+    btn.classList.toggle('active', isEditing);
+  }
+  document.getElementById('rightPanel')?.classList.toggle('edit-mode', isEditing);
+}
+
+function getRulesPanelView() {
+  return ['rules', 'morning', 'lunch'].includes(viewData.rulesPanelView) ? viewData.rulesPanelView : 'rules';
+}
+
+function getActivityById(id) {
+  return (viewData.activities || []).find(activity => activity.id === id) || null;
+}
+
+function applyRulesView() {
+  const view = getRulesPanelView();
+  const isRulesView = view === 'rules';
+
+  if (!isRulesView && isEditing) {
+    setRulesEditing(false);
+  }
+
+  document.querySelectorAll('.rules-view-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.rulesView === view);
+  });
+
+  const subtitle = document.getElementById('rulesSubtitle');
+  if (subtitle) {
+    subtitle.textContent = isRulesView ? 'CLASS RULES' : (view === 'morning' ? 'MORNING ACTIVITY' : 'LUNCH ACTIVITY');
+  }
+
+  const editBtn = document.getElementById('editToggle');
+  if (editBtn) editBtn.style.display = isRulesView ? '' : 'none';
+  const listView = document.getElementById('rulesListView');
+  if (listView) listView.style.display = isRulesView ? '' : 'none';
+  const activityView = document.getElementById('rulesActivityView');
+  if (activityView) activityView.style.display = isRulesView ? 'none' : '';
+
+  if (isRulesView) {
+    applyRulesFontScale();
+  } else {
+    viewData.activeActivityId = view;
+    renderActivities();
+  }
+}
+
+function switchRulesView(view) {
+  if (!['rules', 'morning', 'lunch'].includes(view)) return;
+  viewData.rulesPanelView = view;
+  if (view !== 'rules') viewData.activeActivityId = view;
+  saveViewData();
+  applyRulesView();
+}
+
+function getActiveActivity() {
+  const activities = viewData.activities || [];
+  return activities.find(item => item.id === viewData.activeActivityId) || activities[0] || null;
+}
+
+function saveActivitySelection() {
+  const editor = document.getElementById('activityEditor');
+  const sel = window.getSelection();
+  if (!editor || !sel || sel.rangeCount === 0) return;
+  const range = sel.getRangeAt(0);
+  const node = range.commonAncestorContainer.nodeType === 1 ? range.commonAncestorContainer : range.commonAncestorContainer.parentElement;
+  if (node && editor.contains(node)) {
+    activitySavedRange = range.cloneRange();
+  }
+}
+
+function restoreActivitySelection() {
+  const editor = document.getElementById('activityEditor');
+  if (!editor) return;
+  editor.focus();
+  if (!activitySavedRange) return;
+  const sel = window.getSelection();
+  if (!sel) return;
+  sel.removeAllRanges();
+  sel.addRange(activitySavedRange);
+}
+
+function bindActivityToolbarGuards() {
+  document.querySelectorAll('.activity-toolbar button, #activityPalette .notebook-palette-color').forEach(function(el) {
+    if (el.dataset.activityGuarded) return;
+    el.dataset.activityGuarded = '1';
+    el.addEventListener('mousedown', function(e) {
+      e.preventDefault();
+      saveActivitySelection();
+    });
+  });
+}
+
+function onActivityInput() {
+  const activity = getActiveActivity();
+  const editor = document.getElementById('activityEditor');
+  if (!activity || !editor) return;
+  activity.body = sanitizeNotebookHTML(editor.innerHTML);
+  saveActivitySelection();
+  clearTimeout(activityTimer);
+  activityTimer = setTimeout(function() {
+    saveViewData();
+  }, 350);
+}
+
+function applyActivityFontSize() {
+  const size = Math.max(12, Math.min(120, Number(viewData.activityFontSize) || 24));
+  viewData.activityFontSize = size;
+  const editor = document.getElementById('activityEditor');
+  if (editor) editor.style.fontSize = size + 'px';
+  const input = document.getElementById('activityFontSizeInput');
+  if (input) input.value = size;
+}
+
+function changeActivityFontSize(delta) {
+  setActivityFontSize((Number(viewData.activityFontSize) || 24) + delta);
+}
+
+function setActivityFontSize(val) {
+  const size = Math.max(12, Math.min(120, parseInt(val, 10) || 24));
+  viewData.activityFontSize = size;
+  saveViewData();
+  applyActivityFontSize();
+  document.getElementById('activityFontSizeDropdown')?.classList.remove('open');
+}
+
+function buildActivitySizeDropdown() {
+  const container = document.getElementById('activityFontSizeDropdown');
+  if (!container || container.children.length > 0) return;
+  NOTEBOOK_SIZE_PRESETS.forEach(function(size) {
+    const btn = document.createElement('button');
+    btn.className = 'notebook-fontsize-option';
+    btn.textContent = size;
+    btn.setAttribute('data-size', size);
+    btn.onclick = function(e) {
+      e.stopPropagation();
+      setActivityFontSize(size);
+    };
+    container.appendChild(btn);
+  });
+}
+
+function toggleActivitySizeDropdown() {
+  const dropdown = document.getElementById('activityFontSizeDropdown');
+  if (!dropdown) return;
+  buildActivitySizeDropdown();
+  const current = Number(viewData.activityFontSize) || 24;
+  dropdown.querySelectorAll('.notebook-fontsize-option').forEach(function(btn) {
+    btn.classList.toggle('active', parseInt(btn.getAttribute('data-size'), 10) === current);
+  });
+  dropdown.classList.toggle('open');
+}
+
+function buildActivityPalette() {
+  const container = document.getElementById('activityPalette');
+  if (!container || container.children.length > 0) return;
+  NOTEBOOK_COLORS.forEach(function(color) {
+    const dot = document.createElement('span');
+    dot.className = 'notebook-palette-color';
+    dot.style.background = color;
+    if (color === '#ffffff') dot.style.border = '2px solid rgba(0,0,0,0.15)';
+    dot.setAttribute('data-color', color);
+    dot.onmousedown = function(e) {
+      e.preventDefault();
+      saveActivitySelection();
+    };
+    dot.onclick = function() { pickActivityColor(color); };
+    container.appendChild(dot);
+  });
+}
+
+function applyActivityColorSwatch() {
+  const color = viewData.activityColor || '#2d2a26';
+  const swatch = document.getElementById('activityColorSwatch');
+  if (swatch) swatch.style.background = color;
+  document.querySelectorAll('#activityPalette .notebook-palette-color').forEach(function(dot) {
+    dot.classList.toggle('active', dot.getAttribute('data-color') === color);
+  });
+}
+
+function toggleActivityPalette() {
+  const palette = document.getElementById('activityPalette');
+  if (!palette) return;
+  buildActivityPalette();
+  applyActivityColorSwatch();
+  palette.classList.toggle('open');
+}
+
+function pickActivityColor(color) {
+  viewData.activityColor = color;
+  saveViewData();
+  document.getElementById('activityPalette')?.classList.remove('open');
+  restoreActivitySelection();
+  document.execCommand('foreColor', false, color);
+  applyActivityColorSwatch();
+  saveActivitySelection();
+  syncActivityFromActive();
+}
+
+function toggleActivityStyle(style) {
+  restoreActivitySelection();
+  if (style === 'bold') document.execCommand('bold');
+  else if (style === 'italic') document.execCommand('italic');
+  else if (style === 'underline') document.execCommand('underline');
+  saveActivitySelection();
+  syncActivityFromActive();
+}
+
+function syncActivityFromActive() {
+  const editor = document.getElementById('activityEditor');
+  if (!editor) return;
+  onActivityInput();
+}
+
+function applyActivityToolbarState() {
+  applyActivityFontSize();
+  applyActivityColorSwatch();
+  bindActivityToolbarGuards();
+}
+
+function renderActivities() {
+  const container = document.getElementById('activityContainer');
+  if (!container) return;
+  container.innerHTML = '';
+
+  const activities = viewData.activities || [];
+  if (!activities.length) return;
+  if (!activities.some(activity => activity.id === viewData.activeActivityId)) {
+    viewData.activeActivityId = activities[0].id;
+  }
+
+  const activity = activities.find(item => item.id === viewData.activeActivityId) || activities[0];
+  const index = activities.findIndex(item => item.id === activity.id);
+  applyActivityToolbarState();
+
+  const card = document.createElement('div');
+  card.className = 'activity-card';
+
+  const header = document.createElement('div');
+  header.className = 'activity-card-header';
+
+  const badge = document.createElement('div');
+  badge.className = 'activity-badge';
+  badge.textContent = index === 0 ? 'AM' : 'PM';
+
+  const title = document.createElement('input');
+  title.type = 'text';
+  title.className = 'activity-title-input';
+  title.value = activity.title || '';
+  title.addEventListener('input', () => {
+    activity.title = title.value.trim() || (activity.id === 'morning' ? '아침 활동' : '점심 시간 활동');
+    saveViewData();
+  });
+
+  const clearBtn = document.createElement('button');
+  clearBtn.className = 'activity-clear-btn';
+  clearBtn.textContent = '비우기';
+  clearBtn.onclick = () => {
+    activity.body = '';
+    saveViewData();
+    renderActivities();
+  };
+
+  header.appendChild(badge);
+  header.appendChild(title);
+  header.appendChild(clearBtn);
+
+  const body = document.createElement('div');
+  body.id = 'activityEditor';
+  body.className = 'activity-editor';
+  body.contentEditable = 'true';
+  body.spellcheck = false;
+  body.dataset.placeholder = activity.hint || '활동 내용을 적어두세요.';
+  body.innerHTML = sanitizeNotebookHTML(activity.body || '');
+  body.addEventListener('input', onActivityInput);
+  body.addEventListener('keyup', saveActivitySelection);
+  body.addEventListener('mouseup', saveActivitySelection);
+  body.addEventListener('focus', saveActivitySelection);
+
+  card.appendChild(header);
+  card.appendChild(body);
+  container.appendChild(card);
+  activitySavedRange = null;
+  applyActivityFontSize();
+  bindActivityToolbarGuards();
+}
+
+// =============================================
+// ASSIGNMENTS
+// =============================================
+function uniqueNames(names) {
+  const seen = new Set();
+  return names
+    .map(name => String(name || '').trim())
+    .filter(name => {
+      if (!name || seen.has(name)) return false;
+      seen.add(name);
+      return true;
+    });
+}
+
+function renderAssignments() {
+  const input = document.getElementById('assignmentStudentInput');
+  if (input) input.value = (viewData.assignmentStudents || []).join('\n');
+  renderAssignmentStudentCount();
+  renderAssignmentList();
+}
+
+function renderAssignmentStudentCount() {
+  const count = document.getElementById('assignmentStudentCount');
+  if (count) count.textContent = (viewData.assignmentStudents || []).length + '명';
+}
+
+function onAssignmentStudentsInput() {
+  const input = document.getElementById('assignmentStudentInput');
+  viewData.assignmentStudents = uniqueNames((input ? input.value : '').split('\n'));
+  saveViewData();
+  renderAssignmentStudentCount();
+  renderAssignmentList();
+}
+
+function importRandomStudentsToAssignments() {
+  let names = [];
+  try {
+    names = JSON.parse(localStorage.getItem('classroomRandomStudents') || '[]');
+  } catch { names = []; }
+  names = uniqueNames(names);
+  if (!names.length) {
+    showToast('랜덤 뽑기 학생 명단이 비어 있어요');
+    return;
+  }
+  viewData.assignmentStudents = names;
+  saveViewData();
+  renderAssignments();
+  showToast('학생 명단을 불러왔어요');
+}
+
+function addAssignmentFromInput() {
+  const input = document.getElementById('assignmentTitleInput');
+  const title = (input ? input.value : '').trim();
+  if (!title) {
+    showToast('과제 이름을 입력해주세요');
+    return;
+  }
+  viewData.assignments.unshift({
+    id: 'assignment-' + Date.now(),
+    title,
+    date: formatDateKey(new Date()),
+    submitted: {},
+  });
+  if (input) input.value = '';
+  saveViewData();
+  renderAssignmentList();
+}
+
+function updateAssignmentTitle(id, value) {
+  const item = (viewData.assignments || []).find(assignment => assignment.id === id);
+  if (!item) return;
+  item.title = value.trim() || '새 과제';
+  saveViewData();
+}
+
+function toggleAssignmentSubmission(id, studentName, checked) {
+  const item = (viewData.assignments || []).find(assignment => assignment.id === id);
+  if (!item) return;
+  if (!item.submitted || typeof item.submitted !== 'object') item.submitted = {};
+  item.submitted[studentName] = !!checked;
+  saveViewData();
+  renderAssignmentList();
+}
+
+function clearAssignmentSubmission(id) {
+  const item = (viewData.assignments || []).find(assignment => assignment.id === id);
+  if (!item) return;
+  item.submitted = {};
+  saveViewData();
+  renderAssignmentList();
+}
+
+function deleteAssignment(id) {
+  viewData.assignments = (viewData.assignments || []).filter(assignment => assignment.id !== id);
+  saveViewData();
+  renderAssignmentList();
+  showToast('과제가 삭제되었어요');
+}
+
+function renderAssignmentList() {
+  const container = document.getElementById('assignmentList');
+  if (!container) return;
+  container.innerHTML = '';
+
+  const students = viewData.assignmentStudents || [];
+  const assignments = viewData.assignments || [];
+
+  if (!students.length) {
+    const empty = document.createElement('div');
+    empty.className = 'assignment-empty';
+    empty.textContent = '먼저 학생 명단을 입력해주세요.';
+    container.appendChild(empty);
+    return;
+  }
+
+  if (!assignments.length) {
+    const empty = document.createElement('div');
+    empty.className = 'assignment-empty';
+    empty.textContent = '과제를 추가하면 제출 여부를 체크할 수 있어요.';
+    container.appendChild(empty);
+    return;
+  }
+
+  assignments.forEach(assignment => {
+    const submitted = assignment.submitted || {};
+    const submittedCount = students.filter(name => submitted[name]).length;
+
+    const card = document.createElement('div');
+    card.className = 'assignment-card';
+
+    const header = document.createElement('div');
+    header.className = 'assignment-card-header';
+
+    const titleInput = document.createElement('input');
+    titleInput.type = 'text';
+    titleInput.className = 'assignment-title-edit';
+    titleInput.value = assignment.title;
+    titleInput.addEventListener('input', () => updateAssignmentTitle(assignment.id, titleInput.value));
+
+    const summary = document.createElement('span');
+    summary.className = 'assignment-summary';
+    summary.textContent = submittedCount + ' / ' + students.length + '명';
+
+    const resetBtn = document.createElement('button');
+    resetBtn.className = 'assignment-card-btn';
+    resetBtn.textContent = '체크 초기화';
+    resetBtn.onclick = () => clearAssignmentSubmission(assignment.id);
+
+    const deleteBtn = document.createElement('button');
+    deleteBtn.className = 'assignment-card-btn danger';
+    deleteBtn.textContent = '삭제';
+    deleteBtn.onclick = () => deleteAssignment(assignment.id);
+
+    header.appendChild(titleInput);
+    header.appendChild(summary);
+    header.appendChild(resetBtn);
+    header.appendChild(deleteBtn);
+
+    const grid = document.createElement('div');
+    grid.className = 'assignment-check-grid';
+    students.forEach(name => {
+      const label = document.createElement('label');
+      label.className = 'assignment-check-item' + (submitted[name] ? ' checked' : '');
+
+      const checkbox = document.createElement('input');
+      checkbox.type = 'checkbox';
+      checkbox.checked = !!submitted[name];
+      checkbox.addEventListener('change', () => toggleAssignmentSubmission(assignment.id, name, checkbox.checked));
+
+      const student = document.createElement('span');
+      student.textContent = name;
+
+      label.appendChild(checkbox);
+      label.appendChild(student);
+      grid.appendChild(label);
+    });
+
+    card.appendChild(header);
+    card.appendChild(grid);
     container.appendChild(card);
   });
 }
@@ -769,10 +1341,8 @@ function addRule() {
 }
 
 function toggleEdit() {
-  isEditing = !isEditing;
-  const btn = document.getElementById('editToggle');
-  btn.textContent = isEditing ? '완료' : '편집';
-  btn.classList.toggle('active', isEditing);
+  if (getRulesPanelView() !== 'rules') return;
+  setRulesEditing(!isEditing);
   renderRules();
   if (!isEditing) showToast('저장되었어요');
 }
@@ -1910,14 +2480,18 @@ function onTtDragEnd() {
 // TAB SWITCHING
 // =============================================
 function switchTab(tabName) {
+  if (tabName === 'assignments') {
+    tabName = 'rules';
+  }
+  if (!['rules', 'notebook', 'notice', 'meal', 'dday'].includes(tabName)) {
+    tabName = 'rules';
+  }
+
   viewData.activeTab = tabName;
   saveViewData();
 
   if (isEditing) {
-    isEditing = false;
-    document.getElementById('editToggle').textContent = '편집';
-    document.getElementById('editToggle').classList.remove('active');
-    document.getElementById('rightPanel').classList.remove('edit-mode');
+    setRulesEditing(false);
   }
 
   document.querySelectorAll('.tab-btn').forEach(btn => {
@@ -1929,6 +2503,9 @@ function switchTab(tabName) {
   document.getElementById('tabMeal').style.display = tabName === 'meal' ? '' : 'none';
   document.getElementById('tabDday').style.display = tabName === 'dday' ? '' : 'none';
 
+  if (tabName === 'rules') {
+    applyRulesView();
+  }
   if (tabName === 'notebook') {
     const notebookHTML = getActiveNotebookContent();
     setNotebookHTML('notebookArea', notebookHTML);
@@ -2356,7 +2933,7 @@ function saveNotebookContent(html) {
 // 브라우저가 그 배경색까지 클립보드에 담습니다. 그러면 학교종이처럼 서식을 유지하는
 // 편집기에 붙여넣을 때 배경이 남습니다. 아래 핸들러는 선택한 글자의 서식(굵게·기울임·
 // 밑줄·색)은 살리고 배경만 제거한 내용을 클립보드에 넣습니다.
-var NOTEBOOK_EDITOR_SELECTOR = '#notebookArea, #notebookPanelTextarea, #notebookFullscreenBody';
+var NOTEBOOK_EDITOR_SELECTOR = '#notebookArea, #notebookPanelTextarea, #notebookFullscreenBody, #activityEditor';
 
 function getNotebookEditorFromSelection(sel) {
   if (!sel || sel.rangeCount === 0) return null;
