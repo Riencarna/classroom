@@ -2946,6 +2946,29 @@
     transition: background 0.3s, box-shadow 0.3s;
   }
   .notice-card:hover { background: rgba(255,255,255,0.85); box-shadow: 0 8px 30px rgba(0,0,0,0.08); }
+  .notice-drag-handle {
+    cursor: grab;
+    color: rgba(0,0,0,0.22);
+    font-size: 1rem;
+    padding: 0.25rem 0.1rem;
+    touch-action: none;
+    transition: color 0.2s;
+    flex-shrink: 0;
+    user-select: none;
+  }
+  .notice-drag-handle:hover { color: rgba(139,92,246,0.85); }
+  .notice-card.notice-lifted {
+    z-index: 999;
+    box-shadow: 0 14px 42px rgba(139,92,246,0.22), 0 5px 14px rgba(0,0,0,0.1);
+    background: rgba(255,255,255,0.96);
+    pointer-events: none;
+  }
+  .notice-card.notice-shift-down {
+    transform: translateY(calc(var(--notice-card-h) + 1rem)) !important;
+  }
+  .notice-card.notice-shift-up {
+    transform: translateY(calc(-1 * (var(--notice-card-h) + 1rem))) !important;
+  }
   .notice-dot {
     width: 10px; height: 10px; border-radius: 50%;
     background: #8b5cf6; flex-shrink: 0;

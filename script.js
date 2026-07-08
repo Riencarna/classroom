@@ -1,9 +1,14 @@
 // =============================================
 // CONSTANTS
 // =============================================
-const APP_VERSION = 'v1.17.0';
+const APP_VERSION = 'v1.17.1';
 const FEEDBACK_URL = 'https://forms.gle/y48um84BTrBVn2Nt6';
 const UPDATE_HISTORY = [
+  { version: 'v1.17.1', notes: [
+    '공지사항 카드를 손잡이로 끌어서 순서를 바꿀 수 있어요',
+    '요일별 교시 수를 6교시로 설정했는데도 5교시 뒤 수업 끝으로 표시되던 문제를 고쳤어요',
+    '수업 시작/종료 알림과 쉬는 시간 음성 안내가 요일별 교시 수에 맞게 작동해요'
+  ]},
   { version: 'v1.17.0', notes: [
     '우리 반 약속 제목 옆 버튼으로 약속, 아침 활동, 점심 활동을 바로 전환할 수 있어요',
     '아침 활동과 점심 활동에도 글자 크기, 색상, 볼드, 이탤릭, 밑줄 서식을 적용할 수 있어요',
@@ -110,6 +115,12 @@ const UPDATE_HISTORY = [
 // 최상단이 최신 글. id는 겹치지 않게(예: 날짜 + 순번) 주세요.
 const DEVELOPER_NOTES = [
   {
+    id: '2026-07-08-01-notice-order-daily-periods',
+    date: '2026-07-08',
+    title: '공지 순서 변경과 6교시 표시 문제를 고쳤어요',
+    body: '공지사항의 순서를 바꿀 수 있으면 좋겠다는 의견과, 월·화·목·금은 6교시 수업인데 5교시 뒤에 수업 끝으로 표시된다는 제보를 함께 반영했습니다.\n\n이제 공지사항 카드 왼쪽 손잡이를 끌어서 순서를 바꿀 수 있습니다. 또 요일별 교시 수를 6교시로 설정한 날에는 기본 시간표의 6교시 요일 체크가 예전 값으로 남아 있어도 6교시까지 현재 교시와 알림이 이어지도록 고쳤습니다.\n\n불편을 알려주셔서 감사합니다. 실제 교실에서 바로 티 나는 문제라 더 반갑게 고쳤습니다.'
+  },
+  {
     id: '2026-06-19-01-school-day-dday',
     date: '2026-06-19',
     title: '방학 디데이를 등교일 기준으로 볼 수 있어요',
@@ -203,6 +214,7 @@ const DEVELOPER_NOTES = [
 const COLORS = ['#3b82f6','#8b5cf6','#f97316','#10b981','#ef4444','#ec4899','#14b8a6','#f59e0b'];
 const DAYS_KR = ['일요일','월요일','화요일','수요일','목요일','금요일','토요일'];
 const DAY_LABELS = ['월','화','수','목','금'];
+const PERIOD_LABEL_RE = /^(\d+)교시$/;
 
 const DEFAULT_RULES = [
   { title: '서로 존중하기', desc: '친구의 말에 귀 기울이고, 다름을 인정해요', color: '#3b82f6' },
@@ -269,6 +281,11 @@ let ttDrag = {
   startY: 0, offsetY: 0, cardRects: [], cardH: 0, rows: [],
 };
 
+let noticeDrag = {
+  active: false, cardEl: null, noticeId: '', index: -1, currentIndex: -1,
+  startY: 0, cardRects: [], cardH: 0, cards: [],
+};
+
 // =============================================
 // HELPERS
 // =============================================
@@ -319,6 +336,11 @@ function cloneEntry(entry) {
   };
 }
 
+function getPeriodNumber(label) {
+  const match = String(label || '').trim().match(PERIOD_LABEL_RE);
+  return match ? parseInt(match[1], 10) : null;
+}
+
 function createMorningEntry(start, end) {
   return { label: '아침 시간', start, end, type: 'event-time', days: [1, 2, 3, 4, 5], subjects: {} };
 }
@@ -358,31 +380,43 @@ function getBaseEntriesForDate(dateObj) {
   const isWeekend = (day === 0 || day === 6);
   if (isWeekend) return [];
 
-  let todayEntries = timetable
+  const sortedEntries = timetable
+    .slice()
+    .sort((a, b) => timeToMins(a.start) - timeToMins(b.start));
+
+  let todayEntries = sortedEntries
     .filter(e => e.days.includes(day))
-    .sort((a, b) => timeToMins(a.start) - timeToMins(b.start))
     .map(cloneEntry);
 
   const maxPeriods = settings.dailyPeriods ? settings.dailyPeriods[day] : null;
   if (maxPeriods) {
-    let periodCount = 0;
-    let lastPeriodEndMins = 0;
-    const filtered = [];
-    for (const e of todayEntries) {
-      if (/^\d+교시$/.test(e.label)) {
-        periodCount++;
-        if (periodCount <= maxPeriods) {
-          filtered.push(e);
-          lastPeriodEndMins = timeToMins(e.end);
-        }
-      } else {
-        filtered.push(e);
-      }
+    const periodEntriesForDay = [];
+
+    for (let periodNo = 1; periodNo <= maxPeriods; periodNo++) {
+      const exactEntry = sortedEntries.find(entry => {
+        return getPeriodNumber(entry.label) === periodNo && entry.days.includes(day);
+      });
+      const fallbackEntry = sortedEntries.find(entry => getPeriodNumber(entry.label) === periodNo);
+      const entry = exactEntry || fallbackEntry;
+      if (entry) periodEntriesForDay.push(cloneEntry(entry));
     }
-    todayEntries = filtered.filter(e => {
-      if (/^\d+교시$/.test(e.label)) return true;
-      return timeToMins(e.start) < lastPeriodEndMins;
-    });
+
+    if (periodEntriesForDay.length) {
+      const nonPeriodEntries = sortedEntries
+        .filter(entry => !getPeriodNumber(entry.label) && entry.days.includes(day))
+        .map(cloneEntry);
+      todayEntries = nonPeriodEntries.concat(periodEntriesForDay)
+        .sort((a, b) => timeToMins(a.start) - timeToMins(b.start));
+
+      const lastPeriodEndMins = periodEntriesForDay.reduce((last, entry) => {
+        return Math.max(last, timeToMins(entry.end));
+      }, 0);
+      todayEntries = todayEntries.filter(entry => {
+        if (getPeriodNumber(entry.label)) return true;
+        const start = timeToMins(entry.start);
+        return start < lastPeriodEndMins;
+      });
+    }
   }
 
   return todayEntries;
@@ -525,6 +559,19 @@ function loadViewData() {
       };
     });
   if (!Array.isArray(viewData.notices)) viewData.notices = [];
+  viewData.notices = viewData.notices
+    .filter(notice => notice && (typeof notice === 'object' || typeof notice === 'string'))
+    .map(notice => {
+      if (typeof notice === 'string') {
+        return { id: generateNoticeId(), html: notice || '새 공지' };
+      }
+      return {
+        id: (typeof notice.id === 'string' && notice.id) ? notice.id : generateNoticeId(),
+        html: typeof notice.html === 'string'
+          ? notice.html
+          : (typeof notice.text === 'string' ? notice.text : '새 공지'),
+      };
+    });
   if (!Array.isArray(viewData.ddays)) viewData.ddays = [];
   viewData.ddays = viewData.ddays
     .filter(d => d && typeof d === 'object')
@@ -605,6 +652,10 @@ function generateNotebookPageId() {
 
 function generateDdayId() {
   return 'dd_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 8);
+}
+
+function generateNoticeId() {
+  return 'nt_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 8);
 }
 
 function prunePastDdays(now, options) {
@@ -3657,8 +3708,18 @@ function renderNotices() {
   const notices = viewData.notices || [];
 
   notices.forEach((notice, i) => {
+    if (!notice.id) notice.id = generateNoticeId();
+
     const card = document.createElement('div');
     card.className = 'notice-card';
+    card.dataset.index = i;
+    card.dataset.noticeId = notice.id;
+
+    const handle = document.createElement('span');
+    handle.className = 'notice-drag-handle';
+    handle.innerHTML = '&#10303;';
+    handle.title = '공지 순서 변경';
+    handle.addEventListener('pointerdown', e => startNoticeDrag(e, notice.id, card));
 
     const dot = document.createElement('div');
     dot.className = 'notice-dot';
@@ -3671,9 +3732,7 @@ function renderNotices() {
     content.innerHTML = sanitizeNotebookHTML(html);
     content.style.fontSize = (viewData.noticeFontSize || 24) + 'px';
     content.addEventListener('blur', () => {
-      var h = content.innerHTML.trim();
-      viewData.notices[i].html = sanitizeNotebookHTML(h) || '새 공지';
-      delete viewData.notices[i].text;
+      saveNoticeContent(notice.id, content.innerHTML);
       saveViewData();
     });
     content.addEventListener('keydown', e => {
@@ -3684,17 +3743,20 @@ function renderNotices() {
     delBtn.className = 'notice-delete-btn';
     delBtn.innerHTML = '&#10005;';
     delBtn.onclick = () => {
+      const noticeId = notice.id;
       card.style.transition = 'transform 0.3s, opacity 0.3s';
       card.style.transform = 'scale(0.8)';
       card.style.opacity = '0';
       setTimeout(() => {
-        viewData.notices.splice(i, 1);
+        const deleteIndex = viewData.notices.findIndex(item => item.id === noticeId);
+        if (deleteIndex >= 0) viewData.notices.splice(deleteIndex, 1);
         saveViewData();
         renderNotices();
         showToast('공지가 삭제되었어요');
       }, 250);
     };
 
+    card.appendChild(handle);
     card.appendChild(dot);
     card.appendChild(content);
     card.appendChild(delBtn);
@@ -3703,7 +3765,8 @@ function renderNotices() {
 }
 
 function addNotice() {
-  viewData.notices.push({ html: '새 공지사항' });
+  syncNoticeContentsFromDom();
+  viewData.notices.push({ id: generateNoticeId(), html: '새 공지사항' });
   saveViewData();
   renderNotices();
   showToast('새 공지가 추가되었어요');
@@ -3719,14 +3782,115 @@ function applyNoticeColor(color) {
   document.querySelectorAll('.notice-color-dot').forEach(function(dot) {
     dot.classList.toggle('active', dot.getAttribute('data-color') === color);
   });
-  // save after color change
-  document.querySelectorAll('.notice-content').forEach(function(el, i) {
-    if (viewData.notices[i]) {
-      viewData.notices[i].html = sanitizeNotebookHTML(el.innerHTML.trim()) || '새 공지';
-      delete viewData.notices[i].text;
+  syncNoticeContentsFromDom();
+  saveViewData();
+}
+
+function saveNoticeContent(noticeId, html) {
+  const notice = viewData.notices.find(item => item.id === noticeId);
+  if (!notice) return;
+  notice.html = sanitizeNotebookHTML(String(html || '').trim()) || '새 공지';
+  delete notice.text;
+}
+
+function syncNoticeContentsFromDom() {
+  document.querySelectorAll('.notice-card').forEach(function(card) {
+    const noticeId = card.dataset.noticeId;
+    const content = card.querySelector('.notice-content');
+    if (noticeId && content) {
+      saveNoticeContent(noticeId, content.innerHTML);
     }
   });
+}
+
+function startNoticeDrag(e, noticeId, cardEl) {
+  if (e.button !== undefined && e.button !== 0) return;
+  e.preventDefault();
+  syncNoticeContentsFromDom();
   saveViewData();
+
+  const container = document.getElementById('noticeContainer');
+  const index = viewData.notices.findIndex(item => item.id === noticeId);
+  if (!container || index === -1) return;
+  const cards = [...container.querySelectorAll('.notice-card')];
+  const rects = cards.map(card => card.getBoundingClientRect());
+  const cardH = cardEl.getBoundingClientRect().height;
+
+  noticeDrag = {
+    active: true,
+    cardEl,
+    noticeId,
+    index,
+    currentIndex: index,
+    startY: e.clientY,
+    cardRects: rects,
+    cardH,
+    cards,
+  };
+
+  cardEl.classList.add('notice-lifted');
+  cards.forEach(card => card.style.setProperty('--notice-card-h', cardH + 'px'));
+  document.body.classList.add('is-dragging');
+
+  document.addEventListener('pointermove', onNoticeDragMove);
+  document.addEventListener('pointerup', onNoticeDragEnd);
+}
+
+function onNoticeDragMove(e) {
+  if (!noticeDrag.active) return;
+  const { cardEl, startY, index, cards, cardRects, cardH } = noticeDrag;
+  const dy = e.clientY - startY;
+  cardEl.style.transform = 'translateY(' + dy + 'px) scale(1.02)';
+
+  const origCenter = cardRects[index].top + cardH / 2;
+  const centerY = origCenter + dy;
+  let newIndex = index;
+
+  for (let i = 0; i < cardRects.length; i++) {
+    const midY = cardRects[i].top + cardRects[i].height / 2;
+    if (i < index && centerY < midY) { newIndex = i; break; }
+    if (i > index && centerY > midY) { newIndex = i; }
+  }
+
+  if (newIndex !== noticeDrag.currentIndex) {
+    noticeDrag.currentIndex = newIndex;
+    cards.forEach((card, i) => {
+      if (i === index) return;
+      card.classList.remove('notice-shift-down', 'notice-shift-up');
+      if (index < newIndex) {
+        if (i > index && i <= newIndex) card.classList.add('notice-shift-up');
+      } else if (index > newIndex) {
+        if (i >= newIndex && i < index) card.classList.add('notice-shift-down');
+      }
+    });
+  }
+}
+
+function onNoticeDragEnd() {
+  if (!noticeDrag.active) return;
+  const { cardEl, noticeId, currentIndex, cards } = noticeDrag;
+
+  cardEl.classList.remove('notice-lifted');
+  cardEl.style.transform = '';
+  cards.forEach(card => {
+    card.classList.remove('notice-shift-down', 'notice-shift-up');
+    card.style.removeProperty('--notice-card-h');
+  });
+  document.body.classList.remove('is-dragging');
+
+  document.removeEventListener('pointermove', onNoticeDragMove);
+  document.removeEventListener('pointerup', onNoticeDragEnd);
+
+  const fromIndex = viewData.notices.findIndex(item => item.id === noticeId);
+  if (fromIndex !== -1 && fromIndex !== currentIndex) {
+    const moved = viewData.notices.splice(fromIndex, 1)[0];
+    viewData.notices.splice(currentIndex, 0, moved);
+    saveViewData();
+    showToast('공지 순서가 변경되었어요');
+  }
+
+  noticeDrag.active = false;
+  renderNotices();
 }
 
 function changeNoticeFontSize(delta) {
@@ -4672,6 +4836,9 @@ function renderDailyPeriods() {
     sel.addEventListener('change', () => {
       settings.dailyPeriods[dayNum] = parseInt(sel.value);
       saveSettings();
+      lastTimetableMin = -1;
+      if (settings.timetableMode) renderTimetableDisplay();
+      updateClock();
     });
 
     item.appendChild(lbl);

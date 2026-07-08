@@ -229,7 +229,7 @@
 <button class="random-pick-btn" onclick="openRandomPicker()" title="랜덤 뽑기" aria-label="랜덤 뽑기">&#127922;</button>
 <button class="timer-open-btn" onclick="openTimer()" title="타이머" aria-label="타이머">&#x23F1;</button>
 <button class="fullscreen-btn" id="fullscreenBtn" onclick="toggleFullscreen()" title="전체화면" aria-label="전체화면">&#x26F6;</button>
-<button class="version-label" onclick="openChangelog()" aria-label="버전 기록 보기">v1.17.0</button>
+<button class="version-label" onclick="openChangelog()" aria-label="버전 기록 보기">v1.17.1</button>
 <button class="feedback-btn" onclick="openFeedback()" title="의견 보내기" aria-label="의견 보내기">&#x1F4EC; 의견 보내기</button>
 <button class="dev-notes-btn" onclick="openDeveloperNotes()" title="개발자 소식" aria-label="개발자 소식">&#x1F4E2; 개발자 소식<span class="dev-notes-badge" id="devNotesBadge" style="display:none"></span></button>
 
@@ -468,6 +468,12 @@
       <button class="modal-close" onclick="closeChangelog()" aria-label="닫기">&#10005;</button>
     </div>
     <div class="changelog-list">
+      <div class="changelog-item">
+        <div class="changelog-item-header">
+          <span class="changelog-version">v1.17.1</span>
+        </div>
+        <div class="changelog-desc">공지사항 순서 변경 추가 및 요일별 교시 수 보정: 공지사항 카드 왼쪽 손잡이를 끌어 순서를 바꿀 수 있습니다. 또한 월·화·목·금 6교시, 수요일 5교시처럼 설정했을 때 기본 시간표의 6교시 요일 체크와 어긋나도 요일별 교시 수 기준으로 현재 교시, 수업 끝 표시, 시작/종료 알림, 쉬는 시간 음성 안내가 동작하도록 수정했습니다.</div>
+      </div>
       <div class="changelog-item">
         <div class="changelog-item-header">
           <span class="changelog-version">v1.17.0</span>
