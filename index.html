@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>우리 반 배경화면</title>
-<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="style.css?v=1.18.1">
 </head>
 <body>
 
@@ -82,36 +82,6 @@
         <button class="notebook-style-btn" id="activityUnderlineBtn" onclick="toggleActivityStyle('underline')" title="밑줄"><u>U</u></button>
       </div>
       <div class="activity-container" id="activityContainer"></div>
-    </div>
-  </div>
-
-  <div class="assignment-draft-panel" id="assignmentDraftPanel" hidden aria-hidden="true">
-    <div class="rules-header-row">
-      <div class="rules-header" style="color:#14b8a6;-webkit-text-fill-color:#14b8a6">과제 제출</div>
-    </div>
-    <div class="rules-subtitle">ASSIGNMENTS</div>
-    <div class="assignment-section-wrap">
-      <div class="assignment-coming-soon">
-        <div class="coming-soon-icon">&#x1F6A7;</div>
-        <div class="coming-soon-text">작업중입니다<br>추후 업데이트를 기다려주세요</div>
-      </div>
-      <div class="assignment-layout">
-      <div class="assignment-roster-card">
-        <div class="assignment-section-title">학생 명단</div>
-        <textarea id="assignmentStudentInput" class="assignment-student-textarea" placeholder="학생 이름을 한 줄에 하나씩 입력하세요&#10;예:&#10;김민준&#10;이서연&#10;박지호" oninput="onAssignmentStudentsInput()"></textarea>
-        <div class="assignment-roster-actions">
-          <span class="assignment-count" id="assignmentStudentCount">0명</span>
-          <button class="assignment-mini-btn" onclick="importRandomStudentsToAssignments()">랜덤 명단 불러오기</button>
-        </div>
-      </div>
-      <div class="assignment-main">
-        <div class="assignment-add-row">
-          <input type="text" class="assignment-title-input" id="assignmentTitleInput" placeholder="예: 수학 익힘 42쪽" onkeydown="if(event.key==='Enter'){event.preventDefault();addAssignmentFromInput();}">
-          <button class="assignment-add-btn" onclick="addAssignmentFromInput()">+ 과제 추가</button>
-        </div>
-        <div class="assignment-list" id="assignmentList"></div>
-      </div>
-      </div>
     </div>
   </div>
 
@@ -210,15 +180,6 @@
     <div id="mealContainer" class="meal-container"></div>
   </div>
 
-  <div class="work-status-strip" aria-label="다음 업데이트 예고">
-    <span class="work-status-pulse" aria-hidden="true"></span>
-    <span class="work-status-copy">
-      <span class="work-status-kicker">다음 업데이트</span>
-      <span class="work-status-title">과제 제출 체크 준비 중</span>
-    </span>
-    <span class="work-status-chip">건의 반영 중</span>
-  </div>
-
   <div class="notebook-panel-overlay" id="notebookPanelOverlay">
     <button class="notebook-focus-exit-btn" id="notebookFocusExitBtn" onclick="toggleNotebookPanelFill()">패널 닫기</button>
     <div id="notebookPanelTextarea" class="notebook-panel-textarea" contenteditable="true" data-placeholder="오늘의 알림을 입력하세요..." oninput="onNotebookPanelInput()"></div>
@@ -226,10 +187,29 @@
 </div>
 
 <button class="settings-btn" onclick="openSettings()" title="설정" aria-label="설정">&#9881;</button>
-<button class="random-pick-btn" onclick="openRandomPicker()" title="랜덤 뽑기" aria-label="랜덤 뽑기">&#127922;</button>
-<button class="timer-open-btn" onclick="openTimer()" title="타이머" aria-label="타이머">&#x23F1;</button>
 <button class="fullscreen-btn" id="fullscreenBtn" onclick="toggleFullscreen()" title="전체화면" aria-label="전체화면">&#x26F6;</button>
-<button class="version-label" onclick="openChangelog()" aria-label="버전 기록 보기">v1.17.1</button>
+<div class="classroom-tools" id="classroomTools">
+  <button class="classroom-tools-btn" id="classroomToolsBtn" onclick="toggleClassroomTools(event)" aria-haspopup="menu" aria-controls="classroomToolsMenu" aria-expanded="false">
+    <span aria-hidden="true">&#x1F9F0;</span>
+    <span>학급 도구</span>
+  </button>
+  <div class="classroom-tools-menu" id="classroomToolsMenu" role="menu" aria-label="학급 도구">
+    <div class="classroom-tools-menu-title">필요한 도구를 선택하세요</div>
+    <button class="classroom-tool-item assignment-tool-item" role="menuitem" onclick="openAssignmentModal()">
+      <span class="classroom-tool-icon" aria-hidden="true">&#x2705;</span>
+      <span><strong>과제 확인</strong><small>학생별 제출 여부 관리</small></span>
+    </button>
+    <button class="classroom-tool-item random-tool-item" role="menuitem" onclick="openRandomPicker()">
+      <span class="classroom-tool-icon" aria-hidden="true">&#x1F3B2;</span>
+      <span><strong>랜덤 뽑기</strong><small>학생을 공정하게 뽑기</small></span>
+    </button>
+    <button class="classroom-tool-item timer-tool-item" role="menuitem" onclick="openTimer()">
+      <span class="classroom-tool-icon" aria-hidden="true">&#x23F1;</span>
+      <span><strong>타이머</strong><small>수업 활동 시간 재기</small></span>
+    </button>
+  </div>
+</div>
+<button class="version-label" onclick="openChangelog()" aria-label="버전 기록 보기">v1.18.1</button>
 <button class="feedback-btn" onclick="openFeedback()" title="의견 보내기" aria-label="의견 보내기">&#x1F4EC; 의견 보내기</button>
 <button class="dev-notes-btn" onclick="openDeveloperNotes()" title="개발자 소식" aria-label="개발자 소식">&#x1F4E2; 개발자 소식<span class="dev-notes-badge" id="devNotesBadge" style="display:none"></span></button>
 
@@ -415,28 +395,29 @@
     </div>
 
     <div class="settings-section">
-      <div class="settings-section-title">학교종이 연동<span class="help-icon">?<span class="help-tooltip">학교종이 사이트 URL을 입력하면, 알림장 버튼 클릭 시 바로 알림장 작성 페이지로 이동합니다. 학교종이 로그인 후 주소창의 URL을 복사하여 붙여넣으세요.</span></span></div>
+      <div class="settings-section-title">학교종이 연계<span class="help-icon">?<span class="help-tooltip">학교종이 학급 URL을 저장하면 알림장 내용을 복사한 뒤 해당 학급의 알림장 작성 화면을 바로 엽니다. URL을 저장하지 않아도 학교종이 로그인 화면을 열 수 있습니다.</span></span></div>
       <div class="schoolbell-section-wrap">
-        <div class="schoolbell-coming-soon">
-          <div class="coming-soon-icon">&#x1F6A7;</div>
-          <div class="coming-soon-text">테스트 중입니다<br>추후 업데이트를 기다려주세요</div>
+        <div class="schoolbell-ready-note">
+          <span class="schoolbell-ready-badge">사용 가능</span>
+          <span>알림장 서식을 유지해 복사하고 학교종이 작성 화면을 새 탭으로 엽니다.</span>
         </div>
         <div class="schoolbell-url-row">
-        <input type="text" class="schoolbell-url-input" id="schoolbellUrlInput" placeholder="예: https://schoolbell-e.com/ko/main/group/123456/boards/classnews">
-        <button class="data-btn data-btn-primary" onclick="saveSchoolbellUrl()">저장</button>
-      </div>
-      <div class="schoolbell-bookmarklet-section">
-        <div class="schoolbell-bookmarklet-title">자동 붙여넣기 북마클릿</div>
-        <div class="schoolbell-bookmarklet-desc">아래 버튼을 브라우저 <b>북마크바</b>로 드래그하세요. 학교종이에서 클릭하면 알림장 내용이 자동 입력됩니다.</div>
-        <div class="schoolbell-bookmarklet-row">
-          <a class="schoolbell-bookmarklet-link" href="javascript:void((async()=>{try{var e=document.querySelector('.fr-element.fr-view');if(!e)return alert('%ED%95%99%EA%B5%90%EC%A2%85%EC%9D%B4%20%EC%95%8C%EB%A6%BC%EC%9E%A5%20%EC%9E%91%EC%84%B1%20%ED%8E%98%EC%9D%B4%EC%A7%80%EC%97%90%EC%84%9C%20%EC%8B%A4%ED%96%89%ED%95%B4%EC%A3%BC%EC%84%B8%EC%9A%94.');var r=await navigator.clipboard.read(),h='',t='';for(var c of r){if(c.types.includes('text/html'))h=await(await c.getType('text/html')).text();if(c.types.includes('text/plain'))t=await(await c.getType('text/plain')).text()}if(!h%26%26!t)return alert('%ED%81%B4%EB%A6%BD%EB%B3%B4%EB%93%9C%EC%97%90%20%EB%82%B4%EC%9A%A9%EC%9D%B4%20%EC%97%86%EC%8A%B5%EB%8B%88%EB%8B%A4.');e.focus();e.innerHTML=h||t.replace(/\n/g,'%3Cbr%3E');e.dispatchEvent(new Event('input',{bubbles:!0}));var p=e.parentElement.querySelector('.fr-placeholder');if(p)p.style.display='none';alert('%EC%95%8C%EB%A6%BC%EC%9E%A5%20%EB%82%B4%EC%9A%A9%EC%9D%B4%20%EC%9E%85%EB%A0%A5%EB%90%98%EC%97%88%EC%8A%B5%EB%8B%88%EB%8B%A4!')}catch(x){alert('%ED%81%B4%EB%A6%BD%EB%B3%B4%EB%93%9C%20%EC%9D%BD%EA%B8%B0%20%EC%8B%A4%ED%8C%A8:%20%ED%8E%98%EC%9D%B4%EC%A7%80%EB%A5%BC%20%ED%81%B4%EB%A6%AD%ED%95%9C%20%ED%9B%84%20%EB%8B%A4%EC%8B%9C%20%EC%8B%9C%EB%8F%84%ED%95%B4%EC%A3%BC%EC%84%B8%EC%9A%94.')}})())" onclick="event.preventDefault();alert('이 버튼을 클릭하지 말고, 브라우저 북마크바로 드래그해주세요!');">&#x1F4CB; 알림장 붙여넣기</a>
+          <input type="url" class="schoolbell-url-input" id="schoolbellUrlInput" aria-label="학교종이 학급 URL" placeholder="예: https://v4.schoolbell-e.com/ko/main/group/123456/boards/classnews" onkeydown="if(event.key==='Enter'){event.preventDefault();saveSchoolbellUrl();}">
+          <button class="data-btn data-btn-primary" onclick="saveSchoolbellUrl()">저장</button>
         </div>
-        <div class="schoolbell-bookmarklet-steps">
-          <div class="schoolbell-step">1. 위 버튼을 북마크바로 드래그</div>
-          <div class="schoolbell-step">2. 알림장에서 "학교종이" 버튼 클릭 (내용 복사 + 페이지 이동)</div>
-          <div class="schoolbell-step">3. 학교종이 페이지에서 북마크바의 "알림장 붙여넣기" 클릭</div>
+        <div class="schoolbell-url-hint">학교종이 학급의 알림장 목록 주소를 붙여넣으세요. 주소는 이 브라우저에만 저장됩니다.</div>
+        <div class="schoolbell-bookmarklet-section">
+          <div class="schoolbell-bookmarklet-title">선택 기능 · 자동 붙여넣기 북마클릿</div>
+          <div class="schoolbell-bookmarklet-desc">아래 버튼을 브라우저 <b>북마크바</b>로 드래그하세요. 학교종이 작성 화면에서 클릭하면 복사한 알림장을 자동으로 붙여넣습니다.</div>
+          <div class="schoolbell-bookmarklet-row">
+            <a class="schoolbell-bookmarklet-link" href="javascript:void((async()=>{try{var e=document.querySelector('.fr-element.fr-view');if(!e)return alert('%ED%95%99%EA%B5%90%EC%A2%85%EC%9D%B4%20%EC%95%8C%EB%A6%BC%EC%9E%A5%20%EC%9E%91%EC%84%B1%20%ED%8E%98%EC%9D%B4%EC%A7%80%EC%97%90%EC%84%9C%20%EC%8B%A4%ED%96%89%ED%95%B4%EC%A3%BC%EC%84%B8%EC%9A%94.');var r=await navigator.clipboard.read(),h='',t='';for(var c of r){if(c.types.includes('text/html'))h=await(await c.getType('text/html')).text();if(c.types.includes('text/plain'))t=await(await c.getType('text/plain')).text()}if(!h%26%26!t)return alert('%ED%81%B4%EB%A6%BD%EB%B3%B4%EB%93%9C%EC%97%90%20%EB%82%B4%EC%9A%A9%EC%9D%B4%20%EC%97%86%EC%8A%B5%EB%8B%88%EB%8B%A4.');e.focus();e.innerHTML=h||t.replace(/\n/g,'%3Cbr%3E');e.dispatchEvent(new Event('input',{bubbles:!0}));var p=e.parentElement.querySelector('.fr-placeholder');if(p)p.style.display='none';alert('%EC%95%8C%EB%A6%BC%EC%9E%A5%20%EB%82%B4%EC%9A%A9%EC%9D%B4%20%EC%9E%85%EB%A0%A5%EB%90%98%EC%97%88%EC%8A%B5%EB%8B%88%EB%8B%A4!')}catch(x){alert('%ED%81%B4%EB%A6%BD%EB%B3%B4%EB%93%9C%20%EC%9D%BD%EA%B8%B0%20%EC%8B%A4%ED%8C%A8:%20%ED%8E%98%EC%9D%B4%EC%A7%80%EB%A5%BC%20%ED%81%B4%EB%A6%AD%ED%95%9C%20%ED%9B%84%20%EB%8B%A4%EC%8B%9C%20%EC%8B%9C%EB%8F%84%ED%95%B4%EC%A3%BC%EC%84%B8%EC%9A%94.')}})())" onclick="event.preventDefault();alert('이 버튼을 클릭하지 말고, 브라우저 북마크바로 드래그해주세요!');">&#x1F4CB; 알림장 붙여넣기</a>
+          </div>
+          <div class="schoolbell-bookmarklet-steps">
+            <div class="schoolbell-step">1. 위 버튼을 북마크바로 드래그</div>
+            <div class="schoolbell-step">2. 이 앱의 알림장에서 “학교종이” 버튼 클릭</div>
+            <div class="schoolbell-step">3. 학교종이 작성 화면에서 북마크바의 “알림장 붙여넣기” 클릭</div>
+          </div>
         </div>
-      </div>
       </div>
     </div>
 
@@ -468,6 +449,18 @@
       <button class="modal-close" onclick="closeChangelog()" aria-label="닫기">&#10005;</button>
     </div>
     <div class="changelog-list">
+      <div class="changelog-item">
+        <div class="changelog-item-header">
+          <span class="changelog-version">v1.18.1</span>
+        </div>
+        <div class="changelog-desc">과제 확인 화면을 확인 전 학생 중심의 작업 공간으로 새롭게 정리했습니다. 왼쪽에서 진행 중인 과제와 보관한 과제를 고르고, 오른쪽에서 확인 전·확인 완료·전체 학생을 바로 전환할 수 있습니다. 확인 전 이름 복사, 모두 확인, 초기화, 과제 보관과 복원 기능을 추가했으며 학생 명단 관리는 별도 서랍으로 분리했습니다. 과제 모달 위의 상태 메시지가 흐릿하게 보이던 문제도 함께 수정했습니다.</div>
+      </div>
+      <div class="changelog-item">
+        <div class="changelog-item-header">
+          <span class="changelog-version">v1.18.0</span>
+        </div>
+        <div class="changelog-desc">과제 확인과 학교종이 연계 기능을 정식 활성화했습니다. 상단 탭을 간결하게 정리하고 과제 확인·랜덤 뽑기·타이머를 화면 하단의 학급 도구 메뉴로 모았습니다. 과제 확인에서는 학생 명단과 과제별 제출 상태를 저장·관리할 수 있고, 알림장의 학교종이 버튼은 현재 페이지의 서식을 유지해 복사한 뒤 학교종이 작성 화면을 엽니다. 학교종이 학급 URL 검증과 과제 삭제·체크 초기화 확인 절차도 추가했습니다.</div>
+      </div>
       <div class="changelog-item">
         <div class="changelog-item-header">
           <span class="changelog-version">v1.17.1</span>
@@ -723,6 +716,55 @@
   </div>
 </div>
 
+<div class="modal-overlay" id="assignmentModal" aria-hidden="true" onclick="if(event.target===this)closeAssignmentModal()">
+  <div class="modal-card assignment-modal-card" role="dialog" aria-modal="true" aria-labelledby="assignmentModalTitle">
+    <div class="modal-header assignment-modal-header">
+      <div>
+        <div class="modal-title assignment-modal-title" id="assignmentModalTitle">과제 확인</div>
+        <div class="assignment-modal-subtitle">오늘 확인할 과제를 고르고, 아직 확인하지 않은 학생부터 살펴보세요.</div>
+      </div>
+      <div class="assignment-header-actions">
+        <button class="assignment-manage-btn" id="assignmentRosterOpenBtn" onclick="openAssignmentRoster()" aria-haspopup="dialog" aria-expanded="false">명단 관리</button>
+        <button class="modal-close" onclick="closeAssignmentModal()" aria-label="닫기">&#10005;</button>
+      </div>
+    </div>
+    <div class="assignment-workspace">
+      <aside class="assignment-browser" aria-label="과제 목록">
+        <div class="assignment-add-row">
+          <input type="text" class="assignment-title-input" id="assignmentTitleInput" placeholder="새 과제 이름" aria-label="새 과제 이름" onkeydown="if(event.key==='Enter'){event.preventDefault();addAssignmentFromInput();}">
+          <button class="assignment-add-btn" onclick="addAssignmentFromInput()" aria-label="과제 추가">+</button>
+        </div>
+        <div class="assignment-browser-heading">
+          <strong>과제 목록</strong>
+          <span id="assignmentListCount">0개</span>
+        </div>
+        <div class="assignment-view-tabs" role="tablist" aria-label="과제 목록 보기">
+          <button id="assignmentActiveTab" role="tab" onclick="setAssignmentListView('active')">진행 중</button>
+          <button id="assignmentArchivedTab" role="tab" onclick="setAssignmentListView('archived')">보관함</button>
+        </div>
+        <div class="assignment-list" id="assignmentList"></div>
+      </aside>
+      <section class="assignment-detail" id="assignmentDetail" aria-live="polite"></section>
+    </div>
+
+    <div class="assignment-roster-backdrop" id="assignmentRosterBackdrop" onclick="closeAssignmentRoster()"></div>
+    <aside class="assignment-roster-drawer" id="assignmentRosterDrawer" role="dialog" aria-modal="true" aria-labelledby="assignmentRosterTitle" aria-hidden="true">
+      <div class="assignment-roster-header">
+        <div>
+          <div class="assignment-section-title" id="assignmentRosterTitle">학생 명단 관리</div>
+          <div class="assignment-roster-hint">이 명단은 모든 과제에 함께 사용됩니다.</div>
+        </div>
+        <button class="modal-close" onclick="closeAssignmentRoster()" aria-label="명단 관리 닫기">&#10005;</button>
+      </div>
+      <textarea id="assignmentStudentInput" class="assignment-student-textarea" placeholder="학생 이름을 한 줄에 하나씩 입력하세요&#10;예:&#10;김민준&#10;이서연&#10;박지호" oninput="onAssignmentStudentsInput()"></textarea>
+      <div class="assignment-roster-actions">
+        <span class="assignment-count" id="assignmentStudentCount">0명</span>
+        <button class="assignment-mini-btn" onclick="importRandomStudentsToAssignments()">랜덤 명단 불러오기</button>
+      </div>
+    </aside>
+  </div>
+</div>
+
 <div class="modal-overlay" id="randomPickerModal" onclick="if(event.target===this)closeRandomPicker()">
   <div class="modal-card random-picker-card">
     <div class="modal-header">
@@ -841,6 +883,6 @@
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-database-compat.js"></script>
 <script src="neis-api.js"></script>
-<script src="script.js"></script>
+<script src="script.js?v=1.18.1"></script>
 </body>
 </html>

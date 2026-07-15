@@ -1,9 +1,23 @@
 // =============================================
 // CONSTANTS
 // =============================================
-const APP_VERSION = 'v1.17.1';
+const APP_VERSION = 'v1.18.1';
 const FEEDBACK_URL = 'https://forms.gle/y48um84BTrBVn2Nt6';
+const SCHOOLBELL_DEFAULT_URL = 'https://v4.schoolbell-e.com/ko/gate/login';
 const UPDATE_HISTORY = [
+  { version: 'v1.18.1', notes: [
+    '과제 확인 화면을 과제 목록과 선택한 과제의 확인 현황이 함께 보이도록 새롭게 정리했어요',
+    '창을 열면 진행 중인 과제의 확인 전 학생부터 바로 살펴볼 수 있어요',
+    '확인 전 이름 복사, 모두 확인, 초기화와 과제 보관·복원을 지원해요',
+    '과제 확인 중 상태 메시지가 흐릿하게 보이던 문제를 고쳤어요'
+  ]},
+  { version: 'v1.18.0', notes: [
+    '상단 탭을 간결하게 정리하고 과제 확인·랜덤 뽑기·타이머를 학급 도구 메뉴로 모았어요',
+    '학급 도구의 과제 확인에서 학생별 제출 여부를 체크하고 계속 저장할 수 있어요',
+    '랜덤 뽑기 명단을 불러오고 과제별 체크를 초기화하거나 삭제할 수 있어요',
+    '알림장의 학교종이 버튼이 서식을 유지해 내용을 복사하고 학교종이 작성 화면을 열어요',
+    '학교종이 학급 URL은 안전한 학교종이 주소인지 확인한 뒤 이 브라우저에만 저장해요'
+  ]},
   { version: 'v1.17.1', notes: [
     '공지사항 카드를 손잡이로 끌어서 순서를 바꿀 수 있어요',
     '요일별 교시 수를 6교시로 설정했는데도 5교시 뒤 수업 끝으로 표시되던 문제를 고쳤어요',
@@ -114,6 +128,12 @@ const UPDATE_HISTORY = [
 // 개발자 소식 게시판 — 의견 보내기로 받은 피드백에 답변하거나 소식을 전달할 때 사용합니다.
 // 최상단이 최신 글. id는 겹치지 않게(예: 날짜 + 순번) 주세요.
 const DEVELOPER_NOTES = [
+  {
+    id: '2026-07-15-01-assignment-check-redesign',
+    date: '2026-07-15',
+    title: '과제 확인을 더 빠르게 살펴볼 수 있게 다듬었어요',
+    body: '학생별로 과제를 확인할 수 있는 기능이 필요하다는 의견을 반영해 과제 확인 화면을 만들었지만, 과제가 늘어나면 어떤 학생부터 살펴봐야 하는지 한눈에 들어오지 않을 수 있겠다는 고민이 있었습니다. 그래서 이번에는 실제 확인 흐름에 맞춰 화면을 다시 정리했습니다.\n\n왼쪽에서 오늘 확인할 과제를 고르면 오른쪽에 확인 전, 확인 완료, 전체 학생 수가 바로 보입니다. 과제 확인 창을 새로 열 때는 아직 확인하지 않은 학생부터 표시되며, 학생 이름을 누르면 확인 완료로 넘어갑니다. 확인 전 이름만 복사하거나 모두 확인할 수 있고, 끝난 과제는 보관함으로 옮겼다가 다시 진행 중으로 되돌릴 수도 있습니다. 학생 명단 관리는 필요할 때만 여는 별도 공간으로 분리해 평소 화면은 간결하게 유지했습니다.\n\n기존에 등록한 과제와 학생별 확인 상태는 그대로 이어집니다. 과제 확인 중 안내 메시지가 모달 뒤에 낀 것처럼 흐릿하게 보이던 문제도 함께 고쳤습니다. 실제 교실에서 사용해보시고 더 빠르게 확인할 수 있는 방법이 떠오르면 의견 보내기로 알려주세요!'
+  },
   {
     id: '2026-07-08-01-notice-order-daily-periods',
     date: '2026-07-08',
@@ -241,7 +261,7 @@ let rules = [];
 let isEditing = false;
 let timetable = [];
 let settings = { showRemaining: true, chimeEnabled: true, chimeEndEnabled: true, colonBlink: true, showSeconds: true, timetableMode: false, dailyPeriods: { 1:5, 2:6, 3:5, 4:5, 5:5 }, morningSlotMigrated: false, schoolbellUrl: '', school: null, notebookMultiPageEnabled: false };
-let viewData = { activeTab: 'rules', notebook: '', notebookPages: [], activeNotebookPageId: '', notebookArchive: {}, notebookArchiveDate: '', notices: [], academicEvents: [], selectedAcademicEventDate: '', ddays: [], featuredDdayId: '', rulesFontScale: 1, rulesPanelView: 'rules', activities: [], activeActivityId: 'morning', activityFontSize: 24, activityColor: '#2d2a26', assignmentStudents: [], assignments: [] };
+let viewData = { activeTab: 'rules', notebook: '', notebookPages: [], activeNotebookPageId: '', notebookArchive: {}, notebookArchiveDate: '', notices: [], academicEvents: [], selectedAcademicEventDate: '', ddays: [], featuredDdayId: '', rulesFontScale: 1, rulesPanelView: 'rules', activities: [], activeActivityId: 'morning', activityFontSize: 24, activityColor: '#2d2a26', assignmentStudents: [], assignments: [], assignmentActiveId: '', assignmentStatusFilter: 'pending', assignmentListView: 'active' };
 let lastFeaturedDdayKey = '';
 let lastPeriodLabel = null;
 let lastPeriodType = null;
@@ -556,8 +576,19 @@ function loadViewData() {
         title: typeof item.title === 'string' && item.title.trim() ? item.title.trim() : '새 과제',
         date: typeof item.date === 'string' ? item.date : formatDateKey(new Date()),
         submitted,
+        archived: item.archived === true,
       };
     });
+  if (!['pending', 'completed', 'all'].includes(viewData.assignmentStatusFilter)) {
+    viewData.assignmentStatusFilter = 'pending';
+  }
+  if (!['active', 'archived'].includes(viewData.assignmentListView)) {
+    viewData.assignmentListView = 'active';
+  }
+  if (!viewData.assignments.some(item => item.id === viewData.assignmentActiveId)) {
+    const firstVisibleAssignment = viewData.assignments.find(item => item.archived === (viewData.assignmentListView === 'archived'));
+    viewData.assignmentActiveId = firstVisibleAssignment ? firstVisibleAssignment.id : '';
+  }
   if (!Array.isArray(viewData.notices)) viewData.notices = [];
   viewData.notices = viewData.notices
     .filter(notice => notice && (typeof notice === 'object' || typeof notice === 'string'))
@@ -1127,7 +1158,7 @@ function renderAssignments() {
   const input = document.getElementById('assignmentStudentInput');
   if (input) input.value = (viewData.assignmentStudents || []).join('\n');
   renderAssignmentStudentCount();
-  renderAssignmentList();
+  renderAssignmentWorkspace();
 }
 
 function renderAssignmentStudentCount() {
@@ -1140,7 +1171,7 @@ function onAssignmentStudentsInput() {
   viewData.assignmentStudents = uniqueNames((input ? input.value : '').split('\n'));
   saveViewData();
   renderAssignmentStudentCount();
-  renderAssignmentList();
+  renderAssignmentWorkspace();
 }
 
 function importRandomStudentsToAssignments() {
@@ -1159,6 +1190,49 @@ function importRandomStudentsToAssignments() {
   showToast('학생 명단을 불러왔어요');
 }
 
+function getAssignmentById(id) {
+  return (viewData.assignments || []).find(assignment => assignment.id === id) || null;
+}
+
+function getVisibleAssignments() {
+  const showArchived = viewData.assignmentListView === 'archived';
+  return (viewData.assignments || []).filter(assignment => assignment.archived === showArchived);
+}
+
+function ensureAssignmentSelection() {
+  const visibleAssignments = getVisibleAssignments();
+  const selected = getAssignmentById(viewData.assignmentActiveId);
+  if (!selected || selected.archived !== (viewData.assignmentListView === 'archived')) {
+    viewData.assignmentActiveId = visibleAssignments.length ? visibleAssignments[0].id : '';
+  }
+  return getAssignmentById(viewData.assignmentActiveId);
+}
+
+function setAssignmentListView(view) {
+  if (!['active', 'archived'].includes(view)) return;
+  viewData.assignmentListView = view;
+  viewData.assignmentActiveId = '';
+  ensureAssignmentSelection();
+  saveViewData();
+  renderAssignmentWorkspace();
+}
+
+function selectAssignment(id) {
+  const assignment = getAssignmentById(id);
+  if (!assignment) return;
+  viewData.assignmentActiveId = assignment.id;
+  viewData.assignmentListView = assignment.archived ? 'archived' : 'active';
+  saveViewData();
+  renderAssignmentWorkspace();
+}
+
+function setAssignmentStatusFilter(filter) {
+  if (!['pending', 'completed', 'all'].includes(filter)) return;
+  viewData.assignmentStatusFilter = filter;
+  saveViewData();
+  renderAssignmentDetail();
+}
+
 function addAssignmentFromInput() {
   const input = document.getElementById('assignmentTitleInput');
   const title = (input ? input.value : '').trim();
@@ -1166,22 +1240,29 @@ function addAssignmentFromInput() {
     showToast('과제 이름을 입력해주세요');
     return;
   }
-  viewData.assignments.unshift({
+  const newAssignment = {
     id: 'assignment-' + Date.now(),
     title,
     date: formatDateKey(new Date()),
     submitted: {},
-  });
+    archived: false,
+  };
+  viewData.assignments.unshift(newAssignment);
+  viewData.assignmentActiveId = newAssignment.id;
+  viewData.assignmentListView = 'active';
+  viewData.assignmentStatusFilter = 'pending';
   if (input) input.value = '';
   saveViewData();
-  renderAssignmentList();
+  renderAssignmentWorkspace();
+  showToast('과제를 추가했어요');
 }
 
 function updateAssignmentTitle(id, value) {
   const item = (viewData.assignments || []).find(assignment => assignment.id === id);
-  if (!item) return;
+  if (!item) return '';
   item.title = value.trim() || '새 과제';
   saveViewData();
+  return item.title;
 }
 
 function toggleAssignmentSubmission(id, studentName, checked) {
@@ -1190,22 +1271,108 @@ function toggleAssignmentSubmission(id, studentName, checked) {
   if (!item.submitted || typeof item.submitted !== 'object') item.submitted = {};
   item.submitted[studentName] = !!checked;
   saveViewData();
-  renderAssignmentList();
+  renderAssignmentWorkspace();
 }
 
 function clearAssignmentSubmission(id) {
   const item = (viewData.assignments || []).find(assignment => assignment.id === id);
   if (!item) return;
+  const checkedCount = Object.values(item.submitted || {}).filter(Boolean).length;
+  if (checkedCount && !confirm('“' + item.title + '” 과제의 확인 상태를 모두 초기화할까요?')) return;
   item.submitted = {};
   saveViewData();
-  renderAssignmentList();
+  renderAssignmentWorkspace();
+  showToast('확인 상태를 초기화했어요');
+}
+
+function completeAssignmentForAll(id) {
+  const item = getAssignmentById(id);
+  if (!item) return;
+  if (!item.submitted || typeof item.submitted !== 'object') item.submitted = {};
+  (viewData.assignmentStudents || []).forEach(name => {
+    item.submitted[name] = true;
+  });
+  saveViewData();
+  renderAssignmentWorkspace();
+  showToast('모든 학생을 확인 완료로 표시했어요');
+}
+
+function toggleAssignmentArchive(id) {
+  const item = getAssignmentById(id);
+  if (!item) return;
+  const students = viewData.assignmentStudents || [];
+  const pendingCount = students.filter(name => !(item.submitted || {})[name]).length;
+  if (!item.archived && pendingCount && !confirm('아직 확인 전인 학생이 ' + pendingCount + '명 있어요. 그래도 “' + item.title + '” 과제를 보관할까요?')) return;
+  const willArchive = !item.archived;
+  item.archived = willArchive;
+  viewData.assignmentActiveId = '';
+  ensureAssignmentSelection();
+  saveViewData();
+  renderAssignmentWorkspace();
+  showToast(willArchive ? '과제를 보관함으로 옮겼어요' : '과제를 진행 중으로 되돌렸어요');
 }
 
 function deleteAssignment(id) {
+  const item = (viewData.assignments || []).find(assignment => assignment.id === id);
+  if (!item || !confirm('“' + item.title + '” 과제를 삭제할까요?')) return;
   viewData.assignments = (viewData.assignments || []).filter(assignment => assignment.id !== id);
+  if (viewData.assignmentActiveId === id) viewData.assignmentActiveId = '';
+  ensureAssignmentSelection();
   saveViewData();
-  renderAssignmentList();
+  renderAssignmentWorkspace();
   showToast('과제가 삭제되었어요');
+}
+
+function copyPendingAssignmentStudents(id) {
+  const item = getAssignmentById(id);
+  if (!item) return;
+  const pending = (viewData.assignmentStudents || []).filter(name => !(item.submitted || {})[name]);
+  if (!pending.length) {
+    showToast('확인 전인 학생이 없어요');
+    return;
+  }
+  const text = pending.join(', ');
+  const finish = copied => showToast(copied ? '확인 전 학생 이름을 복사했어요' : '이름 복사에 실패했어요');
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(() => finish(true)).catch(() => finish(execCommandCopy(text)));
+  } else {
+    finish(execCommandCopy(text));
+  }
+}
+
+function formatAssignmentDateLabel(date) {
+  const parts = String(date || '').split('-').map(Number);
+  if (parts.length !== 3 || parts.some(Number.isNaN)) return '';
+  return parts[1] + '월 ' + parts[2] + '일';
+}
+
+function appendAssignmentEmpty(container, title, description, actionLabel, action) {
+  const empty = document.createElement('div');
+  empty.className = 'assignment-empty';
+  const icon = document.createElement('div');
+  icon.className = 'assignment-empty-icon';
+  icon.textContent = '✓';
+  const heading = document.createElement('strong');
+  heading.textContent = title;
+  const copy = document.createElement('span');
+  copy.textContent = description;
+  empty.appendChild(icon);
+  empty.appendChild(heading);
+  empty.appendChild(copy);
+  if (actionLabel && action) {
+    const button = document.createElement('button');
+    button.className = 'assignment-empty-action';
+    button.textContent = actionLabel;
+    button.onclick = action;
+    empty.appendChild(button);
+  }
+  container.appendChild(empty);
+}
+
+function renderAssignmentWorkspace() {
+  ensureAssignmentSelection();
+  renderAssignmentList();
+  renderAssignmentDetail();
 }
 
 function renderAssignmentList() {
@@ -1214,82 +1381,234 @@ function renderAssignmentList() {
   container.innerHTML = '';
 
   const students = viewData.assignmentStudents || [];
-  const assignments = viewData.assignments || [];
+  const assignments = getVisibleAssignments();
+  const count = document.getElementById('assignmentListCount');
+  if (count) count.textContent = assignments.length + '개';
 
-  if (!students.length) {
-    const empty = document.createElement('div');
-    empty.className = 'assignment-empty';
-    empty.textContent = '먼저 학생 명단을 입력해주세요.';
-    container.appendChild(empty);
-    return;
-  }
+  const activeTab = document.getElementById('assignmentActiveTab');
+  const archivedTab = document.getElementById('assignmentArchivedTab');
+  [activeTab, archivedTab].forEach((tab, index) => {
+    if (!tab) return;
+    const selected = (index === 0 && viewData.assignmentListView === 'active') || (index === 1 && viewData.assignmentListView === 'archived');
+    tab.classList.toggle('active', selected);
+    tab.setAttribute('aria-selected', selected ? 'true' : 'false');
+    tab.tabIndex = selected ? 0 : -1;
+  });
 
   if (!assignments.length) {
-    const empty = document.createElement('div');
-    empty.className = 'assignment-empty';
-    empty.textContent = '과제를 추가하면 제출 여부를 체크할 수 있어요.';
-    container.appendChild(empty);
+    appendAssignmentEmpty(
+      container,
+      viewData.assignmentListView === 'archived' ? '보관한 과제가 없어요' : '진행 중인 과제가 없어요',
+      viewData.assignmentListView === 'archived' ? '완료한 과제를 보관하면 이곳에 모입니다.' : '위에서 오늘 확인할 과제를 추가해보세요.'
+    );
     return;
   }
 
   assignments.forEach(assignment => {
     const submitted = assignment.submitted || {};
     const submittedCount = students.filter(name => submitted[name]).length;
+    const pendingCount = Math.max(0, students.length - submittedCount);
+    const button = document.createElement('button');
+    const selected = assignment.id === viewData.assignmentActiveId;
+    button.className = 'assignment-list-item' + (selected ? ' selected' : '');
+    button.setAttribute('aria-pressed', selected ? 'true' : 'false');
+    button.onclick = () => selectAssignment(assignment.id);
 
-    const card = document.createElement('div');
-    card.className = 'assignment-card';
+    const top = document.createElement('span');
+    top.className = 'assignment-list-item-top';
+    const title = document.createElement('strong');
+    title.textContent = assignment.title;
+    const date = document.createElement('small');
+    date.textContent = formatAssignmentDateLabel(assignment.date);
+    top.appendChild(title);
+    top.appendChild(date);
 
-    const header = document.createElement('div');
-    header.className = 'assignment-card-header';
+    const meta = document.createElement('span');
+    meta.className = 'assignment-list-item-meta';
+    meta.textContent = students.length && pendingCount === 0 ? '모두 확인 완료' : '확인 전 ' + pendingCount + '명';
 
-    const titleInput = document.createElement('input');
-    titleInput.type = 'text';
-    titleInput.className = 'assignment-title-edit';
-    titleInput.value = assignment.title;
-    titleInput.addEventListener('input', () => updateAssignmentTitle(assignment.id, titleInput.value));
+    const progress = document.createElement('span');
+    progress.className = 'assignment-list-progress';
+    const progressBar = document.createElement('i');
+    progressBar.style.width = (students.length ? Math.round((submittedCount / students.length) * 100) : 0) + '%';
+    progress.appendChild(progressBar);
 
-    const summary = document.createElement('span');
-    summary.className = 'assignment-summary';
-    summary.textContent = submittedCount + ' / ' + students.length + '명';
-
-    const resetBtn = document.createElement('button');
-    resetBtn.className = 'assignment-card-btn';
-    resetBtn.textContent = '체크 초기화';
-    resetBtn.onclick = () => clearAssignmentSubmission(assignment.id);
-
-    const deleteBtn = document.createElement('button');
-    deleteBtn.className = 'assignment-card-btn danger';
-    deleteBtn.textContent = '삭제';
-    deleteBtn.onclick = () => deleteAssignment(assignment.id);
-
-    header.appendChild(titleInput);
-    header.appendChild(summary);
-    header.appendChild(resetBtn);
-    header.appendChild(deleteBtn);
-
-    const grid = document.createElement('div');
-    grid.className = 'assignment-check-grid';
-    students.forEach(name => {
-      const label = document.createElement('label');
-      label.className = 'assignment-check-item' + (submitted[name] ? ' checked' : '');
-
-      const checkbox = document.createElement('input');
-      checkbox.type = 'checkbox';
-      checkbox.checked = !!submitted[name];
-      checkbox.addEventListener('change', () => toggleAssignmentSubmission(assignment.id, name, checkbox.checked));
-
-      const student = document.createElement('span');
-      student.textContent = name;
-
-      label.appendChild(checkbox);
-      label.appendChild(student);
-      grid.appendChild(label);
-    });
-
-    card.appendChild(header);
-    card.appendChild(grid);
-    container.appendChild(card);
+    button.appendChild(top);
+    button.appendChild(meta);
+    button.appendChild(progress);
+    container.appendChild(button);
   });
+}
+
+function renderAssignmentDetail() {
+  const container = document.getElementById('assignmentDetail');
+  if (!container) return;
+  container.innerHTML = '';
+
+  const assignment = ensureAssignmentSelection();
+  if (!assignment) {
+    appendAssignmentEmpty(
+      container,
+      viewData.assignmentListView === 'archived' ? '보관된 과제를 선택하세요' : '오늘 확인할 과제를 만들어보세요',
+      viewData.assignmentListView === 'archived' ? '보관함에 과제가 생기면 여기에서 다시 열어볼 수 있어요.' : '왼쪽 위에 과제 이름을 입력하면 바로 시작할 수 있어요.'
+    );
+    return;
+  }
+
+  const students = viewData.assignmentStudents || [];
+  const submitted = assignment.submitted || {};
+  const completedCount = students.filter(name => submitted[name]).length;
+  const pendingCount = Math.max(0, students.length - completedCount);
+
+  const header = document.createElement('div');
+  header.className = 'assignment-detail-header';
+  const heading = document.createElement('div');
+  heading.className = 'assignment-detail-heading';
+  const titleInput = document.createElement('input');
+  titleInput.type = 'text';
+  titleInput.className = 'assignment-title-edit';
+  titleInput.value = assignment.title;
+  titleInput.setAttribute('aria-label', '과제 이름');
+  titleInput.addEventListener('change', () => {
+    titleInput.value = updateAssignmentTitle(assignment.id, titleInput.value);
+    renderAssignmentList();
+  });
+  const date = document.createElement('span');
+  date.className = 'assignment-date';
+  date.textContent = formatAssignmentDateLabel(assignment.date);
+  heading.appendChild(titleInput);
+  heading.appendChild(date);
+
+  const actions = document.createElement('div');
+  actions.className = 'assignment-detail-actions';
+  const archiveBtn = document.createElement('button');
+  archiveBtn.className = 'assignment-card-btn';
+  archiveBtn.textContent = assignment.archived ? '진행 중으로 이동' : '보관';
+  archiveBtn.onclick = () => toggleAssignmentArchive(assignment.id);
+  const deleteBtn = document.createElement('button');
+  deleteBtn.className = 'assignment-card-btn danger';
+  deleteBtn.textContent = '삭제';
+  deleteBtn.onclick = () => deleteAssignment(assignment.id);
+  actions.appendChild(archiveBtn);
+  actions.appendChild(deleteBtn);
+  header.appendChild(heading);
+  header.appendChild(actions);
+  container.appendChild(header);
+
+  if (!students.length) {
+    appendAssignmentEmpty(container, '학생 명단이 비어 있어요', '명단을 한 번 등록하면 모든 과제에서 함께 사용할 수 있어요.', '명단 관리 열기', openAssignmentRoster);
+    return;
+  }
+
+  const statusCards = document.createElement('div');
+  statusCards.className = 'assignment-status-cards';
+  [
+    { filter: 'pending', label: '확인 전', count: pendingCount },
+    { filter: 'completed', label: '확인 완료', count: completedCount },
+    { filter: 'all', label: '전체 학생', count: students.length },
+  ].forEach(info => {
+    const button = document.createElement('button');
+    button.className = 'assignment-status-card ' + info.filter + (viewData.assignmentStatusFilter === info.filter ? ' active' : '');
+    button.setAttribute('aria-pressed', viewData.assignmentStatusFilter === info.filter ? 'true' : 'false');
+    button.onclick = () => setAssignmentStatusFilter(info.filter);
+    const label = document.createElement('span');
+    label.textContent = info.label;
+    const count = document.createElement('strong');
+    count.textContent = info.count + '명';
+    button.appendChild(label);
+    button.appendChild(count);
+    statusCards.appendChild(button);
+  });
+  container.appendChild(statusCards);
+
+  const quickActions = document.createElement('div');
+  quickActions.className = 'assignment-quick-actions';
+  const hint = document.createElement('span');
+  hint.textContent = '학생 이름을 누르면 상태가 바뀝니다.';
+  const quickButtons = document.createElement('div');
+  quickButtons.className = 'assignment-quick-buttons';
+  const copyBtn = document.createElement('button');
+  copyBtn.className = 'assignment-card-btn';
+  copyBtn.textContent = '확인 전 이름 복사';
+  copyBtn.disabled = pendingCount === 0;
+  copyBtn.onclick = () => copyPendingAssignmentStudents(assignment.id);
+  const allBtn = document.createElement('button');
+  allBtn.className = 'assignment-card-btn primary';
+  allBtn.textContent = '모두 확인';
+  allBtn.disabled = pendingCount === 0;
+  allBtn.onclick = () => completeAssignmentForAll(assignment.id);
+  const resetBtn = document.createElement('button');
+  resetBtn.className = 'assignment-card-btn';
+  resetBtn.textContent = '초기화';
+  resetBtn.disabled = completedCount === 0;
+  resetBtn.onclick = () => clearAssignmentSubmission(assignment.id);
+  quickButtons.appendChild(copyBtn);
+  quickButtons.appendChild(allBtn);
+  quickButtons.appendChild(resetBtn);
+  quickActions.appendChild(hint);
+  quickActions.appendChild(quickButtons);
+  container.appendChild(quickActions);
+
+  const filter = viewData.assignmentStatusFilter;
+  const visibleStudents = students.filter(name => filter === 'all' || (filter === 'completed' ? !!submitted[name] : !submitted[name]));
+  if (!visibleStudents.length) {
+    appendAssignmentEmpty(
+      container,
+      filter === 'pending' ? '모두 확인했어요' : '표시할 학생이 없어요',
+      filter === 'pending' ? '이 과제의 확인이 모두 끝났습니다. 완료된 과제는 보관해둘 수 있어요.' : '다른 상태 카드를 눌러 학생을 확인해보세요.'
+    );
+    return;
+  }
+
+  const grid = document.createElement('div');
+  grid.className = 'assignment-check-grid';
+  grid.setAttribute('aria-label', filter === 'pending' ? '확인 전 학생' : (filter === 'completed' ? '확인 완료 학생' : '전체 학생'));
+  visibleStudents.forEach(name => {
+    const checked = !!submitted[name];
+    const button = document.createElement('button');
+    button.className = 'assignment-check-item' + (checked ? ' checked' : '');
+    button.setAttribute('aria-pressed', checked ? 'true' : 'false');
+    button.setAttribute('aria-label', name + ' - ' + (checked ? '확인 완료, 눌러 확인 전으로 변경' : '확인 전, 눌러 확인 완료로 변경'));
+    button.onclick = () => toggleAssignmentSubmission(assignment.id, name, !checked);
+    const nameText = document.createElement('span');
+    nameText.className = 'assignment-student-name';
+    nameText.textContent = name;
+    const state = document.createElement('span');
+    state.className = 'assignment-student-status';
+    state.textContent = checked ? '완료' : '확인';
+    button.appendChild(nameText);
+    button.appendChild(state);
+    grid.appendChild(button);
+  });
+  container.appendChild(grid);
+}
+
+function openAssignmentRoster() {
+  const drawer = document.getElementById('assignmentRosterDrawer');
+  const backdrop = document.getElementById('assignmentRosterBackdrop');
+  const openButton = document.getElementById('assignmentRosterOpenBtn');
+  if (!drawer || !backdrop) return;
+  drawer.classList.add('open');
+  backdrop.classList.add('open');
+  drawer.setAttribute('aria-hidden', 'false');
+  if (openButton) openButton.setAttribute('aria-expanded', 'true');
+  const input = document.getElementById('assignmentStudentInput');
+  if (input) setTimeout(() => input.focus(), 100);
+}
+
+function closeAssignmentRoster(returnFocus = true) {
+  const drawer = document.getElementById('assignmentRosterDrawer');
+  const backdrop = document.getElementById('assignmentRosterBackdrop');
+  const openButton = document.getElementById('assignmentRosterOpenBtn');
+  if (drawer) {
+    drawer.classList.remove('open');
+    drawer.setAttribute('aria-hidden', 'true');
+  }
+  if (backdrop) backdrop.classList.remove('open');
+  if (openButton) {
+    openButton.setAttribute('aria-expanded', 'false');
+    if (returnFocus) openButton.focus();
+  }
 }
 
 // =============================================
@@ -2531,9 +2850,6 @@ function onTtDragEnd() {
 // TAB SWITCHING
 // =============================================
 function switchTab(tabName) {
-  if (tabName === 'assignments') {
-    tabName = 'rules';
-  }
   if (!['rules', 'notebook', 'notice', 'meal', 'dday'].includes(tabName)) {
     tabName = 'rules';
   }
@@ -2587,9 +2903,57 @@ function initTabs() {
 }
 
 // =============================================
+// CLASSROOM TOOLS
+// =============================================
+function toggleClassroomTools(event) {
+  if (event) event.stopPropagation();
+  const tools = document.getElementById('classroomTools');
+  if (!tools) return;
+  setClassroomToolsOpen(!tools.classList.contains('open'));
+}
+
+function setClassroomToolsOpen(isOpen) {
+  const tools = document.getElementById('classroomTools');
+  const button = document.getElementById('classroomToolsBtn');
+  if (!tools || !button) return;
+  tools.classList.toggle('open', !!isOpen);
+  button.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+}
+
+function closeClassroomTools() {
+  setClassroomToolsOpen(false);
+}
+
+function openAssignmentModal() {
+  closeClassroomTools();
+  closeAssignmentRoster(false);
+  viewData.assignmentListView = 'active';
+  viewData.assignmentStatusFilter = 'pending';
+  renderAssignments();
+  const modal = document.getElementById('assignmentModal');
+  if (!modal) return;
+  modal.classList.add('open');
+  modal.setAttribute('aria-hidden', 'false');
+  const closeButton = modal.querySelector('.modal-close');
+  if (closeButton) setTimeout(() => closeButton.focus(), 100);
+}
+
+function closeAssignmentModal() {
+  closeAssignmentRoster(false);
+  const modal = document.getElementById('assignmentModal');
+  if (modal) {
+    modal.classList.remove('open');
+    modal.setAttribute('aria-hidden', 'true');
+  }
+  const toolsButton = document.getElementById('classroomToolsBtn');
+  if (toolsButton) toolsButton.focus();
+}
+
+// =============================================
 // TIMER
 // =============================================
 function openTimer() {
+  closeClassroomTools();
   const modal = document.getElementById('timerModal');
   if (modal) modal.classList.add('open');
   renderTimer();
@@ -2746,43 +3110,87 @@ function playTimerFinishedSound() {
 // NOTEBOOK (알림장)
 // =============================================
 function sendToSchoolbell() {
-  showToast('테스트 중입니다. 추후 업데이트를 기다려주세요.');
-  return;
-  /* --- 아래 기능은 테스트 완료 후 활성화 예정 ---
   var area = document.getElementById('notebookArea');
   var text = (area ? area.innerText : '').trim();
   if (!text) {
     showToast('알림장에 내용을 먼저 입력해주세요');
     return;
   }
-  var html = area ? area.innerHTML : '';
+  var html = buildSchoolbellClipboardHTML(area ? area.innerHTML : getActiveNotebookContent());
+  var copied = execCommandCopyRich(html, text);
+  var richCopyPromise = null;
   if (navigator.clipboard && window.ClipboardItem) {
-    var htmlBlob = new Blob([html], { type: 'text/html' });
-    var textBlob = new Blob([text], { type: 'text/plain' });
-    navigator.clipboard.write([
-      new ClipboardItem({ 'text/html': htmlBlob, 'text/plain': textBlob })
-    ]).then(function() {
-      openSchoolbell();
-    }).catch(function() {
-      fallbackCopyAndOpen(text);
-    });
-  } else {
-    fallbackCopyAndOpen(text);
+    try {
+      var htmlBlob = new Blob([html], { type: 'text/html' });
+      var textBlob = new Blob([text], { type: 'text/plain' });
+      richCopyPromise = navigator.clipboard.write([
+        new ClipboardItem({ 'text/html': htmlBlob, 'text/plain': textBlob })
+      ]);
+    } catch {
+      richCopyPromise = null;
+    }
   }
-  */
+  openSchoolbell();
+  if (richCopyPromise) {
+    richCopyPromise.then(function() {
+      showToast('알림장을 복사했어요. 학교종이에서 Ctrl+V로 붙여넣어 주세요.');
+    }).catch(function() {
+      if (copied) {
+        showToast('알림장을 복사했어요. 학교종이에서 Ctrl+V로 붙여넣어 주세요.');
+      } else {
+        fallbackCopyForSchoolbell(text);
+      }
+    });
+    return;
+  }
+  if (copied) showToast('알림장을 복사했어요. 학교종이에서 Ctrl+V로 붙여넣어 주세요.');
+  else fallbackCopyForSchoolbell(text);
 }
 
-function fallbackCopyAndOpen(text) {
+function buildSchoolbellClipboardHTML(html) {
+  var holder = document.createElement('div');
+  holder.innerHTML = sanitizeNotebookHTML(html);
+  holder.querySelectorAll('*').forEach(function(el) {
+    if (el.style) {
+      el.style.removeProperty('background');
+      el.style.removeProperty('background-color');
+      if (!el.getAttribute('style')) el.removeAttribute('style');
+    }
+    el.removeAttribute('bgcolor');
+  });
+  return sanitizeNotebookHTML(holder.innerHTML);
+}
+
+function execCommandCopyRich(html, text) {
+  var handled = false;
+  function handleCopy(event) {
+    if (!event.clipboardData) return;
+    event.clipboardData.setData('text/html', html);
+    event.clipboardData.setData('text/plain', text);
+    event.preventDefault();
+    handled = true;
+  }
+  document.addEventListener('copy', handleCopy);
+  try {
+    return document.execCommand('copy') && handled;
+  } catch {
+    return false;
+  } finally {
+    document.removeEventListener('copy', handleCopy);
+  }
+}
+
+function fallbackCopyForSchoolbell(text) {
   if (navigator.clipboard && navigator.clipboard.writeText) {
     navigator.clipboard.writeText(text).then(function() {
-      openSchoolbell();
+      showToast('알림장을 복사했어요. 학교종이에서 Ctrl+V로 붙여넣어 주세요.');
     }).catch(function() {
-      execCommandCopy(text);
-      openSchoolbell();
+      var copied = execCommandCopy(text);
+      showToast(copied ? '알림장을 복사했어요. 학교종이에서 Ctrl+V로 붙여넣어 주세요.' : '학교종이는 열었지만 자동 복사에 실패했어요. 알림장을 직접 복사해 주세요.');
     });
   } else {
-    execCommandCopy(text);
-    openSchoolbell();
+    var copied = execCommandCopy(text);
+    showToast(copied ? '알림장을 복사했어요. 학교종이에서 Ctrl+V로 붙여넣어 주세요.' : '학교종이는 열었지만 자동 복사에 실패했어요. 알림장을 직접 복사해 주세요.');
   }
 }
 
@@ -2793,34 +3201,64 @@ function execCommandCopy(text) {
   tmp.style.opacity = '0';
   document.body.appendChild(tmp);
   tmp.select();
-  document.execCommand('copy');
+  var copied = document.execCommand('copy');
   document.body.removeChild(tmp);
+  return copied;
+}
+
+function normalizeSchoolbellUrl(value, useWritePage) {
+  var raw = String(value || '').trim();
+  if (!raw) return '';
+  if (!/^https?:\/\//i.test(raw)) raw = 'https://' + raw;
+  try {
+    var parsed = new URL(raw);
+    var host = parsed.hostname.toLowerCase();
+    var allowedHosts = ['schoolbell-e.com', 'www.schoolbell-e.com', 'v4.schoolbell-e.com'];
+    if (!allowedHosts.includes(host)) return '';
+    parsed.protocol = 'https:';
+    parsed.port = '';
+    parsed.username = '';
+    parsed.password = '';
+    parsed.hash = '';
+    if (useWritePage) {
+      var match = parsed.pathname.match(/\/group\/(\d+)/);
+      if (match) {
+        return parsed.origin + '/ko/main/group/' + match[1] + '/boards/write/classnews';
+      }
+    }
+    return parsed.href;
+  } catch {
+    return '';
+  }
+}
+
+function getSchoolbellTargetUrl() {
+  return normalizeSchoolbellUrl(settings.schoolbellUrl, true) || SCHOOLBELL_DEFAULT_URL;
 }
 
 function openSchoolbell() {
-  var baseUrl = (settings.schoolbellUrl || '').trim();
-  var url;
-  if (baseUrl) {
-    // 설정된 URL에서 그룹 ID를 추출하여 알림장 작성 페이지로 이동
-    var match = baseUrl.match(/group\/(\d+)/);
-    if (match) {
-      url = 'https://schoolbell-e.com/ko/main/group/' + match[1] + '/boards/write/classnews';
-    } else {
-      url = baseUrl;
-    }
-  } else {
-    url = 'https://v4.schoolbell-e.com';
-  }
-  showToast('알림장 내용이 복사되었습니다. 학교종이에서 Ctrl+V로 붙여넣어 주세요.');
-  setTimeout(function() {
-    window.open(url, '_blank', 'noopener,noreferrer');
-  }, 800);
+  window.open(getSchoolbellTargetUrl(), '_blank', 'noopener,noreferrer');
 }
 
 function saveSchoolbellUrl() {
-  settings.schoolbellUrl = document.getElementById('schoolbellUrlInput').value.trim();
+  var input = document.getElementById('schoolbellUrlInput');
+  var raw = input ? input.value.trim() : '';
+  if (!raw) {
+    settings.schoolbellUrl = '';
+    saveSettings();
+    showToast('저장한 학교종이 URL을 지웠어요');
+    return;
+  }
+  var normalized = normalizeSchoolbellUrl(raw, false);
+  if (!normalized) {
+    showToast('schoolbell-e.com 학교종이 주소를 입력해주세요');
+    if (input) input.focus();
+    return;
+  }
+  settings.schoolbellUrl = normalized;
+  if (input) input.value = normalized;
   saveSettings();
-  showToast('학교종이 URL이 저장되었습니다.');
+  showToast('학교종이 URL을 저장했어요');
 }
 
 function openFeedback() {
@@ -5134,8 +5572,18 @@ function closeNotebookFullscreen() {
 
 document.addEventListener('keydown', function(e) {
   if (e.key !== 'Escape') return;
+  const assignmentRoster = document.getElementById('assignmentRosterDrawer');
+  if (assignmentRoster && assignmentRoster.classList.contains('open')) {
+    closeAssignmentRoster();
+    return;
+  }
   if (document.getElementById('notebookFullscreen').classList.contains('open')) {
     closeNotebookFullscreen();
+    return;
+  }
+  const classroomTools = document.getElementById('classroomTools');
+  if (classroomTools && classroomTools.classList.contains('open')) {
+    closeClassroomTools();
     return;
   }
   if (viewData.activeTab === 'notebook' && viewData.notebookPanelFill) {
@@ -5144,6 +5592,7 @@ document.addEventListener('keydown', function(e) {
   }
   const modalsByPriority = [
     { id: 'updateNotification', close: dismissUpdateNotification },
+    { id: 'assignmentModal', close: closeAssignmentModal },
     { id: 'timerModal', close: closeTimer },
     { id: 'randomPickerModal', close: closeRandomPicker },
     { id: 'quickTimetableModal', close: closeQuickTimetableEditor },
@@ -5161,6 +5610,9 @@ document.addEventListener('keydown', function(e) {
 });
 
 document.addEventListener('click', function(e) {
+  if (!e.target.closest('.classroom-tools')) {
+    closeClassroomTools();
+  }
   if (!e.target.closest('.notebook-color-btn') && !e.target.closest('.notebook-palette')) {
     document.querySelectorAll('.notebook-palette').forEach(function(p) { p.classList.remove('open'); });
   }
@@ -5252,6 +5704,7 @@ function saveRandomStudents() {
 }
 
 function openRandomPicker() {
+  closeClassroomTools();
   loadRandomStudents();
   document.getElementById('randomPickerModal').classList.add('open');
   document.getElementById('randomStudentInput').value = randomStudents.join('\n');
