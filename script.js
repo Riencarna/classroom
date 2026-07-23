@@ -235,6 +235,12 @@ const COLORS = ['#3b82f6','#8b5cf6','#f97316','#10b981','#ef4444','#ec4899','#14
 const DAYS_KR = ['일요일','월요일','화요일','수요일','목요일','금요일','토요일'];
 const DAY_LABELS = ['월','화','수','목','금'];
 const PERIOD_LABEL_RE = /^(\d+)교시$/;
+const RULES_PANEL_VIEWS = ['rules', 'morning', 'break', 'lunch'];
+const FIXED_ACTIVITY_DEFAULTS = [
+  { id: 'morning', title: '아침 활동', hint: '등교 후 바로 할 활동을 적어두세요.', subtitle: 'MORNING ACTIVITY', badge: 'AM' },
+  { id: 'break', title: '쉬는 시간 활동', hint: '쉬는 시간에 할 활동이나 안내를 적어두세요.', subtitle: 'BREAK TIME', badge: 'BRK' },
+  { id: 'lunch', title: '점심 시간 활동', hint: '점심 시간에 할 활동이나 안내를 적어두세요.', subtitle: 'LUNCH ACTIVITY', badge: 'PM' },
+];
 
 const DEFAULT_RULES = [
   { title: '서로 존중하기', desc: '친구의 말에 귀 기울이고, 다름을 인정해요', color: '#3b82f6' },
@@ -525,7 +531,7 @@ function loadViewData() {
   if (!['rules', 'notebook', 'notice', 'meal', 'dday'].includes(viewData.activeTab)) {
     viewData.activeTab = 'rules';
   }
-  if (!['rules', 'morning', 'lunch'].includes(viewData.rulesPanelView)) {
+  if (!RULES_PANEL_VIEWS.includes(viewData.rulesPanelView)) {
     viewData.rulesPanelView = 'rules';
   }
   if (typeof viewData.rulesFontScale !== 'number' || Number.isNaN(viewData.rulesFontScale)) {
@@ -539,12 +545,8 @@ function loadViewData() {
   if (typeof viewData.activityColor !== 'string' || !viewData.activityColor.trim()) {
     viewData.activityColor = '#2d2a26';
   }
-  const activityDefaults = [
-    { id: 'morning', title: '아침 활동', hint: '등교 후 바로 할 활동을 적어두세요.' },
-    { id: 'lunch', title: '점심 시간 활동', hint: '점심 시간에 할 활동이나 안내를 적어두세요.' },
-  ];
   const savedActivities = Array.isArray(viewData.activities) ? viewData.activities : [];
-  viewData.activities = activityDefaults.map(def => {
+  viewData.activities = FIXED_ACTIVITY_DEFAULTS.map(def => {
     const saved = savedActivities.find(item => item && item.id === def.id) || {};
     return {
       id: def.id,
@@ -861,11 +863,15 @@ function setRulesEditing(enabled) {
 }
 
 function getRulesPanelView() {
-  return ['rules', 'morning', 'lunch'].includes(viewData.rulesPanelView) ? viewData.rulesPanelView : 'rules';
+  return RULES_PANEL_VIEWS.includes(viewData.rulesPanelView) ? viewData.rulesPanelView : 'rules';
 }
 
 function getActivityById(id) {
   return (viewData.activities || []).find(activity => activity.id === id) || null;
+}
+
+function getActivityDefaults(id) {
+  return FIXED_ACTIVITY_DEFAULTS.find(activity => activity.id === id) || FIXED_ACTIVITY_DEFAULTS[0];
 }
 
 function applyRulesView() {
@@ -882,7 +888,7 @@ function applyRulesView() {
 
   const subtitle = document.getElementById('rulesSubtitle');
   if (subtitle) {
-    subtitle.textContent = isRulesView ? 'CLASS RULES' : (view === 'morning' ? 'MORNING ACTIVITY' : 'LUNCH ACTIVITY');
+    subtitle.textContent = isRulesView ? 'CLASS RULES' : getActivityDefaults(view).subtitle;
   }
 
   const editBtn = document.getElementById('editToggle');
@@ -901,7 +907,7 @@ function applyRulesView() {
 }
 
 function switchRulesView(view) {
-  if (!['rules', 'morning', 'lunch'].includes(view)) return;
+  if (!RULES_PANEL_VIEWS.includes(view)) return;
   viewData.rulesPanelView = view;
   if (view !== 'rules') viewData.activeActivityId = view;
   saveViewData();
@@ -1085,7 +1091,6 @@ function renderActivities() {
   }
 
   const activity = activities.find(item => item.id === viewData.activeActivityId) || activities[0];
-  const index = activities.findIndex(item => item.id === activity.id);
   applyActivityToolbarState();
 
   const card = document.createElement('div');
@@ -1096,14 +1101,14 @@ function renderActivities() {
 
   const badge = document.createElement('div');
   badge.className = 'activity-badge';
-  badge.textContent = index === 0 ? 'AM' : 'PM';
+  badge.textContent = getActivityDefaults(activity.id).badge;
 
   const title = document.createElement('input');
   title.type = 'text';
   title.className = 'activity-title-input';
   title.value = activity.title || '';
   title.addEventListener('input', () => {
-    activity.title = title.value.trim() || (activity.id === 'morning' ? '아침 활동' : '점심 시간 활동');
+    activity.title = title.value.trim() || getActivityDefaults(activity.id).title;
     saveViewData();
   });
 
