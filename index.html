@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>우리 반 배경화면</title>
-<link rel="stylesheet" href="style.css?v=1.18.1">
+<link rel="stylesheet" href="style.css?v=1.18.3">
 </head>
 <body>
 
@@ -210,7 +210,7 @@
     </button>
   </div>
 </div>
-<button class="version-label" onclick="openChangelog()" aria-label="버전 기록 보기">v1.18.1</button>
+<button class="version-label" onclick="openChangelog()" aria-label="버전 기록 보기">v1.18.3</button>
 <button class="feedback-btn" onclick="openFeedback()" title="의견 보내기" aria-label="의견 보내기">&#x1F4EC; 의견 보내기</button>
 <button class="dev-notes-btn" onclick="openDeveloperNotes()" title="개발자 소식" aria-label="개발자 소식">&#x1F4E2; 개발자 소식<span class="dev-notes-badge" id="devNotesBadge" style="display:none"></span></button>
 
@@ -290,6 +290,17 @@
           <input type="checkbox" id="timetableModeToggle" onchange="toggleTimetableModeSetting()">
           <span class="toggle-slider"></span>
         </label>
+      </div>
+      <div class="toggle-row">
+        <label class="toggle-label" for="startTabSelect">사이트 시작 탭<span class="help-icon">?<span class="help-tooltip">사이트를 새로 열거나 다시 불러올 때 가장 먼저 표시할 탭을 선택합니다.</span></span></label>
+        <select class="settings-select" id="startTabSelect" onchange="setStartTab(this.value)">
+          <option value="last">마지막으로 본 탭</option>
+          <option value="rules">학급 약속</option>
+          <option value="notebook">알림장</option>
+          <option value="notice">공지사항</option>
+          <option value="meal">급식</option>
+          <option value="dday">디데이</option>
+        </select>
       </div>
       <div class="toggle-row">
         <span class="toggle-label">쉬는 시간 음성 안내<span class="help-icon">?<span class="help-tooltip">쉬는 시간에 남은 시간을 음성으로 안내합니다. 아래에서 각 알림을 개별적으로 켜거나 끌 수 있어요.</span></span></span>
@@ -450,6 +461,18 @@
       <button class="modal-close" onclick="closeChangelog()" aria-label="닫기">&#10005;</button>
     </div>
     <div class="changelog-list">
+      <div class="changelog-item">
+        <div class="changelog-item-header">
+          <span class="changelog-version">v1.18.3</span>
+        </div>
+        <div class="changelog-desc">아침 활동과 점심 활동 메모의 ‘비우기’ 옆에 ‘+ 중요 메모’ 버튼을 추가했습니다. 버튼을 누르면 메모 하단에 중요한 일정이나 꼭 확인할 내용을 기존 메모와 나누어 강조해 적을 수 있으며, 내용은 활동별로 따로 저장됩니다.</div>
+      </div>
+      <div class="changelog-item">
+        <div class="changelog-item-header">
+          <span class="changelog-version">v1.18.2</span>
+        </div>
+        <div class="changelog-desc">설정 &gt; 표시 설정에서 사이트를 열 때 가장 먼저 표시할 탭을 선택할 수 있습니다. 기존처럼 마지막으로 본 탭을 이어서 보거나, 학급 약속·알림장·공지사항·급식·디데이 중 하나를 시작 탭으로 고정할 수 있습니다.</div>
+      </div>
       <div class="changelog-item">
         <div class="changelog-item-header">
           <span class="changelog-version">v1.18.1</span>
@@ -884,6 +907,6 @@
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-database-compat.js"></script>
 <script src="neis-api.js"></script>
-<script src="script.js?v=1.18.1"></script>
+<script src="script.js?v=1.18.3"></script>
 </body>
 </html>

@@ -1,10 +1,18 @@
 // =============================================
 // CONSTANTS
 // =============================================
-const APP_VERSION = 'v1.18.1';
+const APP_VERSION = 'v1.18.3';
 const FEEDBACK_URL = 'https://forms.gle/y48um84BTrBVn2Nt6';
 const SCHOOLBELL_DEFAULT_URL = 'https://v4.schoolbell-e.com/ko/gate/login';
 const UPDATE_HISTORY = [
+  { version: 'v1.18.3', notes: [
+    '아침 활동과 점심 활동 메모의 비우기 옆에 중요 메모 추가 버튼이 생겼어요',
+    '중요 일정이나 꼭 확인할 내용을 기존 메모와 나누어 강조해서 적을 수 있어요'
+  ]},
+  { version: 'v1.18.2', notes: [
+    '설정에서 사이트를 열 때 가장 먼저 표시할 탭을 고를 수 있어요',
+    '마지막으로 본 탭을 이어서 보거나 학급 약속·알림장·공지사항·급식·디데이 중 하나를 시작 탭으로 고정할 수 있어요'
+  ]},
   { version: 'v1.18.1', notes: [
     '과제 확인 화면을 과제 목록과 선택한 과제의 확인 현황이 함께 보이도록 새롭게 정리했어요',
     '창을 열면 진행 중인 과제의 확인 전 학생부터 바로 살펴볼 수 있어요',
@@ -272,7 +280,7 @@ const DEFAULT_TIMETABLE = [
 let rules = [];
 let isEditing = false;
 let timetable = [];
-let settings = { showRemaining: true, chimeEnabled: true, chimeEndEnabled: true, colonBlink: true, showSeconds: true, timetableMode: false, dailyPeriods: { 1:5, 2:6, 3:5, 4:5, 5:5 }, morningSlotMigrated: false, schoolbellUrl: '', school: null, notebookMultiPageEnabled: false };
+let settings = { showRemaining: true, chimeEnabled: true, chimeEndEnabled: true, colonBlink: true, showSeconds: true, timetableMode: false, startTab: 'last', dailyPeriods: { 1:5, 2:6, 3:5, 4:5, 5:5 }, morningSlotMigrated: false, schoolbellUrl: '', school: null, notebookMultiPageEnabled: false };
 let viewData = { activeTab: 'rules', notebook: '', notebookPages: [], activeNotebookPageId: '', notebookArchive: {}, notebookArchiveDate: '', notices: [], academicEvents: [], selectedAcademicEventDate: '', ddays: [], featuredDdayId: '', rulesFontScale: 1, rulesPanelView: 'rules', activities: [], activeActivityId: 'morning', activityFontSize: 24, activityColor: '#2d2a26', assignmentStudents: [], assignments: [], assignmentActiveId: '', assignmentStatusFilter: 'pending', assignmentListView: 'active' };
 let lastFeaturedDdayKey = '';
 let lastPeriodLabel = null;
@@ -284,6 +292,7 @@ let audioCtx = null;
 let notebookTimer = null;
 let activityTimer = null;
 let activitySavedRange = null;
+let activityActiveEditorId = 'activityEditor';
 let lastAcademicEventToastKey = '';
 let specialTimetableDirty = false;
 let quickTimetableDirty = false;
@@ -511,6 +520,7 @@ function loadSettings() {
       if (settings.colonBlink === undefined) settings.colonBlink = true;
       if (settings.showSeconds === undefined) settings.showSeconds = true;
       if (settings.timetableMode === undefined) settings.timetableMode = false;
+      if (!['last', 'rules', 'notebook', 'notice', 'meal', 'dday'].includes(settings.startTab)) settings.startTab = 'last';
       if (settings.morningSlotMigrated === undefined) settings.morningSlotMigrated = false;
       if (settings.voiceAlertEnabled === undefined) settings.voiceAlertEnabled = false;
       if (settings.voiceAlertBreak3 === undefined) settings.voiceAlertBreak3 = true;
@@ -558,6 +568,8 @@ function loadViewData() {
       id: def.id,
       title: typeof saved.title === 'string' && saved.title.trim() ? saved.title.trim() : def.title,
       body: typeof saved.body === 'string' ? saved.body : '',
+      importantBody: typeof saved.importantBody === 'string' ? saved.importantBody : '',
+      importantVisible: saved.importantVisible === true || (typeof saved.importantBody === 'string' && saved.importantBody.trim() !== ''),
       hint: def.hint,
     };
   });
@@ -925,19 +937,24 @@ function getActiveActivity() {
   return activities.find(item => item.id === viewData.activeActivityId) || activities[0] || null;
 }
 
+function getActiveActivityEditor() {
+  return document.getElementById(activityActiveEditorId) || document.getElementById('activityEditor');
+}
+
 function saveActivitySelection() {
-  const editor = document.getElementById('activityEditor');
   const sel = window.getSelection();
-  if (!editor || !sel || sel.rangeCount === 0) return;
+  if (!sel || sel.rangeCount === 0) return;
   const range = sel.getRangeAt(0);
   const node = range.commonAncestorContainer.nodeType === 1 ? range.commonAncestorContainer : range.commonAncestorContainer.parentElement;
-  if (node && editor.contains(node)) {
+  const editor = node?.closest?.('#activityEditor, #activityImportantEditor');
+  if (editor) {
+    activityActiveEditorId = editor.id;
     activitySavedRange = range.cloneRange();
   }
 }
 
 function restoreActivitySelection() {
-  const editor = document.getElementById('activityEditor');
+  const editor = getActiveActivityEditor();
   if (!editor) return;
   editor.focus();
   if (!activitySavedRange) return;
@@ -958,11 +975,16 @@ function bindActivityToolbarGuards() {
   });
 }
 
-function onActivityInput() {
+function onActivityInput(event) {
   const activity = getActiveActivity();
-  const editor = document.getElementById('activityEditor');
+  const editor = event?.currentTarget || getActiveActivityEditor();
   if (!activity || !editor) return;
-  activity.body = sanitizeNotebookHTML(editor.innerHTML);
+  activityActiveEditorId = editor.id;
+  if (editor.id === 'activityImportantEditor') {
+    activity.importantBody = sanitizeNotebookHTML(editor.innerHTML);
+  } else {
+    activity.body = sanitizeNotebookHTML(editor.innerHTML);
+  }
   saveActivitySelection();
   clearTimeout(activityTimer);
   activityTimer = setTimeout(function() {
@@ -973,8 +995,9 @@ function onActivityInput() {
 function applyActivityFontSize() {
   const size = Math.max(12, Math.min(120, Number(viewData.activityFontSize) || 24));
   viewData.activityFontSize = size;
-  const editor = document.getElementById('activityEditor');
-  if (editor) editor.style.fontSize = size + 'px';
+  document.querySelectorAll('.activity-editor, .activity-important-editor').forEach(function(editor) {
+    editor.style.fontSize = size + 'px';
+  });
   const input = document.getElementById('activityFontSizeInput');
   if (input) input.value = size;
 }
@@ -1074,9 +1097,9 @@ function toggleActivityStyle(style) {
 }
 
 function syncActivityFromActive() {
-  const editor = document.getElementById('activityEditor');
+  const editor = getActiveActivityEditor();
   if (!editor) return;
-  onActivityInput();
+  onActivityInput({ currentTarget: editor });
 }
 
 function applyActivityToolbarState() {
@@ -1120,22 +1143,47 @@ function renderActivities() {
 
   const clearBtn = document.createElement('button');
   clearBtn.className = 'activity-clear-btn';
+  clearBtn.type = 'button';
   clearBtn.textContent = '비우기';
+  clearBtn.setAttribute('aria-label', (activity.title || '활동') + ' 일반 메모 비우기');
   clearBtn.onclick = () => {
     activity.body = '';
     saveViewData();
     renderActivities();
   };
 
+  const importantBtn = document.createElement('button');
+  importantBtn.className = 'activity-important-add-btn' + (activity.importantVisible ? ' active' : '');
+  importantBtn.type = 'button';
+  importantBtn.textContent = '+ 중요 메모';
+  importantBtn.title = activity.importantVisible ? '중요 메모로 이동' : '하단에 중요 일정·내용 메모 추가';
+  importantBtn.setAttribute('aria-label', importantBtn.title);
+  importantBtn.setAttribute('aria-pressed', activity.importantVisible ? 'true' : 'false');
+  importantBtn.onclick = () => {
+    if (!activity.importantVisible) {
+      activity.importantVisible = true;
+      saveViewData();
+      renderActivities();
+    }
+    activityActiveEditorId = 'activityImportantEditor';
+    requestAnimationFrame(() => document.getElementById('activityImportantEditor')?.focus());
+  };
+
+  const actions = document.createElement('div');
+  actions.className = 'activity-card-actions';
+  actions.appendChild(importantBtn);
+  actions.appendChild(clearBtn);
+
   header.appendChild(badge);
   header.appendChild(title);
-  header.appendChild(clearBtn);
+  header.appendChild(actions);
 
   const body = document.createElement('div');
   body.id = 'activityEditor';
   body.className = 'activity-editor';
   body.contentEditable = 'true';
   body.spellcheck = false;
+  body.setAttribute('aria-label', (activity.title || '활동') + ' 일반 메모');
   body.dataset.placeholder = activity.hint || '활동 내용을 적어두세요.';
   body.innerHTML = sanitizeNotebookHTML(activity.body || '');
   body.addEventListener('input', onActivityInput);
@@ -1145,8 +1193,57 @@ function renderActivities() {
 
   card.appendChild(header);
   card.appendChild(body);
+
+  if (activity.importantVisible) {
+    const importantPanel = document.createElement('section');
+    importantPanel.className = 'activity-important-panel';
+    importantPanel.setAttribute('aria-label', '중요 일정과 내용');
+
+    const importantHeader = document.createElement('div');
+    importantHeader.className = 'activity-important-panel-header';
+
+    const importantLabel = document.createElement('div');
+    importantLabel.className = 'activity-important-label';
+    importantLabel.textContent = '★ 중요 일정 · 내용';
+
+    const removeImportantBtn = document.createElement('button');
+    removeImportantBtn.className = 'activity-important-remove-btn';
+    removeImportantBtn.type = 'button';
+    removeImportantBtn.textContent = '영역 삭제';
+    removeImportantBtn.setAttribute('aria-label', '중요 메모 영역 삭제');
+    removeImportantBtn.onclick = () => {
+      const hasContent = String(activity.importantBody || '').replace(/<[^>]*>/g, '').trim() !== '';
+      if (hasContent && !confirm('중요 메모의 내용과 영역을 함께 삭제할까요?')) return;
+      activity.importantBody = '';
+      activity.importantVisible = false;
+      activityActiveEditorId = 'activityEditor';
+      saveViewData();
+      renderActivities();
+    };
+
+    const importantEditor = document.createElement('div');
+    importantEditor.id = 'activityImportantEditor';
+    importantEditor.className = 'activity-important-editor';
+    importantEditor.contentEditable = 'true';
+    importantEditor.spellcheck = false;
+    importantEditor.setAttribute('aria-label', (activity.title || '활동') + ' 중요 메모');
+    importantEditor.dataset.placeholder = '예: 10시 소방훈련 · 수학 단원평가 · 고요한 책 읽기';
+    importantEditor.innerHTML = sanitizeNotebookHTML(activity.importantBody || '');
+    importantEditor.addEventListener('input', onActivityInput);
+    importantEditor.addEventListener('keyup', saveActivitySelection);
+    importantEditor.addEventListener('mouseup', saveActivitySelection);
+    importantEditor.addEventListener('focus', saveActivitySelection);
+
+    importantHeader.appendChild(importantLabel);
+    importantHeader.appendChild(removeImportantBtn);
+    importantPanel.appendChild(importantHeader);
+    importantPanel.appendChild(importantEditor);
+    card.appendChild(importantPanel);
+  }
+
   container.appendChild(card);
   activitySavedRange = null;
+  activityActiveEditorId = 'activityEditor';
   applyActivityFontSize();
   bindActivityToolbarGuards();
 }
@@ -1789,6 +1886,13 @@ function toggleShowRemaining() {
   saveSettings();
 }
 
+function setStartTab(tabName) {
+  const validTabs = ['last', 'rules', 'notebook', 'notice', 'meal', 'dday'];
+  settings.startTab = validTabs.includes(tabName) ? tabName : 'last';
+  saveSettings();
+  showToast(settings.startTab === 'last' ? '마지막으로 본 탭에서 시작해요' : '다음 로드부터 선택한 탭에서 시작해요');
+}
+
 function openSettings() {
   document.getElementById('settingsModal').classList.add('open');
   document.getElementById('showRemainingToggle').checked = settings.showRemaining;
@@ -1797,6 +1901,8 @@ function openSettings() {
   document.getElementById('colonBlinkToggle').checked = settings.colonBlink;
   document.getElementById('secondsToggle').checked = settings.showSeconds;
   document.getElementById('timetableModeToggle').checked = settings.timetableMode;
+  const startTabSelect = document.getElementById('startTabSelect');
+  if (startTabSelect) startTabSelect.value = settings.startTab || 'last';
   document.getElementById('voiceAlertToggle').checked = settings.voiceAlertEnabled;
   document.getElementById('voiceBreak3Toggle').checked = settings.voiceAlertBreak3 !== false;
   document.getElementById('voiceBreak1Toggle').checked = settings.voiceAlertBreak1 !== false;
@@ -2909,7 +3015,8 @@ function switchToDdayTab() {
 }
 
 function initTabs() {
-  const tab = viewData.activeTab || 'rules';
+  const fixedStartTab = ['rules', 'notebook', 'notice', 'meal', 'dday'].includes(settings.startTab) ? settings.startTab : '';
+  const tab = fixedStartTab || viewData.activeTab || 'rules';
   switchTab(tab);
 }
 
@@ -3433,7 +3540,7 @@ function saveNotebookContent(html) {
 // 브라우저가 그 배경색까지 클립보드에 담습니다. 그러면 학교종이처럼 서식을 유지하는
 // 편집기에 붙여넣을 때 배경이 남습니다. 아래 핸들러는 선택한 글자의 서식(굵게·기울임·
 // 밑줄·색)은 살리고 배경만 제거한 내용을 클립보드에 넣습니다.
-var NOTEBOOK_EDITOR_SELECTOR = '#notebookArea, #notebookPanelTextarea, #notebookFullscreenBody, #activityEditor';
+var NOTEBOOK_EDITOR_SELECTOR = '#notebookArea, #notebookPanelTextarea, #notebookFullscreenBody, #activityEditor, #activityImportantEditor';
 
 function getNotebookEditorFromSelection(sel) {
   if (!sel || sel.rangeCount === 0) return null;
