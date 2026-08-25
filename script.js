@@ -1,10 +1,15 @@
 // =============================================
 // CONSTANTS
 // =============================================
-const APP_VERSION = 'v1.18.3';
+const APP_VERSION = 'v1.19.0';
 const FEEDBACK_URL = 'https://forms.gle/y48um84BTrBVn2Nt6';
 const SCHOOLBELL_DEFAULT_URL = 'https://v4.schoolbell-e.com/ko/gate/login';
 const UPDATE_HISTORY = [
+  { version: 'v1.19.0', notes: [
+    '특별실로 이동하는 수업 전에 화면과 음성으로 알려주는 이동 수업 알림이 생겼어요',
+    '과목 편집에서 요일별 이동 장소를 적고, 설정에서 1·3·5·10분 전 중 알림 시각을 고를 수 있어요',
+    '오늘 시간표와 날짜별 시간표에서도 이동 장소를 따로 바꿀 수 있어요'
+  ]},
   { version: 'v1.18.3', notes: [
     '아침 활동, 쉬는 시간, 점심 활동 메모의 비우기 옆에 중요 메모 추가 버튼이 생겼어요',
     '중요 일정이나 꼭 확인할 내용을 기존 메모와 나누어 강조해서 적을 수 있어요'
@@ -136,6 +141,12 @@ const UPDATE_HISTORY = [
 // 개발자 소식 게시판 — 의견 보내기로 받은 피드백에 답변하거나 소식을 전달할 때 사용합니다.
 // 최상단이 최신 글. id는 겹치지 않게(예: 날짜 + 순번) 주세요.
 const DEVELOPER_NOTES = [
+  {
+    id: '2026-08-25-01-movement-class-alert',
+    date: '2026-08-25',
+    title: '특별실 이동 수업도 미리 알려드려요',
+    body: '쉬는 시간이 끝나기 전뿐 아니라 영어실, 과학실 같은 특별실로 이동해야 하는 수업도 미리 알려주면 좋겠다는 의견을 보내주셨습니다. 쉬는 시간 종료 1분 전 안내는 기존에도 있었지만, 다음 수업의 장소에 맞춘 안내는 따로 없어서 이동 준비가 늦어질 수 있었습니다.\n\n이제 설정 > 과목 · 이동 장소 편집에서 요일별 과목 아래에 과학실, 영어실 같은 장소를 적을 수 있습니다. 장소를 적은 수업은 시작 1·3·5·10분 전 중 선택한 시각부터 왼쪽 화면에 이동 준비 배너가 보이고, 별도 차임과 "다음 과학 수업은 과학실에서 시작합니다" 같은 한국어 음성 안내가 한 번 재생됩니다. 교실에서 하는 수업은 이동 장소를 비워두면 알림이 울리지 않습니다.\n\n기본 시간표뿐 아니라 오늘만 바꾼 시간표와 날짜별 시간표에서도 이동 장소를 따로 수정할 수 있습니다. 실제 수업 전환에서 놓치기 쉬운 순간을 알려주신 덕분에 하루 흐름이 한층 더 매끄러워졌습니다. 좋은 의견 보내주셔서 감사합니다!'
+  },
   {
     id: '2026-08-20-01-start-tab-important-note',
     date: '2026-08-20',
@@ -270,14 +281,14 @@ const DEFAULT_RULES = [
 ];
 
 const DEFAULT_TIMETABLE = [
-  { label: '아침 시간', start: '08:40', end: '09:00', type: 'event-time', days: [1,2,3,4,5], subjects: {} },
-  { label: '1교시', start: '09:00', end: '09:40', type: 'in-class', days: [1,2,3,4,5], subjects: {} },
-  { label: '2교시', start: '09:50', end: '10:30', type: 'in-class', days: [1,2,3,4,5], subjects: {} },
-  { label: '3교시', start: '10:40', end: '11:20', type: 'in-class', days: [1,2,3,4,5], subjects: {} },
-  { label: '4교시', start: '11:30', end: '12:10', type: 'in-class', days: [1,2,3,4,5], subjects: {} },
-  { label: '점심시간', start: '12:10', end: '13:00', type: 'lunch-time', days: [1,2,3,4,5], subjects: {} },
-  { label: '5교시', start: '13:00', end: '13:40', type: 'in-class', days: [1,2,3,4,5], subjects: {} },
-  { label: '6교시', start: '13:50', end: '14:30', type: 'in-class', days: [2], subjects: {} },
+  { label: '아침 시간', start: '08:40', end: '09:00', type: 'event-time', days: [1,2,3,4,5], subjects: {}, rooms: {} },
+  { label: '1교시', start: '09:00', end: '09:40', type: 'in-class', days: [1,2,3,4,5], subjects: {}, rooms: {} },
+  { label: '2교시', start: '09:50', end: '10:30', type: 'in-class', days: [1,2,3,4,5], subjects: {}, rooms: {} },
+  { label: '3교시', start: '10:40', end: '11:20', type: 'in-class', days: [1,2,3,4,5], subjects: {}, rooms: {} },
+  { label: '4교시', start: '11:30', end: '12:10', type: 'in-class', days: [1,2,3,4,5], subjects: {}, rooms: {} },
+  { label: '점심시간', start: '12:10', end: '13:00', type: 'lunch-time', days: [1,2,3,4,5], subjects: {}, rooms: {} },
+  { label: '5교시', start: '13:00', end: '13:40', type: 'in-class', days: [1,2,3,4,5], subjects: {}, rooms: {} },
+  { label: '6교시', start: '13:50', end: '14:30', type: 'in-class', days: [2], subjects: {}, rooms: {} },
 ];
 
 // =============================================
@@ -286,13 +297,14 @@ const DEFAULT_TIMETABLE = [
 let rules = [];
 let isEditing = false;
 let timetable = [];
-let settings = { showRemaining: true, chimeEnabled: true, chimeEndEnabled: true, colonBlink: true, showSeconds: true, timetableMode: false, startTab: 'last', dailyPeriods: { 1:5, 2:6, 3:5, 4:5, 5:5 }, morningSlotMigrated: false, schoolbellUrl: '', school: null, notebookMultiPageEnabled: false };
+let settings = { showRemaining: true, chimeEnabled: true, chimeEndEnabled: true, movementAlertEnabled: true, movementAlertMinutes: 5, colonBlink: true, showSeconds: true, timetableMode: false, startTab: 'last', dailyPeriods: { 1:5, 2:6, 3:5, 4:5, 5:5 }, morningSlotMigrated: false, schoolbellUrl: '', school: null, notebookMultiPageEnabled: false };
 let viewData = { activeTab: 'rules', notebook: '', notebookPages: [], activeNotebookPageId: '', notebookArchive: {}, notebookArchiveDate: '', notices: [], academicEvents: [], selectedAcademicEventDate: '', ddays: [], featuredDdayId: '', rulesFontScale: 1, rulesPanelView: 'rules', activities: [], activeActivityId: 'morning', activityFontSize: 24, activityColor: '#2d2a26', assignmentStudents: [], assignments: [], assignmentActiveId: '', assignmentStatusFilter: 'pending', assignmentListView: 'active' };
 let lastFeaturedDdayKey = '';
 let lastPeriodLabel = null;
 let lastPeriodType = null;
 let lastChimeTime = 0;
 let lastEndChimeTime = 0;
+let lastMovementAlertTime = 0;
 let lastTimetableMin = -1;
 let audioCtx = null;
 let notebookTimer = null;
@@ -380,6 +392,8 @@ function cloneEntry(entry) {
     days: Array.isArray(entry.days) ? [...entry.days] : [1, 2, 3, 4, 5],
     subjects: entry.subjects ? { ...entry.subjects } : {},
     subject: entry.subject || '',
+    rooms: entry.rooms ? { ...entry.rooms } : {},
+    room: entry.room || '',
   };
 }
 
@@ -389,7 +403,7 @@ function getPeriodNumber(label) {
 }
 
 function createMorningEntry(start, end) {
-  return { label: '아침 시간', start, end, type: 'event-time', days: [1, 2, 3, 4, 5], subjects: {} };
+  return { label: '아침 시간', start, end, type: 'event-time', days: [1, 2, 3, 4, 5], subjects: {}, rooms: {} };
 }
 
 function hasMorningEntry(entries) {
@@ -473,13 +487,16 @@ function buildSpecialTimetableFromBase(dateKey) {
   const sourceDate = new Date(dateKey + 'T09:00:00');
   return getBaseEntriesForDate(sourceDate).map(entry => {
     const subject = entry.subjects ? (entry.subjects[sourceDate.getDay()] || '') : '';
+    const room = entry.rooms ? (entry.rooms[sourceDate.getDay()] || '') : '';
     return {
       label: entry.label,
       start: entry.start,
       end: entry.end,
       type: entry.type,
       subject,
+      room,
       subjects: {},
+      rooms: {},
       days: [],
     };
   });
@@ -501,7 +518,10 @@ function loadTimetable() {
     const s = localStorage.getItem('classroomTimetable');
     timetable = s ? JSON.parse(s) : JSON.parse(JSON.stringify(DEFAULT_TIMETABLE));
   } catch { timetable = JSON.parse(JSON.stringify(DEFAULT_TIMETABLE)); }
-  timetable.forEach(entry => { if (!entry.subjects) entry.subjects = {}; });
+  timetable.forEach(entry => {
+    if (!entry.subjects) entry.subjects = {};
+    if (!entry.rooms) entry.rooms = {};
+  });
   if (!settings.morningSlotMigrated && !hasMorningEntry(timetable)) {
     timetable.unshift(createMorningEntry('08:40', '09:00'));
     saveTimetable();
@@ -523,6 +543,8 @@ function loadSettings() {
       if (!settings.dailyPeriods) settings.dailyPeriods = { 1:5, 2:6, 3:5, 4:5, 5:5 };
       if (settings.chimeEnabled === undefined) settings.chimeEnabled = true;
       if (settings.chimeEndEnabled === undefined) settings.chimeEndEnabled = true;
+      if (settings.movementAlertEnabled === undefined) settings.movementAlertEnabled = true;
+      if (![1, 3, 5, 10].includes(Number(settings.movementAlertMinutes))) settings.movementAlertMinutes = 5;
       if (settings.colonBlink === undefined) settings.colonBlink = true;
       if (settings.showSeconds === undefined) settings.showSeconds = true;
       if (settings.timetableMode === undefined) settings.timetableMode = false;
@@ -1904,6 +1926,9 @@ function openSettings() {
   document.getElementById('showRemainingToggle').checked = settings.showRemaining;
   document.getElementById('chimeToggle').checked = settings.chimeEnabled;
   document.getElementById('chimeEndToggle').checked = settings.chimeEndEnabled;
+  document.getElementById('movementAlertToggle').checked = settings.movementAlertEnabled !== false;
+  document.getElementById('movementAlertMinutesSelect').value = String(settings.movementAlertMinutes || 5);
+  updateMovementAlertOptionsState();
   document.getElementById('colonBlinkToggle').checked = settings.colonBlink;
   document.getElementById('secondsToggle').checked = settings.showSeconds;
   document.getElementById('timetableModeToggle').checked = settings.timetableMode;
@@ -2251,6 +2276,16 @@ function renderSpecialTimetableEditor() {
       markSpecialTimetableDirty();
     });
 
+    const roomInput = document.createElement('input');
+    roomInput.className = 'subject-grid-input movement-room-input';
+    roomInput.type = 'text';
+    roomInput.placeholder = '이동 장소 (선택)';
+    roomInput.value = entry.room || '';
+    roomInput.addEventListener('input', () => {
+      entry.room = roomInput.value;
+      markSpecialTimetableDirty();
+    });
+
     const delBtn = document.createElement('button');
     delBtn.className = 'tt-delete-btn';
     delBtn.innerHTML = '&#10005;';
@@ -2266,6 +2301,7 @@ function renderSpecialTimetableEditor() {
     row.appendChild(endInput);
     row.appendChild(typeSelect);
     row.appendChild(subjectInput);
+    row.appendChild(roomInput);
     row.appendChild(delBtn);
     container.appendChild(row);
   });
@@ -2318,6 +2354,8 @@ function addSpecialTimetableEntry() {
     type: 'in-class',
     subject: '',
     subjects: {},
+    room: '',
+    rooms: {},
     days: [],
   });
   specialTimetableDirty = true;
@@ -2437,12 +2475,14 @@ function collectQuickTimetableDraftFromEditor() {
     const timeInputs = row.querySelectorAll('.tt-time-input');
     const typeSelect = row.querySelector('.tt-type-select');
     const subjectInput = row.querySelector('.quick-tt-subject-input');
+    const roomInput = row.querySelector('.quick-tt-room-input');
 
     current.label = (labelInput && labelInput.value.trim()) || '새 시간';
     current.start = (timeInputs[0] && timeInputs[0].value) || current.start || '09:00';
     current.end = (timeInputs[1] && timeInputs[1].value) || current.end || '09:40';
     current.type = (typeSelect && typeSelect.value) || current.type || 'in-class';
     current.subject = subjectInput ? subjectInput.value : (current.subject || '');
+    current.room = roomInput ? roomInput.value : (current.room || '');
     return current;
   });
   const after = JSON.stringify(nextDraft.map(cloneEntry));
@@ -2597,6 +2637,17 @@ function renderQuickTimetableEditor() {
       saveQuickTimetable(false, false);
     });
 
+    const roomInput = document.createElement('input');
+    roomInput.className = 'subject-grid-input movement-room-input quick-tt-room-input';
+    roomInput.type = 'text';
+    roomInput.placeholder = '이동 장소 (선택)';
+    roomInput.value = entry.room || '';
+    roomInput.addEventListener('input', () => {
+      entry.room = roomInput.value;
+      markQuickTimetableDirty();
+      saveQuickTimetable(false, false);
+    });
+
     const delBtn = document.createElement('button');
     delBtn.className = 'tt-delete-btn';
     delBtn.innerHTML = '&#10005;';
@@ -2613,6 +2664,7 @@ function renderQuickTimetableEditor() {
     row.appendChild(endInput);
     row.appendChild(typeSelect);
     row.appendChild(subjectInput);
+    row.appendChild(roomInput);
     row.appendChild(delBtn);
     container.appendChild(row);
   });
@@ -2630,6 +2682,8 @@ function addQuickTimetableEntry() {
     type: 'in-class',
     subject: '',
     subjects: {},
+    room: '',
+    rooms: {},
     days: [],
   });
   markQuickTimetableDirty();
@@ -2831,6 +2885,7 @@ function addTimetableEntry() {
     type: 'in-class',
     days: [1, 2, 3, 4, 5],
     subjects: {},
+    rooms: {},
   });
   saveTimetable();
   renderTimetableEditor();
@@ -2873,17 +2928,36 @@ function renderSubjectGrid() {
     grid.appendChild(lbl);
 
     for (let d = 1; d <= 5; d++) {
-      const input = document.createElement('input');
-      input.type = 'text';
-      input.className = 'subject-grid-input';
-      input.value = entry.subjects[d] || '';
-      input.placeholder = '-';
-      input.addEventListener('input', () => {
-        timetable[idx].subjects[d] = input.value;
+      const cell = document.createElement('div');
+      cell.className = 'subject-grid-cell';
+
+      const subjectInput = document.createElement('input');
+      subjectInput.type = 'text';
+      subjectInput.className = 'subject-grid-input';
+      subjectInput.value = entry.subjects[d] || '';
+      subjectInput.placeholder = '과목';
+      subjectInput.setAttribute('aria-label', entry.label + ' ' + dayLabels[d - 1] + '요일 과목');
+      subjectInput.addEventListener('input', () => {
+        timetable[idx].subjects[d] = subjectInput.value;
         saveTimetable();
         if (settings.timetableMode) renderTimetableDisplay();
       });
-      grid.appendChild(input);
+
+      const roomInput = document.createElement('input');
+      roomInput.type = 'text';
+      roomInput.className = 'subject-grid-input movement-room-input';
+      roomInput.value = entry.rooms[d] || '';
+      roomInput.placeholder = '이동 장소';
+      roomInput.setAttribute('aria-label', entry.label + ' ' + dayLabels[d - 1] + '요일 이동 장소');
+      roomInput.addEventListener('input', () => {
+        timetable[idx].rooms[d] = roomInput.value;
+        saveTimetable();
+        if (settings.timetableMode) renderTimetableDisplay();
+      });
+
+      cell.appendChild(subjectInput);
+      cell.appendChild(roomInput);
+      grid.appendChild(cell);
     }
   });
 }
@@ -4972,6 +5046,7 @@ function generateTimetable() {
       type: 'in-class',
       days: [1, 2, 3, 4, 5],
       subjects: {},
+      rooms: {},
     });
 
     if (p === 4) {
@@ -4983,6 +5058,7 @@ function generateTimetable() {
         type: 'lunch-time',
         days: [1, 2, 3, 4, 5],
         subjects: {},
+        rooms: {},
       });
       startMins = endMins + 50;
     } else {
@@ -5038,6 +5114,65 @@ function playEndChime() {
   if (now - lastEndChimeTime < 60000) return;
   lastEndChimeTime = now;
   playChimeNotes([783.99, 659.25, 523.25]); // G5, E5, C5 (하강)
+}
+
+function playMovementChime(force) {
+  if (!force && (!audioCtx || settings.movementAlertEnabled === false)) return;
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+  const now = Date.now();
+  if (!force && now - lastMovementAlertTime < 60000) return;
+  lastMovementAlertTime = now;
+  playChimeNotes([659.25, 783.99, 659.25, 880]); // 이동 알림 전용 왕복 음형
+}
+
+let movementSpeechTimer = null;
+
+function speakMovementAlert(subject, room) {
+  if (!('speechSynthesis' in window)) return;
+  if (voiceAudio) {
+    voiceAudio.pause();
+    voiceAudio.currentTime = 0;
+  }
+  window.speechSynthesis.cancel();
+  const message = '이동 수업 안내입니다. 다음 ' + (subject ? subject + ' 수업은 ' : '수업은 ') + room + '에서 시작합니다. 이동 준비를 해 주세요.';
+  const utterance = new SpeechSynthesisUtterance(message);
+  utterance.lang = 'ko-KR';
+  utterance.rate = 0.95;
+  const koreanVoice = window.speechSynthesis.getVoices().find(voice => /^ko([-_]|$)/i.test(voice.lang || ''));
+  if (koreanVoice) utterance.voice = koreanVoice;
+  window.speechSynthesis.speak(utterance);
+}
+
+function playMovementAlert(subject, room, force) {
+  playMovementChime(!!force);
+  if (movementSpeechTimer) clearTimeout(movementSpeechTimer);
+  movementSpeechTimer = setTimeout(() => speakMovementAlert(subject, room), 1100);
+}
+
+function toggleMovementAlert() {
+  settings.movementAlertEnabled = document.getElementById('movementAlertToggle').checked;
+  saveSettings();
+  updateMovementAlertOptionsState();
+  if (!settings.movementAlertEnabled) hideMovementAlertBanner();
+}
+
+function saveMovementAlertOptions() {
+  const select = document.getElementById('movementAlertMinutesSelect');
+  const minutes = Number(select ? select.value : 5);
+  settings.movementAlertMinutes = [1, 3, 5, 10].includes(minutes) ? minutes : 5;
+  saveSettings();
+  checkMovementAlert(new Date());
+}
+
+function updateMovementAlertOptionsState() {
+  const options = document.getElementById('movementAlertOptions');
+  if (options) options.classList.toggle('disabled', settings.movementAlertEnabled === false);
+}
+
+function previewMovementAlert() {
+  playMovementAlert('과학', '과학실', true);
+  showToast('“다음 과학 수업은 과학실에서 시작합니다”');
 }
 
 function toggleChime() {
@@ -5126,14 +5261,15 @@ function renderTimetableDisplay() {
     const entry = entries[i];
     if (entry.type === 'lunch-time' || entry.type === 'break-time' || entry.type === 'event-time') continue;
     const subject = entry.subject || (entry.subjects ? entry.subjects[day] || '' : '');
-    timeline.push({ label: entry.label, start: entry.start, end: entry.end, type: entry.type, subject: subject });
+    const room = entry.room || (entry.rooms ? entry.rooms[day] || '' : '');
+    timeline.push({ label: entry.label, start: entry.start, end: entry.end, type: entry.type, subject: subject, room: room });
   }
 
   // Add terminal station for days with fewer than 6 periods
   const periodCount = timeline.length;
   if (periodCount > 0 && periodCount < 6) {
     const lastEntry = timeline[timeline.length - 1];
-    timeline.push({ label: '수업 끝', start: lastEntry.end, end: lastEntry.end, type: 'terminal', subject: '' });
+    timeline.push({ label: '수업 끝', start: lastEntry.end, end: lastEntry.end, type: 'terminal', subject: '', room: '' });
   }
 
   // Find current index (skip terminal)
@@ -5269,6 +5405,13 @@ function renderTimetableDisplay() {
         subjectSpan.className = 'subway-subject';
         subjectSpan.textContent = item.subject;
         topRow.appendChild(subjectSpan);
+      }
+
+      if (item.room) {
+        const roomSpan = document.createElement('span');
+        roomSpan.className = 'subway-room';
+        roomSpan.textContent = '↗ ' + item.room;
+        topRow.appendChild(roomSpan);
       }
 
       info.appendChild(topRow);
@@ -5443,7 +5586,8 @@ function getCurrentPeriod(now) {
     // Currently in this period
     if (mins >= start && mins < end) {
       const subject = entry.subject || (entry.subjects ? (entry.subjects[now.getDay()] || '') : '');
-      return { label: entry.label, type: entry.type, endMins: end, subject: subject };
+      const room = entry.room || (entry.rooms ? (entry.rooms[now.getDay()] || '') : '');
+      return { label: entry.label, type: entry.type, endMins: end, subject: subject, room: room };
     }
 
     // Check gap to next entry (break time)
@@ -5499,8 +5643,9 @@ function updateClock() {
   lastPeriodLabel = period.label;
   lastPeriodType = period.type;
 
-  // 과목명이 있으면 "3교시 · 수학" 형태로 표시
-  const displayLabel = period.subject ? period.label + ' · ' + period.subject : period.label;
+  // 과목명과 이동 장소가 있으면 "3교시 · 과학 · 과학실" 형태로 표시
+  let displayLabel = period.subject ? period.label + ' · ' + period.subject : period.label;
+  if (period.room) displayLabel += ' · ' + period.room;
 
   if (settings.showRemaining && period.endMins !== null) {
     const currentTotalSecs = n.getHours() * 3600 + n.getMinutes() * 60 + n.getSeconds();
@@ -5538,7 +5683,8 @@ function updateClock() {
     }
   }
 
-  // Voice alert check
+  // Movement-class and break/lunch voice alerts
+  checkMovementAlert(n);
   checkVoiceAlert(n);
 }
 
@@ -5921,6 +6067,95 @@ function renderRandomPickedList() {
     tag.textContent = name;
     container.appendChild(tag);
   });
+}
+
+// =============================================
+// MOVEMENT-CLASS ALERT (특별실 이동 안내)
+// =============================================
+const playedMovementAlerts = new Set();
+
+function getUpcomingMovementClass(now) {
+  const currentSecs = now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds();
+  const thresholdSecs = (Number(settings.movementAlertMinutes) || 5) * 60;
+  const day = now.getDay();
+  const entries = getTodayEntries(now);
+
+  for (const entry of entries) {
+    if (entry.type !== 'in-class') continue;
+    const room = String(entry.room || (entry.rooms ? entry.rooms[day] || '' : '')).trim();
+    if (!room) continue;
+
+    const startSecs = timeToMins(entry.start) * 60;
+    const remainingSecs = startSecs - currentSecs;
+    if (remainingSecs <= 0 || remainingSecs > thresholdSecs) continue;
+
+    return {
+      label: entry.label || '다음 수업',
+      subject: String(entry.subject || (entry.subjects ? entry.subjects[day] || '' : '')).trim(),
+      room,
+      start: entry.start,
+      remainingSecs,
+    };
+  }
+  return null;
+}
+
+function hideMovementAlertBanner() {
+  const banner = document.getElementById('movementAlertBanner');
+  if (!banner) return;
+  banner.classList.remove('show');
+  banner.removeAttribute('data-render-key');
+}
+
+function renderMovementAlertBanner(info, alertKey) {
+  const banner = document.getElementById('movementAlertBanner');
+  if (!banner) return;
+
+  const countdown = info.remainingSecs <= 60
+    ? '곧 시작'
+    : Math.ceil(info.remainingSecs / 60) + '분 후 시작';
+  const renderKey = alertKey + '-' + countdown;
+  if (banner.getAttribute('data-render-key') !== renderKey) {
+    banner.textContent = '';
+
+    const icon = document.createElement('span');
+    icon.className = 'movement-alert-icon';
+    icon.textContent = '↗';
+
+    const body = document.createElement('span');
+    body.className = 'movement-alert-body';
+    const title = document.createElement('strong');
+    title.textContent = info.room + ' 이동 준비';
+    const detail = document.createElement('span');
+    detail.textContent = info.label + (info.subject ? ' · ' + info.subject : '') + ' · ' + countdown;
+    body.appendChild(title);
+    body.appendChild(detail);
+
+    banner.appendChild(icon);
+    banner.appendChild(body);
+    banner.setAttribute('data-render-key', renderKey);
+  }
+  banner.classList.add('show');
+}
+
+function checkMovementAlert(now) {
+  if (settings.movementAlertEnabled === false) {
+    hideMovementAlertBanner();
+    return;
+  }
+
+  const info = getUpcomingMovementClass(now);
+  if (!info) {
+    hideMovementAlertBanner();
+    return;
+  }
+
+  const alertKey = formatDateKey(now) + '-' + info.start + '-' + info.label + '-' + info.subject + '-' + info.room;
+  renderMovementAlertBanner(info, alertKey);
+  if (playedMovementAlerts.has(alertKey)) return;
+
+  playedMovementAlerts.add(alertKey);
+  playMovementAlert(info.subject, info.room, false);
 }
 
 // =============================================
