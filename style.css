@@ -401,6 +401,9 @@
   .left-panel.timetable-mode .movement-alert-banner.show {
     transform: translateY(0) scale(1);
   }
+  .left-panel.timetable-mode .movement-alert-banner:not(.show) {
+    display: none;
+  }
 
   /* ========== Timetable Display — Subway Style (Two-Row) ========== */
   .timetable-display {
