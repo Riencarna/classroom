@@ -1910,6 +1910,19 @@
     transform: translateX(20px);
   }
 
+  .auto-alert-settings {
+    margin: 0.5rem 0 1rem;
+    padding: 0.9rem;
+    border-radius: 12px;
+    background: rgba(59,130,246,0.06);
+  }
+  .alert-days { display: flex; flex-wrap: wrap; gap: 0.75rem; margin-top: 0.7rem; }
+  .alert-day-option { display: flex; align-items: center; gap: 0.25rem; font-size: 0.85rem; cursor: pointer; }
+  .alert-day-option input { accent-color: #3b82f6; width: 16px; height: 16px; }
+  .settings-hint { font-size: 0.75rem; color: #57534e; line-height: 1.65; margin: 0.6rem 0 0; }
+  .audio-status-row { display: flex; flex-wrap: wrap; align-items: center; gap: 0.65rem; margin-top: 0.5rem; }
+  .audio-status-row .settings-hint { margin: 0; flex: 1 1 200px; }
+
   /* ========== Timetable Editor ========== */
   .tt-list {
     display: flex;

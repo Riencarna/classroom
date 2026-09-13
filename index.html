@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>우리 반 배경화면</title>
-<link rel="stylesheet" href="style.css?v=1.19.0">
+<link rel="stylesheet" href="style.css?v=1.19.1">
 </head>
 <body>
 
@@ -211,7 +211,7 @@
     </button>
   </div>
 </div>
-<button class="version-label" onclick="openChangelog()" aria-label="버전 기록 보기">v1.19.0</button>
+<button class="version-label" onclick="openChangelog()" aria-label="버전 기록 보기">v1.19.1</button>
 <button class="feedback-btn" onclick="openFeedback()" title="의견 보내기" aria-label="의견 보내기">&#x1F4EC; 의견 보내기</button>
 <button class="dev-notes-btn" onclick="openDeveloperNotes()" title="개발자 소식" aria-label="개발자 소식">&#x1F4E2; 개발자 소식<span class="dev-notes-badge" id="devNotesBadge" style="display:none"></span></button>
 
@@ -265,11 +265,20 @@
         </label>
       </div>
       <div class="toggle-row">
-        <span class="toggle-label">수업 종료 알림음<span class="help-icon">?<span class="help-tooltip">수업이 끝나고 쉬는 시간/점심으로 전환될 때 하강 멜로디(솔-미-도) 차임벨을 재생합니다.</span></span></span>
+        <span class="toggle-label">수업 종료 알림음<span class="help-icon">?<span class="help-tooltip">수업 종료 시각에 하강 멜로디(솔-미-도) 차임벨을 재생합니다. 다음 수업이 바로 시작하고 시작 알림도 켜져 있으면 시작 알림을 우선합니다.</span></span></span>
         <label class="toggle-switch">
           <input type="checkbox" id="chimeEndToggle" onchange="toggleChimeEnd()">
           <span class="toggle-slider"></span>
         </label>
+      </div>
+      <div class="auto-alert-settings">
+        <div class="toggle-label" id="alertDaysLabel">자동 알림 요일</div>
+        <div class="alert-days" id="alertDays" role="group" aria-labelledby="alertDaysLabel"></div>
+        <p class="settings-hint">선택한 요일에만 수업 시작·종료, 이동 수업, 쉬는 시간·점심 음성 알림이 작동합니다. 수요일 알림만 끄려면 ‘수’를 해제하세요. 시간표 표시는 유지됩니다.</p>
+        <div class="audio-status-row">
+          <span class="settings-hint" id="audioStatus" role="status"></span>
+          <button class="voice-preview-btn" type="button" onclick="previewChime()">소리 확인</button>
+        </div>
       </div>
       <div class="toggle-row">
         <span class="toggle-label">이동 수업 알림<span class="help-icon">?<span class="help-tooltip">과목 편집에서 이동 장소를 적은 수업 전에 이동 준비 배너와 음성 안내를 재생합니다.</span></span></span>
@@ -360,12 +369,12 @@
     </div>
 
     <div class="settings-section">
-      <div class="settings-section-title">요일별 교시 수<span class="help-icon">?<span class="help-tooltip">각 요일마다 몇 교시까지 수업이 있는지 설정합니다.</span></span></div>
+      <div class="settings-section-title">요일별 교시 수<span class="help-icon">?<span class="help-tooltip">각 요일마다 몇 교시까지 수업이 있는지 설정합니다. 교시 수를 늘리면 추가한 교시의 요일이 선택됩니다. 시간표에서 직접 해제한 기존 교시는 제외됩니다.</span></span></div>
       <div class="daily-periods-grid" id="dailyPeriodsGrid"></div>
     </div>
 
     <div class="settings-section">
-      <div class="settings-section-title">시간표 편집<span class="help-icon">?<span class="help-tooltip">각 교시의 시작·종료 시간을 직접 수정하거나 자동 생성할 수 있습니다.</span></span></div>
+      <div class="settings-section-title">시간표 편집<span class="help-icon">?<span class="help-tooltip">각 교시의 시작·종료 시간을 직접 수정하거나 자동 생성할 수 있습니다. 요일을 해제하면 해당 요일의 기본 시간표에서 제외됩니다. 오늘·날짜별 시간표를 저장한 날은 그 시간표를 우선합니다. 알림만 끄려면 위의 자동 알림 요일을 사용하세요.</span></span></div>
       <div class="tt-auto-generate">
         <span class="tt-auto-label">시작 시간</span>
         <input type="time" class="tt-auto-time" id="autoStartTime" value="09:00">
@@ -480,6 +489,12 @@
       <button class="modal-close" onclick="closeChangelog()" aria-label="닫기">&#10005;</button>
     </div>
     <div class="changelog-list">
+      <div class="changelog-item">
+        <div class="changelog-item-header">
+          <span class="changelog-version">v1.19.1</span>
+        </div>
+        <div class="changelog-desc">수업 알림 개선: 자동 알림 요일에서 수요일 등 원하는 날의 수업 시작·종료, 이동 수업, 쉬는 시간·점심 음성 알림을 함께 끌 수 있습니다. 시간표 편집에서 해제한 요일이 다시 포함되던 문제를 수정했습니다. 소리 확인 버튼을 추가하고, 중단된 오디오 복구와 실제 시각에 따른 알림 감지, 재생 실패 시 재시도를 보완했습니다.</div>
+      </div>
       <div class="changelog-item">
         <div class="changelog-item-header">
           <span class="changelog-version">v1.19.0</span>
@@ -932,6 +947,6 @@
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-database-compat.js"></script>
 <script src="neis-api.js"></script>
-<script src="script.js?v=1.19.0"></script>
+<script src="script.js?v=1.19.1"></script>
 </body>
 </html>

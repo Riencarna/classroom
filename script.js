@@ -1,10 +1,15 @@
 // =============================================
 // CONSTANTS
 // =============================================
-const APP_VERSION = 'v1.19.0';
+const APP_VERSION = 'v1.19.1';
 const FEEDBACK_URL = 'https://forms.gle/y48um84BTrBVn2Nt6';
 const SCHOOLBELL_DEFAULT_URL = 'https://v4.schoolbell-e.com/ko/gate/login';
 const UPDATE_HISTORY = [
+  { version: 'v1.19.1', notes: [
+    '자동 알림 요일을 골라 수요일처럼 시정이 다른 날의 수업·이동·음성 알림만 끌 수 있어요',
+    '시간표에서 해제한 요일이 다시 포함되던 문제를 고쳤어요',
+    '중단된 소리 재생을 다시 준비하고, 수업 이름이 같거나 시계 갱신이 늦어져도 시작·종료 시각을 기준으로 알림을 확인해요'
+  ]},
   { version: 'v1.19.0', notes: [
     '특별실로 이동하는 수업 전에 화면과 음성으로 알려주는 이동 수업 알림이 생겼어요',
     '과목 편집에서 요일별 이동 장소를 적고, 설정에서 1·3·5·10분 전 중 알림 시각을 고를 수 있어요',
@@ -141,6 +146,12 @@ const UPDATE_HISTORY = [
 // 개발자 소식 게시판 — 의견 보내기로 받은 피드백에 답변하거나 소식을 전달할 때 사용합니다.
 // 최상단이 최신 글. id는 겹치지 않게(예: 날짜 + 순번) 주세요.
 const DEVELOPER_NOTES = [
+  {
+    id: '2026-09-13-01-class-alert-weekdays',
+    date: '2026-09-13',
+    title: 'v1.19.1 · 수업 알림을 보완하고 요일별 끄기를 추가했어요',
+    body: '수업 알림음이 간헐적으로 들리지 않고, 수요일은 시정이 달라 알림을 끄고 싶은데 시간표의 요일을 해제해도 반영되지 않는다는 의견을 보내주셨습니다. 이번 v1.19.1 업데이트에 두 내용을 반영했습니다.\n\n수요일 알림만 끄려면 화면 하단의 톱니바퀴(설정)를 누르고, 표시 설정의 "자동 알림 요일"에서 "수"를 해제해주세요. 시간표는 계속 표시하면서 수요일의 수업 시작·종료 알림음, 이동 수업 알림, 쉬는 시간·점심 음성 안내를 함께 끌 수 있습니다. 원하는 다른 요일도 같은 방법으로 선택할 수 있어요.\n\n시간표 편집에서 직접 해제한 요일이 요일별 교시 수 설정 때문에 다시 포함되던 문제도 고쳤습니다. 이제 해제한 교시는 해당 요일의 기본 시간표에서 제외됩니다. 교시 수를 늘리면 새로 추가한 교시의 요일만 선택되며, 앞서 직접 해제한 기존 교시는 유지됩니다. 오늘 시간표나 날짜별 시간표를 따로 저장한 날은 그 시간표가 우선하고, 자동 알림 요일 설정은 그날에도 적용됩니다.\n\n알림음은 실제 수업 시작·종료 시각을 기준으로 확인하도록 바꾸고, 브라우저에서 소리 재생이 중단된 뒤 다시 준비하는 처리와 재생 실패 시 재시도를 보완했습니다. 잠깐 늦어진 알림은 다시 확인하되, 오래 지난 알림이 한꺼번에 울리지 않도록 했습니다. 설정에 추가된 "소리 확인" 버튼으로 알림음과 음량을 확인해주세요.\n\n요일 선택은 별도 저장 버튼 없이 바로 저장되며, 같은 기기와 브라우저에서는 새로고침 후에도 유지됩니다. 업데이트 내용이 보이지 않으면 페이지를 새로고침해주세요. 불편을 알려주셔서 감사합니다!'
+  },
   {
     id: '2026-09-06-01-clock-colon-blink',
     date: '2026-09-06',
@@ -303,16 +314,19 @@ const DEFAULT_TIMETABLE = [
 let rules = [];
 let isEditing = false;
 let timetable = [];
-let settings = { showRemaining: true, chimeEnabled: true, chimeEndEnabled: true, movementAlertEnabled: true, movementAlertMinutes: 5, colonBlink: true, showSeconds: true, timetableMode: false, startTab: 'last', dailyPeriods: { 1:5, 2:6, 3:5, 4:5, 5:5 }, morningSlotMigrated: false, schoolbellUrl: '', school: null, notebookMultiPageEnabled: false };
+let settings = { showRemaining: true, chimeEnabled: true, chimeEndEnabled: true, alertDays: [0,1,2,3,4,5,6], movementAlertEnabled: true, movementAlertMinutes: 5, colonBlink: true, showSeconds: true, timetableMode: false, startTab: 'last', dailyPeriods: { 1:5, 2:6, 3:5, 4:5, 5:5 }, morningSlotMigrated: false, schoolbellUrl: '', school: null, notebookMultiPageEnabled: false };
 let viewData = { activeTab: 'rules', notebook: '', notebookPages: [], activeNotebookPageId: '', notebookArchive: {}, notebookArchiveDate: '', notices: [], academicEvents: [], selectedAcademicEventDate: '', ddays: [], featuredDdayId: '', rulesFontScale: 1, rulesPanelView: 'rules', activities: [], activeActivityId: 'morning', activityFontSize: 24, activityColor: '#2d2a26', assignmentStudents: [], assignments: [], assignmentActiveId: '', assignmentStatusFilter: 'pending', assignmentListView: 'active' };
 let lastFeaturedDdayKey = '';
-let lastPeriodLabel = null;
-let lastPeriodType = null;
-let lastChimeTime = 0;
-let lastEndChimeTime = 0;
+let lastChimeCheckAt = null;
+let chimeDateKey = '';
+let pendingChime = null;
+let chimePlaying = false;
+const playedChimes = new Set();
+const CHIME_GRACE_MS = 60000;
 let lastMovementAlertTime = 0;
 let lastTimetableMin = -1;
 let audioCtx = null;
+let audioResumePromise = null;
 let notebookTimer = null;
 let activityTimer = null;
 let activitySavedRange = null;
@@ -457,14 +471,14 @@ function getBaseEntriesForDate(dateObj) {
 
   const maxPeriods = settings.dailyPeriods ? settings.dailyPeriods[day] : null;
   if (maxPeriods) {
+    todayEntries = todayEntries.filter(entry => !getPeriodNumber(entry.label) || getPeriodNumber(entry.label) <= maxPeriods);
     const periodEntriesForDay = [];
 
     for (let periodNo = 1; periodNo <= maxPeriods; periodNo++) {
-      const exactEntry = sortedEntries.find(entry => {
+      // Explicit weekday selections take precedence over the daily period limit.
+      const entry = sortedEntries.find(entry => {
         return getPeriodNumber(entry.label) === periodNo && entry.days.includes(day);
       });
-      const fallbackEntry = sortedEntries.find(entry => getPeriodNumber(entry.label) === periodNo);
-      const entry = exactEntry || fallbackEntry;
       if (entry) periodEntriesForDay.push(cloneEntry(entry));
     }
 
@@ -475,11 +489,11 @@ function getBaseEntriesForDate(dateObj) {
       todayEntries = nonPeriodEntries.concat(periodEntriesForDay)
         .sort((a, b) => timeToMins(a.start) - timeToMins(b.start));
 
-      const lastPeriodEndMins = periodEntriesForDay.reduce((last, entry) => {
+      const lastPeriodEndMins = todayEntries.filter(entry => getPeriodNumber(entry.label) || entry.type === 'in-class').reduce((last, entry) => {
         return Math.max(last, timeToMins(entry.end));
       }, 0);
       todayEntries = todayEntries.filter(entry => {
-        if (getPeriodNumber(entry.label)) return true;
+        if (getPeriodNumber(entry.label) || entry.type === 'in-class') return true;
         const start = timeToMins(entry.start);
         return start < lastPeriodEndMins;
       });
@@ -538,6 +552,7 @@ function loadTimetable() {
 function saveTimetable() {
   timetable.sort((a, b) => timeToMins(a.start) - timeToMins(b.start));
   localStorage.setItem('classroomTimetable', JSON.stringify(timetable));
+  lastTimetableMin = -1;
 }
 
 function loadSettings() {
@@ -546,6 +561,9 @@ function loadSettings() {
     if (s) {
       const saved = JSON.parse(s);
       settings = { ...settings, ...saved };
+      settings.alertDays = Array.isArray(saved.alertDays)
+        ? [...new Set(saved.alertDays.filter(day => Number.isInteger(day) && day >= 0 && day <= 6))]
+        : [0, 1, 2, 3, 4, 5, 6];
       if (!settings.dailyPeriods) settings.dailyPeriods = { 1:5, 2:6, 3:5, 4:5, 5:5 };
       if (settings.chimeEnabled === undefined) settings.chimeEnabled = true;
       if (settings.chimeEndEnabled === undefined) settings.chimeEndEnabled = true;
@@ -1932,6 +1950,8 @@ function openSettings() {
   document.getElementById('showRemainingToggle').checked = settings.showRemaining;
   document.getElementById('chimeToggle').checked = settings.chimeEnabled;
   document.getElementById('chimeEndToggle').checked = settings.chimeEndEnabled;
+  renderAlertDays();
+  updateAudioStatus();
   document.getElementById('movementAlertToggle').checked = settings.movementAlertEnabled !== false;
   document.getElementById('movementAlertMinutesSelect').value = String(settings.movementAlertMinutes || 5);
   updateMovementAlertOptionsState();
@@ -2839,6 +2859,8 @@ function renderTimetableEditor() {
       const btn = document.createElement('button');
       btn.className = 'tt-day-btn' + (entry.days.includes(dayNum) ? ' active' : '');
       btn.textContent = dayLabel;
+      btn.setAttribute('aria-label', entry.label + ' ' + dayLabel + '요일');
+      btn.setAttribute('aria-pressed', String(entry.days.includes(dayNum)));
       btn.addEventListener('click', () => {
         const idx = entry.days.indexOf(dayNum);
         if (idx >= 0) entry.days.splice(idx, 1);
@@ -5082,64 +5104,188 @@ function generateTimetable() {
 // CHIME (수업 시작/종료 알림음)
 // =============================================
 function initAudio() {
-  const unlock = () => {
-    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    if (audioCtx.state === 'suspended') audioCtx.resume();
-    document.removeEventListener('click', unlock);
-  };
+  const unlock = () => { ensureAudioRunning(true); };
   document.addEventListener('click', unlock);
+  document.addEventListener('keydown', unlock);
+  updateAudioStatus();
 }
 
-function playChimeNotes(notes) {
-  if (!audioCtx) return;
+function updateAudioStatus() {
+  const status = document.getElementById('audioStatus');
+  if (!status) return;
+  const ready = audioCtx && audioCtx.state === 'running';
+  status.textContent = ready
+    ? '소리 재생 준비됨 · 미리듣기로 음량을 확인하세요.'
+    : '알림 소리를 준비하려면 소리 확인 버튼을 눌러주세요.';
+}
+
+async function ensureAudioRunning(create = false) {
+  try {
+    if ((!audioCtx || audioCtx.state === 'closed') && create) {
+      const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+      if (!AudioContextClass) return false;
+      audioCtx = new AudioContextClass();
+      audioCtx.onstatechange = updateAudioStatus;
+    }
+    if (!audioCtx || audioCtx.state === 'closed') return false;
+    if (audioCtx.state !== 'running') {
+      // A fresh user gesture must call resume() even if an earlier automatic
+      // attempt is still waiting for autoplay permission.
+      if (create && audioResumePromise) audioCtx.resume().catch(() => {});
+      if (!audioResumePromise) {
+        // Autoplay restrictions can leave resume() pending until another gesture.
+        // Stop waiting so a later gesture cannot play a stale scheduled alert.
+        audioResumePromise = new Promise(resolve => {
+          const timeout = setTimeout(resolve, 1500);
+          Promise.resolve(audioCtx.resume()).catch(() => {}).finally(() => {
+            clearTimeout(timeout);
+            resolve();
+          });
+        }).finally(() => { audioResumePromise = null; });
+      }
+      await audioResumePromise;
+    }
+    return audioCtx.state === 'running';
+  } catch {
+    return false;
+  } finally {
+    updateAudioStatus();
+  }
+}
+
+async function previewChime() {
+  await ensureAudioRunning(true);
+  if (!await playChimeNotes([523.25, 659.25, 783.99])) {
+    showToast('소리를 재생하지 못했어요. 브라우저의 소리 허용 설정을 확인해주세요');
+  }
+}
+
+async function playChimeNotes(notes, isValid = () => true) {
+  if (!await ensureAudioRunning() || !isValid()) return false;
+  const startAt = audioCtx.currentTime;
   notes.forEach((freq, i) => {
     const osc = audioCtx.createOscillator();
     const gain = audioCtx.createGain();
     osc.type = 'sine';
     osc.frequency.value = freq;
-    gain.gain.setValueAtTime(0.3, audioCtx.currentTime + i * 0.3);
-    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + i * 0.3 + 0.5);
+    gain.gain.setValueAtTime(0.3, startAt + i * 0.3);
+    gain.gain.exponentialRampToValueAtTime(0.001, startAt + i * 0.3 + 0.5);
     osc.connect(gain);
     gain.connect(audioCtx.destination);
-    osc.start(audioCtx.currentTime + i * 0.3);
-    osc.stop(audioCtx.currentTime + i * 0.3 + 0.5);
+    osc.start(startAt + i * 0.3);
+    osc.stop(startAt + i * 0.3 + 0.5);
+    osc.onended = () => { osc.disconnect(); gain.disconnect(); };
+  });
+  return true;
+}
+
+function isAutoAlertDay(now = new Date()) {
+  return settings.alertDays.includes(now.getDay());
+}
+
+function renderAlertDays() {
+  const container = document.getElementById('alertDays');
+  if (!container) return;
+  container.innerHTML = '';
+  [1, 2, 3, 4, 5, 6, 0].forEach(day => {
+    const label = document.createElement('label');
+    label.className = 'alert-day-option';
+    const input = document.createElement('input');
+    input.type = 'checkbox';
+    input.checked = settings.alertDays.includes(day);
+    input.setAttribute('aria-label', DAYS_KR[day] + ' 자동 알림');
+    input.addEventListener('change', () => {
+      settings.alertDays = input.checked
+        ? [...new Set([...settings.alertDays, day])].sort()
+        : settings.alertDays.filter(value => value !== day);
+      saveSettings();
+      if (!isAutoAlertDay()) {
+        pendingChime = null;
+        stopVoiceAlert();
+        if (movementSpeechTimer) clearTimeout(movementSpeechTimer);
+        movementSpeechTimer = null;
+        if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+        hideMovementAlertBanner();
+      }
+      updateClock();
+    });
+    label.append(input, document.createTextNode(DAYS_KR[day].slice(0, 1)));
+    container.appendChild(label);
   });
 }
 
-function playChime() {
-  if (!audioCtx || !settings.chimeEnabled) return;
-  const now = Date.now();
-  if (now - lastChimeTime < 60000) return;
-  lastChimeTime = now;
-  playChimeNotes([523.25, 659.25, 783.99]); // C5, E5, G5 (상승)
+function checkScheduledChimes(now) {
+  const nowMs = now.getTime();
+  const previousCheck = lastChimeCheckAt;
+  lastChimeCheckAt = nowMs;
+  const dateKey = formatDateKey(now);
+  if (dateKey !== chimeDateKey) {
+    chimeDateKey = dateKey;
+    playedChimes.clear();
+    pendingChime = null;
+  }
+  if (!isAutoAlertDay(now) || previousCheck === null || nowMs < previousCheck) {
+    pendingChime = null;
+    return;
+  }
+
+  const entries = getTodayEntries(now).filter(entry => entry.type === 'in-class');
+  const due = [];
+  for (const entry of entries) {
+    for (const kind of ['end', 'start']) {
+      if (!(kind === 'start' ? settings.chimeEnabled : settings.chimeEndEnabled)) continue;
+      const at = new Date(now);
+      at.setHours(0, timeToMins(entry[kind]), 0, 0);
+      const atMs = at.getTime();
+      const key = dateKey + '|' + kind + '|' + entry.start + '|' + entry.end;
+      if (atMs > previousCheck && atMs <= nowMs && nowMs - atMs < CHIME_GRACE_MS && !playedChimes.has(key)) {
+        due.push({ key, kind, atMs, start: entry.start, end: entry.end });
+      }
+    }
+  }
+  // On a delayed tick, announce the latest boundary only. A simultaneous start
+  // takes precedence over an end so adjacent lessons do not overlap melodies.
+  due.sort((a, b) => a.atMs - b.atMs || (a.kind === b.kind ? 0 : a.kind === 'start' ? 1 : -1));
+  if (due.length) {
+    due.slice(0, -1).forEach(event => playedChimes.add(event.key));
+    pendingChime = due[due.length - 1];
+  }
+  if (!pendingChime || chimePlaying) return;
+  const event = pendingChime;
+  const isValid = () => {
+    const current = new Date();
+    const age = current.getTime() - event.atMs;
+    return pendingChime === event && age >= 0 && age < CHIME_GRACE_MS
+      && isAutoAlertDay(current)
+      && (event.kind === 'start' ? settings.chimeEnabled : settings.chimeEndEnabled)
+      && getTodayEntries(current).some(entry => entry.type === 'in-class' && entry.start === event.start && entry.end === event.end);
+  };
+  if (!isValid()) { pendingChime = null; return; }
+  chimePlaying = true;
+  const notes = event.kind === 'start' ? [523.25, 659.25, 783.99] : [783.99, 659.25, 523.25];
+  playChimeNotes(notes, isValid).then(played => {
+    if (played) {
+      playedChimes.add(event.key);
+      if (pendingChime === event) pendingChime = null;
+    }
+  }).catch(() => {}).finally(() => { chimePlaying = false; });
 }
 
-function playEndChime() {
-  if (!audioCtx || !settings.chimeEndEnabled) return;
+async function playMovementChime(force, isValid) {
+  if (!force && (settings.movementAlertEnabled === false || !isAutoAlertDay())) return false;
+  if (force) await ensureAudioRunning(true);
   const now = Date.now();
-  if (now - lastEndChimeTime < 60000) return;
-  lastEndChimeTime = now;
-  playChimeNotes([783.99, 659.25, 523.25]); // G5, E5, C5 (하강)
-}
-
-function playMovementChime(force) {
-  if (!force && (!audioCtx || settings.movementAlertEnabled === false)) return;
-  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-  if (audioCtx.state === 'suspended') audioCtx.resume();
-  const now = Date.now();
-  if (!force && now - lastMovementAlertTime < 60000) return;
-  lastMovementAlertTime = now;
-  playChimeNotes([659.25, 783.99, 659.25, 880]); // 이동 알림 전용 왕복 음형
+  if (!force && now - lastMovementAlertTime < 60000) return false;
+  const played = await playChimeNotes([659.25, 783.99, 659.25, 880], isValid);
+  if (played) lastMovementAlertTime = now;
+  return played;
 }
 
 let movementSpeechTimer = null;
 
 function speakMovementAlert(subject, room) {
   if (!('speechSynthesis' in window)) return;
-  if (voiceAudio) {
-    voiceAudio.pause();
-    voiceAudio.currentTime = 0;
-  }
+  stopVoiceAlert();
   window.speechSynthesis.cancel();
   const message = '이동 수업 안내입니다. 다음 ' + (subject ? subject + ' 수업은 ' : '수업은 ') + room + '에서 시작합니다. 이동 준비를 해 주세요.';
   const utterance = new SpeechSynthesisUtterance(message);
@@ -5150,17 +5296,26 @@ function speakMovementAlert(subject, room) {
   window.speechSynthesis.speak(utterance);
 }
 
-function playMovementAlert(subject, room, force) {
-  playMovementChime(!!force);
+async function playMovementAlert(subject, room, force, isValid = () => true) {
+  if (!await playMovementChime(!!force, isValid)) return false;
   if (movementSpeechTimer) clearTimeout(movementSpeechTimer);
-  movementSpeechTimer = setTimeout(() => speakMovementAlert(subject, room), 1100);
+  movementSpeechTimer = setTimeout(() => {
+    movementSpeechTimer = null;
+    if (isValid()) speakMovementAlert(subject, room);
+  }, 1100);
+  return true;
 }
 
 function toggleMovementAlert() {
   settings.movementAlertEnabled = document.getElementById('movementAlertToggle').checked;
   saveSettings();
   updateMovementAlertOptionsState();
-  if (!settings.movementAlertEnabled) hideMovementAlertBanner();
+  if (!settings.movementAlertEnabled) {
+    hideMovementAlertBanner();
+    if (movementSpeechTimer) clearTimeout(movementSpeechTimer);
+    movementSpeechTimer = null;
+    if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+  }
 }
 
 function saveMovementAlertOptions() {
@@ -5520,6 +5675,22 @@ function renderTimetableDisplay() {
 // =============================================
 // DAILY PERIODS SETTINGS
 // =============================================
+function setDailyPeriods(day, count) {
+  const previous = Number(settings.dailyPeriods[day]) || 0;
+  // Increasing the limit explicitly enables only the newly added periods.
+  // Earlier manual weekday exclusions remain intact.
+  for (let periodNo = previous + 1; periodNo <= count; periodNo++) {
+    const entries = timetable.filter(entry => getPeriodNumber(entry.label) === periodNo);
+    if (!entries.some(entry => entry.days.includes(day)) && entries.length) {
+      entries[0].days.push(day);
+      entries[0].days.sort();
+    }
+  }
+  settings.dailyPeriods[day] = count;
+  saveTimetable();
+  saveSettings();
+}
+
 function renderDailyPeriods() {
   const grid = document.getElementById('dailyPeriodsGrid');
   if (!grid) return;
@@ -5545,9 +5716,8 @@ function renderDailyPeriods() {
       sel.appendChild(opt);
     }
     sel.addEventListener('change', () => {
-      settings.dailyPeriods[dayNum] = parseInt(sel.value);
-      saveSettings();
-      lastTimetableMin = -1;
+      setDailyPeriods(dayNum, parseInt(sel.value, 10));
+      renderTimetableEditor();
       if (settings.timetableMode) renderTimetableDisplay();
       updateClock();
     });
@@ -5638,16 +5808,7 @@ function updateClock() {
   const alertEl = document.getElementById('periodAlert');
   alertEl.className = 'period-alert ' + period.type;
 
-  // Chime on period transition (수업 시작/종료 시)
-  if (lastPeriodLabel !== null && lastPeriodLabel !== period.label) {
-    if (period.type === 'in-class') {
-      playChime();
-    } else if (lastPeriodType === 'in-class') {
-      playEndChime();
-    }
-  }
-  lastPeriodLabel = period.label;
-  lastPeriodType = period.type;
+  checkScheduledChimes(n);
 
   // 과목명과 이동 장소가 있으면 "3교시 · 과학 · 과학실" 형태로 표시
   let displayLabel = period.subject ? period.label + ' · ' + period.subject : period.label;
@@ -6079,6 +6240,7 @@ function renderRandomPickedList() {
 // MOVEMENT-CLASS ALERT (특별실 이동 안내)
 // =============================================
 const playedMovementAlerts = new Set();
+let movementAlertPending = false;
 
 function getUpcomingMovementClass(now) {
   const currentSecs = now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds();
@@ -6145,7 +6307,7 @@ function renderMovementAlertBanner(info, alertKey) {
 }
 
 function checkMovementAlert(now) {
-  if (settings.movementAlertEnabled === false) {
+  if (settings.movementAlertEnabled === false || !isAutoAlertDay(now)) {
     hideMovementAlertBanner();
     return;
   }
@@ -6158,17 +6320,26 @@ function checkMovementAlert(now) {
 
   const alertKey = formatDateKey(now) + '-' + info.start + '-' + info.label + '-' + info.subject + '-' + info.room;
   renderMovementAlertBanner(info, alertKey);
-  if (playedMovementAlerts.has(alertKey)) return;
+  if (playedMovementAlerts.has(alertKey) || movementAlertPending) return;
 
-  playedMovementAlerts.add(alertKey);
-  playMovementAlert(info.subject, info.room, false);
+  const isValid = () => {
+    const current = new Date();
+    const upcoming = getUpcomingMovementClass(current);
+    return settings.movementAlertEnabled !== false && isAutoAlertDay(current)
+      && formatDateKey(current) === formatDateKey(now)
+      && upcoming && upcoming.start === info.start && upcoming.subject === info.subject && upcoming.room === info.room;
+  };
+  movementAlertPending = true;
+  playMovementAlert(info.subject, info.room, false, isValid).then(played => {
+    if (played) playedMovementAlerts.add(alertKey);
+  }).catch(() => {}).finally(() => { movementAlertPending = false; });
 }
 
 // =============================================
 // VOICE ALERT (쉬는 시간 음성 안내)
 // =============================================
-let lastVoiceAlertKey = '';
 let playedVoiceAlerts = new Set();
+let voiceAlertPending = false;
 
 const VOICE_FILES = {
   'break-3': 'audio/break_3min.mp3',
@@ -6177,17 +6348,51 @@ const VOICE_FILES = {
   'lunch-1': 'audio/lunch_1min.mp3',
 };
 
-let voiceAudio = null;
+let voiceSource = null;
+const voiceBuffers = new Map();
 
-function playVoiceFile(key) {
-  if (voiceAudio) { voiceAudio.pause(); voiceAudio.currentTime = 0; }
-  voiceAudio = new Audio(VOICE_FILES[key]);
-  voiceAudio.volume = 1.0;
-  voiceAudio.play();
+function stopVoiceAlert() {
+  if (voiceSource) {
+    voiceSource.stop();
+    voiceSource = null;
+  }
+}
+
+async function playVoiceFile(key, isValid = null) {
+  const preview = !isValid;
+  try {
+    if (!VOICE_FILES[key] || !await ensureAudioRunning(preview)) return false;
+    if (!voiceBuffers.has(key)) {
+      voiceBuffers.set(key, fetch(VOICE_FILES[key]).then(response => {
+        if (!response.ok) throw new Error('Voice audio unavailable');
+        return response.arrayBuffer();
+      }).then(data => audioCtx.decodeAudioData(data)).catch(error => {
+        voiceBuffers.delete(key);
+        throw error;
+      }));
+    }
+    const buffer = await voiceBuffers.get(key);
+    if (!await ensureAudioRunning() || (isValid && !isValid())) return false;
+    stopVoiceAlert();
+    const source = audioCtx.createBufferSource();
+    source.buffer = buffer;
+    source.connect(audioCtx.destination);
+    source.onended = () => {
+      source.disconnect();
+      if (voiceSource === source) voiceSource = null;
+    };
+    voiceSource = source;
+    source.start();
+    return true;
+  } catch {
+    if (preview) showToast('음성을 재생하지 못했어요. 소리 설정과 인터넷 연결을 확인해주세요');
+    return false;
+  }
 }
 
 function toggleVoiceAlert() {
   settings.voiceAlertEnabled = document.getElementById('voiceAlertToggle').checked;
+  if (!settings.voiceAlertEnabled) stopVoiceAlert();
   saveSettings();
   updateVoiceAlertOptionsState();
 }
@@ -6206,7 +6411,7 @@ function saveVoiceAlertOptions() {
 }
 
 function checkVoiceAlert(now) {
-  if (!settings.voiceAlertEnabled) return;
+  if (!settings.voiceAlertEnabled || !isAutoAlertDay(now)) return;
 
   const period = getCurrentPeriod(now);
   if (period.type !== 'break-time' && period.type !== 'lunch-time') {
@@ -6233,15 +6438,26 @@ function checkVoiceAlert(now) {
       ];
   const alerts = allAlerts.filter(a => a.enabled);
 
-  // 큰 시간부터 체크하여, 해당 시점을 지났으면 한 번만 재생
-  for (const alert of alerts) {
-    const key = period.label + '-' + period.endMins + '-' + alert.secs;
-    if (remaining <= alert.secs && remaining > 0 && !playedVoiceAlerts.has(key)) {
-      playedVoiceAlerts.add(key);
-      playVoiceFile(alert.fileKey);
-      return;
-    }
-  }
+  // A delayed tick must not announce "3 minutes" followed by "1 minute".
+  const alert = alerts.slice().reverse().find(item => remaining <= item.secs && remaining > item.secs - 60);
+  if (!alert || voiceAlertPending) return;
+  const key = formatDateKey(now) + '-' + period.type + '-' + period.endMins + '-' + alert.secs;
+  if (playedVoiceAlerts.has(key)) return;
+  const optionKey = isLunch ? (alert.secs === 300 ? 'voiceAlertLunch5' : 'voiceAlertLunch1')
+    : (alert.secs === 180 ? 'voiceAlertBreak3' : 'voiceAlertBreak1');
+  const isValid = () => {
+    const current = new Date();
+    const currentPeriod = getCurrentPeriod(current);
+    const secondsLeft = period.endMins * 60 - (current.getHours() * 3600 + current.getMinutes() * 60 + current.getSeconds());
+    return settings.voiceAlertEnabled && settings[optionKey] !== false && isAutoAlertDay(current)
+      && formatDateKey(current) === formatDateKey(now)
+      && currentPeriod.type === period.type && currentPeriod.endMins === period.endMins
+      && secondsLeft <= alert.secs && secondsLeft > alert.secs - 60;
+  };
+  voiceAlertPending = true;
+  playVoiceFile(alert.fileKey, isValid).then(played => {
+    if (played) playedVoiceAlerts.add(key);
+  }).finally(() => { voiceAlertPending = false; });
 }
 
 // =============================================
@@ -6681,6 +6897,41 @@ function ensureMealData(ymd) {
   }
 })();
 
+function startClockTimer() {
+  const tick = () => {
+    updateClock();
+    updateTimer();
+  };
+  let worker = null;
+  let workerUrl = null;
+  let fallbackTimer = null;
+  const useFallback = () => {
+    if (worker) worker.terminate();
+    worker = null;
+    if (fallbackTimer === null) fallbackTimer = setInterval(tick, 1000);
+  };
+  try {
+    // Workers reduce background timer delays but cannot run while the page or
+    // computer is suspended. Check the actual time again when it resumes.
+    workerUrl = URL.createObjectURL(new Blob(['setInterval(() => postMessage(1), 1000);'], { type: 'application/javascript' }));
+    worker = new Worker(workerUrl);
+    worker.onmessage = tick;
+    worker.onerror = useFallback;
+  } catch {
+    useFallback();
+  } finally {
+    if (workerUrl) URL.revokeObjectURL(workerUrl);
+  }
+  const refresh = () => {
+    if (document.visibilityState === 'hidden') return;
+    ensureAudioRunning();
+    tick();
+  };
+  document.addEventListener('visibilitychange', refresh);
+  document.addEventListener('resume', refresh);
+  window.addEventListener('pageshow', refresh);
+}
+
 // INIT
 // =============================================
 loadSettings();
@@ -6703,16 +6954,7 @@ if (settings.school) {
   ensureNeisSchedule(getMonthKey(new Date()), new Date());
 }
 
-// Web Worker로 1초 타이머 실행 (백그라운드 탭에서도 쓰로틀링 없음)
-const timerWorkerUrl = URL.createObjectURL(new Blob([
-  'setInterval(() => postMessage(1), 1000);'
-], { type: 'application/javascript' }));
-const timerWorker = new Worker(timerWorkerUrl);
-URL.revokeObjectURL(timerWorkerUrl);
-timerWorker.onmessage = () => {
-  updateClock();
-  updateTimer();
-};
+startClockTimer();
 
 initVisitorCounter();
 
