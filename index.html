@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>우리 반 배경화면</title>
-<link rel="stylesheet" href="style.css?v=1.19.1">
+<link rel="stylesheet" href="style.css?v=1.20.0">
 </head>
 <body>
 
@@ -211,7 +211,7 @@
     </button>
   </div>
 </div>
-<button class="version-label" onclick="openChangelog()" aria-label="버전 기록 보기">v1.19.1</button>
+<button class="version-label" onclick="openChangelog()" aria-label="버전 기록 보기">v1.20.0</button>
 <button class="feedback-btn" onclick="openFeedback()" title="의견 보내기" aria-label="의견 보내기">&#x1F4EC; 의견 보내기</button>
 <button class="dev-notes-btn" onclick="openDeveloperNotes()" title="개발자 소식" aria-label="개발자 소식">&#x1F4E2; 개발자 소식<span class="dev-notes-badge" id="devNotesBadge" style="display:none"></span></button>
 
@@ -330,11 +330,39 @@
         </select>
       </div>
       <div class="toggle-row">
-        <span class="toggle-label">쉬는 시간 음성 안내<span class="help-icon">?<span class="help-tooltip">쉬는 시간에 남은 시간을 음성으로 안내합니다. 아래에서 각 알림을 개별적으로 켜거나 끌 수 있어요.</span></span></span>
+        <span class="toggle-label">쉬는시간 · 점심시간 음성 안내<span class="help-icon">?<span class="help-tooltip">각 시간이 끝나기 몇 분 전에 안내할지 쉬는시간은 1~10분, 점심시간은 1~50분 사이로 입력하세요. 각 안내를 따로 켜거나 끌 수 있고, 변경하면 자동 저장됩니다.</span></span></span>
         <label class="toggle-switch">
           <input type="checkbox" id="voiceAlertToggle" onchange="toggleVoiceAlert()">
           <span class="toggle-slider"></span>
         </label>
+      </div>
+      <div class="voice-alert-options" id="voiceAlertOptions">
+        <div class="voice-alert-option">
+          <label><input type="checkbox" id="voiceBreak3Toggle" onchange="saveVoiceAlertOptions()"> 쉬는시간 정리 안내</label>
+          <label class="voice-alert-time">종료 <input class="voice-minutes-input" type="number" id="voiceBreak3Minutes" min="1" max="10" step="1" value="3" aria-label="쉬는시간 정리 안내: 종료 몇 분 전" aria-describedby="voiceAlertHint" onchange="saveVoiceAlertOptions()"> 분 전</label>
+        </div>
+        <div class="voice-alert-option">
+          <label><input type="checkbox" id="voiceBreak1Toggle" onchange="saveVoiceAlertOptions()"> 쉬는시간 자리 복귀 안내</label>
+          <label class="voice-alert-time">종료 <input class="voice-minutes-input" type="number" id="voiceBreak1Minutes" min="1" max="10" step="1" value="1" aria-label="쉬는시간 자리 복귀 안내: 종료 몇 분 전" aria-describedby="voiceAlertHint" onchange="saveVoiceAlertOptions()"> 분 전</label>
+        </div>
+        <div class="voice-alert-option">
+          <label><input type="checkbox" id="voiceLunch5Toggle" onchange="saveVoiceAlertOptions()"> 점심시간 첫 안내</label>
+          <label class="voice-alert-time">종료 <input class="voice-minutes-input" type="number" id="voiceLunch5Minutes" min="1" max="50" step="1" value="5" aria-label="점심시간 첫 안내: 종료 몇 분 전" aria-describedby="voiceAlertHint" onchange="saveVoiceAlertOptions()"> 분 전</label>
+        </div>
+        <div class="voice-alert-option">
+          <label><input type="checkbox" id="voiceLunch1Toggle" onchange="saveVoiceAlertOptions()"> 점심시간 마무리 안내</label>
+          <label class="voice-alert-time">종료 <input class="voice-minutes-input" type="number" id="voiceLunch1Minutes" min="1" max="50" step="1" value="1" aria-label="점심시간 마무리 안내: 종료 몇 분 전" aria-describedby="voiceAlertHint" onchange="saveVoiceAlertOptions()"> 분 전</label>
+        </div>
+      </div>
+      <div class="settings-hint voice-alert-hint" id="voiceAlertHint">쉬는시간 1~10분 전 · 점심시간 1~50분 전 · 변경 시 자동 저장<br>같은 시간에 겹치면 자리 복귀·마무리 안내만 한 번 재생해요. 쉬는시간·점심시간 안에 해당하는 시점에만 안내해요.<br>기본 시간은 기존 녹음을, 변경한 시간은 기기의 한국어 음성을 사용해요. 기기에 따라 목소리가 다르니 미리듣기로 확인해주세요.</div>
+      <div class="voice-preview-row">
+        <span class="voice-preview-label">음성 미리듣기</span>
+        <div class="voice-preview-buttons">
+          <button class="voice-preview-btn" type="button" id="voiceBreak3MinutesPreview" onclick="previewVoiceAlert('break-3')">쉬는시간 정리 안내 · 3분 전</button>
+          <button class="voice-preview-btn" type="button" id="voiceBreak1MinutesPreview" onclick="previewVoiceAlert('break-1')">쉬는시간 자리 복귀 안내 · 1분 전</button>
+          <button class="voice-preview-btn" type="button" id="voiceLunch5MinutesPreview" onclick="previewVoiceAlert('lunch-5')">점심시간 첫 안내 · 5분 전</button>
+          <button class="voice-preview-btn" type="button" id="voiceLunch1MinutesPreview" onclick="previewVoiceAlert('lunch-1')">점심시간 마무리 안내 · 1분 전</button>
+        </div>
       </div>
       <div class="toggle-row">
         <span class="toggle-label">알림장 여러 페이지 사용<span class="help-icon">?<span class="help-tooltip">알림장을 여러 페이지로 나눠서 쓸 수 있어요. 예: "아침 활동", "수업 시간", "알림장"을 각각 다른 페이지에 미리 써두면 지웠다 쓸 필요가 없어요. 끄면 기본 알림장 1개만 사용합니다.</span></span></span>
@@ -342,29 +370,6 @@
           <input type="checkbox" id="notebookMultiPageToggle" onchange="toggleNotebookMultiPage()">
           <span class="toggle-slider"></span>
         </label>
-      </div>
-      <div class="voice-alert-options" id="voiceAlertOptions">
-        <div class="voice-alert-option">
-          <label><input type="checkbox" id="voiceBreak3Toggle" onchange="saveVoiceAlertOptions()"> 쉬는시간 3분 전</label>
-        </div>
-        <div class="voice-alert-option">
-          <label><input type="checkbox" id="voiceBreak1Toggle" onchange="saveVoiceAlertOptions()"> 쉬는시간 1분 전</label>
-        </div>
-        <div class="voice-alert-option">
-          <label><input type="checkbox" id="voiceLunch5Toggle" onchange="saveVoiceAlertOptions()"> 점심시간 5분 전</label>
-        </div>
-        <div class="voice-alert-option">
-          <label><input type="checkbox" id="voiceLunch1Toggle" onchange="saveVoiceAlertOptions()"> 점심시간 1분 전</label>
-        </div>
-      </div>
-      <div class="voice-preview-row">
-        <span class="voice-preview-label">음성 미리듣기</span>
-        <div class="voice-preview-buttons">
-          <button class="voice-preview-btn" onclick="playVoiceFile('break-3')">쉬는시간 3분</button>
-          <button class="voice-preview-btn" onclick="playVoiceFile('break-1')">쉬는시간 1분</button>
-          <button class="voice-preview-btn" onclick="playVoiceFile('lunch-5')">점심 5분</button>
-          <button class="voice-preview-btn" onclick="playVoiceFile('lunch-1')">점심 1분</button>
-        </div>
       </div>
     </div>
 
@@ -489,6 +494,12 @@
       <button class="modal-close" onclick="closeChangelog()" aria-label="닫기">&#10005;</button>
     </div>
     <div class="changelog-list">
+      <div class="changelog-item">
+        <div class="changelog-item-header">
+          <span class="changelog-version">v1.20.0</span>
+        </div>
+        <div class="changelog-desc">음성 안내 시간 조정: 안내 시점을 쉬는시간은 1~10분 전, 점심시간은 1~50분 전으로 입력할 수 있습니다. 기존 켜기·끄기 설정과 기본 시간은 유지됩니다. 변경한 시간은 기기의 한국어 음성으로 읽으며 미리듣기로 확인할 수 있습니다. 같은 시각의 안내가 겹치면 마무리 안내만 한 번 재생합니다.</div>
+      </div>
       <div class="changelog-item">
         <div class="changelog-item-header">
           <span class="changelog-version">v1.19.1</span>
@@ -947,6 +958,6 @@
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-database-compat.js"></script>
 <script src="neis-api.js"></script>
-<script src="script.js?v=1.19.1"></script>
+<script src="script.js?v=1.20.0"></script>
 </body>
 </html>

@@ -10,7 +10,8 @@ const source = fs.readFileSync(path.join(__dirname, '..', 'script.js'), 'utf8').
 
 function element() {
   return {
-    children: [], handlers: {}, attributes: {}, classList: { remove() {}, add() {} },
+    children: [], handlers: {}, attributes: {}, classList: { remove() {}, add() {}, toggle() {} },
+    focus() {},
     append(...children) { this.children.push(...children); },
     appendChild(child) { this.children.push(child); },
     addEventListener(type, handler) { this.handlers[type] = handler; },
@@ -21,7 +22,7 @@ function element() {
 
 function app(saved = {}) {
   let time = new Date('2026-09-09T08:59:59').getTime(); // Wednesday, local time
-  const sounds = [], resumes = [], intervals = [], listeners = {}, nodes = {};
+  const sounds = [], spoken = [], resumes = [], intervals = [], listeners = {}, nodes = {};
   const storage = new Map(Object.entries(saved));
   class Clock extends Date {
     constructor(...args) { super(...(args.length ? args : [time])); }
@@ -43,7 +44,14 @@ function app(saved = {}) {
     setInterval(fn) { intervals.push(fn); return intervals.length; },
     URL: { createObjectURL: () => 'blob:test', revokeObjectURL() {} },
     Worker: class { constructor() { throw new Error('Worker blocked'); } },
-    window: { AudioContext, addEventListener(type, handler) { listeners[type] = handler; } },
+    SpeechSynthesisUtterance: class { constructor(text) { this.text = text; } },
+    window: {
+      AudioContext, addEventListener(type, handler) { listeners[type] = handler; },
+      speechSynthesis: {
+        getVoices: () => [{ lang: 'ko-KR' }], cancel() {},
+        speak(utterance) { spoken.push(utterance.text); sounds.push('speech'); utterance.onstart(); },
+      },
+    },
     document: {
       visibilityState: 'visible',
       querySelector: () => null,
@@ -60,7 +68,7 @@ function app(saved = {}) {
   run('loadSettings(); timetable = DEFAULT_TIMETABLE.map(cloneEntry); audioCtx = new window.AudioContext();');
   const settle = () => new Promise(resolve => setImmediate(resolve));
   return {
-    run, nodes, sounds, resumes, intervals, listeners, storage, context, settle,
+    run, nodes, sounds, spoken, resumes, intervals, listeners, storage, context, settle,
     setTime(value) { time = new Date(value).getTime(); },
     async tick(value) {
       if (value) time = new Date(value).getTime();
@@ -310,4 +318,213 @@ test('a blocked Worker falls back to an interval and refreshes after visibility 
   a.listeners.visibilitychange();
   assert.equal(a.run('clockTicks'), 2);
   assert.equal(a.run('timerTicks'), 2);
+});
+
+function voiceControls(a) {
+  for (const prefix of ['voiceBreak3', 'voiceBreak1', 'voiceLunch5', 'voiceLunch1']) {
+    for (const suffix of ['Toggle', 'Minutes', 'MinutesPreview']) a.nodes[prefix + suffix] = element();
+  }
+  a.nodes.voiceAlertOptions = element();
+  a.run("globalThis.toasts = []; showToast = message => toasts.push(message); renderVoiceAlertOptions(); updateVoiceAlertOptionsState()");
+}
+
+test('legacy voice preferences keep all four default times and disabled alerts', () => {
+  const a = app({ classroomSettings: JSON.stringify({ voiceAlertEnabled: true, voiceAlertBreak3: false, voiceAlertLunch1: false }) });
+  voiceControls(a);
+  assert.equal(a.nodes.voiceBreak3Toggle.checked, false);
+  assert.equal(a.nodes.voiceLunch1Toggle.checked, false);
+  assert.equal(a.nodes.voiceBreak3Minutes.disabled, true);
+  assert.equal(a.nodes.voiceBreak1Minutes.disabled, false);
+  assert.deepEqual(['voiceBreak3', 'voiceBreak1', 'voiceLunch5', 'voiceLunch1'].map(id => a.nodes[id + 'Minutes'].value), ['3', '1', '5', '1']);
+});
+
+test('custom times, toggles and preview labels survive saving and a fresh app load', () => {
+  const a = app();
+  voiceControls(a);
+  a.nodes.voiceBreak3Minutes.value = '2';
+  a.nodes.voiceLunch5Minutes.value = '10';
+  a.nodes.voiceLunch1Toggle.checked = false;
+  assert.equal(a.run('saveVoiceAlertOptions()'), true);
+  const b = app(Object.fromEntries(a.storage));
+  voiceControls(b);
+  assert.equal(b.nodes.voiceBreak3Minutes.value, '2');
+  assert.equal(b.nodes.voiceLunch5Minutes.value, '10');
+  assert.equal(b.nodes.voiceLunch1Toggle.checked, false);
+  assert.match(b.nodes.voiceLunch5MinutesPreview.textContent, /10분 전/);
+});
+
+test('invalid user input is rejected without overwriting saved settings', () => {
+  const a = app();
+  voiceControls(a);
+  a.run('saveVoiceAlertOptions()');
+  const saved = a.storage.get('classroomSettings');
+  for (const [prefix, max, fallback] of [['voiceBreak3', 10, '3'], ['voiceBreak1', 10, '1'], ['voiceLunch5', 50, '5'], ['voiceLunch1', 50, '1']]) {
+    for (const value of ['', '0', '-1', String(max + 1), '60', '1.5', 'abc', 'Infinity']) {
+      a.nodes[prefix + 'Minutes'].value = value;
+      assert.equal(a.run('saveVoiceAlertOptions()'), false, prefix + ': ' + value);
+      assert.equal(a.nodes[prefix + 'Minutes'].value, fallback);
+      assert.equal(a.storage.get('classroomSettings'), saved);
+      assert.ok(a.run('toasts.at(-1)').includes('1~' + max));
+    }
+  }
+});
+
+test('break 1–10 and lunch 1–50 endpoints can be saved and restored for all prompts', () => {
+  const a = app();
+  voiceControls(a);
+  for (const [breakMinutes, lunchMinutes] of [['1', '1'], ['10', '50']]) {
+    a.nodes.voiceBreak3Minutes.value = a.nodes.voiceBreak1Minutes.value = breakMinutes;
+    a.nodes.voiceLunch5Minutes.value = a.nodes.voiceLunch1Minutes.value = lunchMinutes;
+    assert.equal(a.run('saveVoiceAlertOptions()'), true);
+    const b = app(Object.fromEntries(a.storage));
+    voiceControls(b);
+    assert.deepEqual(['voiceBreak3', 'voiceBreak1', 'voiceLunch5', 'voiceLunch1'].map(id => b.nodes[id + 'Minutes'].value), [breakMinutes, breakMinutes, lunchMinutes, lunchMinutes]);
+  }
+});
+
+test('previously saved times above each new limit restore the corresponding defaults', () => {
+  const a = app({ classroomSettings: JSON.stringify({
+    voiceAlertBreakFirstMinutes: 11, voiceAlertBreakLastMinutes: 60,
+    voiceAlertLunchFirstMinutes: 51, voiceAlertLunchLastMinutes: 60,
+  }) });
+  voiceControls(a);
+  assert.deepEqual(['voiceBreak3', 'voiceBreak1', 'voiceLunch5', 'voiceLunch1'].map(id => a.nodes[id + 'Minutes'].value), ['3', '1', '5', '1']);
+});
+
+test('invalid imported times fall back to defaults while numeric strings are accepted', () => {
+  const a = app({ classroomSettings: JSON.stringify({
+    voiceAlertBreakFirstMinutes: -2, voiceAlertBreakLastMinutes: true,
+    voiceAlertLunchFirstMinutes: '10', voiceAlertLunchLastMinutes: 1.5,
+  }) });
+  assert.equal(a.run('settings.voiceAlertBreakFirstMinutes'), 3);
+  assert.equal(a.run('settings.voiceAlertBreakLastMinutes'), 1);
+  assert.equal(a.run('settings.voiceAlertLunchFirstMinutes'), 10);
+  assert.equal(a.run('settings.voiceAlertLunchLastMinutes'), 1);
+});
+
+test('custom break and lunch prompts read the configured times exactly once', async () => {
+  const a = app();
+  a.run('settings.voiceAlertEnabled = true; settings.voiceAlertBreakFirstMinutes = 2; settings.voiceAlertLunchFirstMinutes = 10');
+  for (const time of ['09:47:00', '09:48:00', '09:48:01', '12:49:59', '12:50:00', '12:50:10']) {
+    a.setTime('2026-09-09T' + time);
+    a.run('checkVoiceAlert(new Date())');
+    await a.settle();
+  }
+  assert.deepEqual(a.sounds, ['speech', 'speech']);
+  assert.match(a.spoken[0], /쉬는시간이 2분 남았습니다/);
+  assert.match(a.spoken[1], /점심시간이 10분 남았습니다/);
+});
+
+test('matching custom times choose the final prompt once; a disabled final prompt allows the first', async () => {
+  for (const finalEnabled of [true, false]) {
+    const a = app();
+    a.run('settings.voiceAlertEnabled = true; settings.voiceAlertBreakFirstMinutes = 2; settings.voiceAlertBreakLastMinutes = 2; settings.voiceAlertBreak1 = ' + finalEnabled);
+    a.setTime('2026-09-09T09:48:00');
+    a.run('checkVoiceAlert(new Date())');
+    await a.settle();
+    a.run('checkVoiceAlert(new Date())');
+    await a.settle();
+    assert.equal(a.spoken.length, 1);
+    assert.match(a.spoken[0], finalEnabled ? /자리로 돌아와/ : /하던 일을 정리/);
+  }
+});
+
+test('times outside the break and elapsed custom prompts are not replayed', async () => {
+  const a = app();
+  a.run("settings.voiceAlertEnabled = true; settings.voiceAlertBreakFirstMinutes = 10; settings.voiceAlertBreakLastMinutes = 2; timetable.find(entry => entry.label === '1교시').end = '09:45'");
+  for (const time of ['09:35:00', '09:40:00', '09:45:00', '09:49:00', '09:50:00']) {
+    a.setTime('2026-09-09T' + time);
+    a.run('checkVoiceAlert(new Date())');
+    await a.settle();
+  }
+  assert.deepEqual(a.sounds, []);
+});
+
+test('maximum break and lunch times announce once when each period starts', async () => {
+  const a = app();
+  a.run('settings.voiceAlertEnabled = true; settings.voiceAlertBreakFirstMinutes = 10; settings.voiceAlertLunchFirstMinutes = 50');
+  for (const time of ['09:39:59', '09:40:00', '09:40:01', '12:09:59', '12:10:00', '12:10:01']) {
+    a.setTime('2026-09-09T' + time);
+    a.run('checkVoiceAlert(new Date())');
+    await a.settle();
+  }
+  assert.deepEqual(a.sounds, ['speech', 'speech']);
+  assert.match(a.spoken[0], /쉬는시간이 10분 남았습니다/);
+  assert.match(a.spoken[1], /점심시간이 50분 남았습니다/);
+});
+
+test('custom prompts respect muted weekdays', async () => {
+  const a = app();
+  a.run('settings.voiceAlertEnabled = true; settings.voiceAlertBreakFirstMinutes = 2; settings.alertDays = [1,2,4,5]');
+  a.setTime('2026-09-09T09:48:00');
+  a.run('checkVoiceAlert(new Date())');
+  await a.settle();
+  assert.deepEqual(a.sounds, []);
+});
+
+test('changing an alert time while its recording downloads cancels the stale prompt', async () => {
+  const a = app();
+  a.run('settings.voiceAlertEnabled = true; fetch = () => new Promise(resolve => { globalThis.finishFetch = () => resolve({ok: true, arrayBuffer: async () => new ArrayBuffer(8)}); })');
+  a.setTime('2026-09-09T09:47:00');
+  a.run('checkVoiceAlert(new Date())');
+  await a.settle();
+  a.run('settings.voiceAlertBreakFirstMinutes = 2; finishFetch()');
+  await a.settle();
+  assert.deepEqual(a.sounds, []);
+  assert.equal(a.run('playedVoiceAlerts.size'), 0);
+});
+
+test('speech is marked played only when it starts and failures can retry', async () => {
+  const a = app();
+  a.run('settings.voiceAlertEnabled = true; settings.voiceAlertBreakFirstMinutes = 2; globalThis.starts = 0; window.speechSynthesis.speak = utterance => { starts++; if (starts === 1) utterance.onerror(); else utterance.onstart(); }');
+  a.setTime('2026-09-09T09:48:00');
+  a.run('checkVoiceAlert(new Date())');
+  await a.settle();
+  assert.equal(a.run('playedVoiceAlerts.size'), 0);
+  a.run('checkVoiceAlert(new Date())');
+  await a.settle();
+  assert.equal(a.run('playedVoiceAlerts.size'), 1);
+  assert.equal(a.run('starts'), 2);
+});
+
+test('a queued speech prompt is cancelled if it starts after the valid minute', async () => {
+  const a = app();
+  a.run('settings.voiceAlertEnabled = true; settings.voiceAlertBreakFirstMinutes = 2; globalThis.cancels = 0; window.speechSynthesis.cancel = () => cancels++; window.speechSynthesis.speak = utterance => { globalThis.queuedSpeech = utterance; }');
+  a.setTime('2026-09-09T09:48:00');
+  a.run('checkVoiceAlert(new Date())');
+  await a.settle();
+  assert.equal(a.run('playedVoiceAlerts.size'), 0);
+  a.setTime('2026-09-09T09:49:01');
+  a.run('queuedSpeech.onstart()');
+  await a.settle();
+  assert.equal(a.run('playedVoiceAlerts.size'), 0);
+  assert.equal(a.run('voiceAlertPending'), false);
+  assert.equal(a.run('voiceSpeech'), null);
+  assert.equal(a.run('cancels'), 2);
+});
+
+test('turning voice alerts off cancels pending speech and disables keyboard editing', async () => {
+  const a = app();
+  a.run('settings.voiceAlertEnabled = true; settings.voiceAlertBreakFirstMinutes = 2; window.speechSynthesis.speak = () => {}');
+  voiceControls(a);
+  a.nodes.voiceAlertToggle = { checked: false };
+  a.setTime('2026-09-09T09:48:00');
+  a.run('checkVoiceAlert(new Date())');
+  await a.settle();
+  a.run('toggleVoiceAlert()');
+  await a.settle();
+  assert.equal(a.run('voiceAlertPending'), false);
+  assert.equal(a.run('playedVoiceAlerts.size'), 0);
+  assert.equal(a.nodes.voiceBreak3Minutes.disabled, true);
+  assert.equal(a.nodes.voiceBreak3Toggle.disabled, true);
+});
+
+test('preview uses the selected minutes while automatic voice alerts are off', async () => {
+  const a = app();
+  a.run('settings.voiceAlertEnabled = false; settings.voiceAlertLunchFirstMinutes = 10');
+  await a.run("previewVoiceAlert('lunch-5')");
+  assert.match(a.spoken[0], /10분 남았습니다/);
+  assert.equal(a.run('playedVoiceAlerts.size'), 0);
+  await a.run("previewVoiceAlert('break-3')");
+  assert.equal(a.run("voiceBuffers.has('break-3')"), true);
 });

@@ -1,10 +1,14 @@
 // =============================================
 // CONSTANTS
 // =============================================
-const APP_VERSION = 'v1.19.1';
+const APP_VERSION = 'v1.20.0';
 const FEEDBACK_URL = 'https://forms.gle/y48um84BTrBVn2Nt6';
 const SCHOOLBELL_DEFAULT_URL = 'https://v4.schoolbell-e.com/ko/gate/login';
 const UPDATE_HISTORY = [
+  { version: 'v1.20.0', notes: [
+    '음성 안내 시점을 쉬는시간은 1~10분 전, 점심시간은 1~50분 전으로 설정할 수 있어요',
+    '기존 켜기·끄기 설정과 기본 시간을 유지하며, 변경한 시간은 한국어 음성으로 읽어줘요'
+  ]},
   { version: 'v1.19.1', notes: [
     '자동 알림 요일을 골라 수요일처럼 시정이 다른 날의 수업·이동·음성 알림만 끌 수 있어요',
     '시간표에서 해제한 요일이 다시 포함되던 문제를 고쳤어요',
@@ -147,6 +151,12 @@ const UPDATE_HISTORY = [
 // 최상단이 최신 글. id는 겹치지 않게(예: 날짜 + 순번) 주세요.
 const DEVELOPER_NOTES = [
   {
+    id: '2026-09-15-01-custom-voice-times',
+    date: '2026-09-15',
+    title: 'v1.20.0 · 음성 안내 시간을 우리 반에 맞게 바꿀 수 있어요',
+    body: '쉬는시간과 점심시간 음성 안내가 도움이 되지만, 안내 시점을 직접 조정하고 싶다는 의견을 보내주셨습니다. 이제 설정 > 표시 설정 > "쉬는시간 · 점심시간 음성 안내"에서 각 안내를 쉬는시간은 종료 1~10분 전, 점심시간은 종료 1~50분 전으로 바꿀 수 있어요. 예를 들어 쉬는시간 정리 안내는 2분 전, 점심시간 첫 안내는 10분 전으로 설정할 수 있습니다.\n\n기존의 켜기·끄기 설정과 기본 시간(쉬는시간 3·1분 전, 점심시간 5·1분 전)은 그대로 유지됩니다. 숫자를 입력한 뒤 다른 곳을 누르면 자동 저장되며, 같은 기기와 브라우저에서는 새로고침 후에도 유지돼요. 같은 시각으로 설정한 안내가 겹치면 자리 복귀·마무리 안내만 한 번 재생합니다. 설정한 시점이 쉬는시간이나 점심시간 밖이면 안내하지 않습니다.\n\n기본 시간에는 기존 녹음을 사용하고, 시간을 변경한 안내는 기기의 한국어 음성으로 설정한 분 수를 읽습니다. 기기에 따라 목소리와 한국어 음성 지원 여부가 다르니 설정의 미리듣기로 확인해주세요. 의견 보내주셔서 감사합니다!'
+  },
+  {
     id: '2026-09-13-01-class-alert-weekdays',
     date: '2026-09-13',
     title: 'v1.19.1 · 수업 알림을 보완하고 요일별 끄기를 추가했어요',
@@ -284,6 +294,26 @@ const DAYS_KR = ['일요일','월요일','화요일','수요일','목요일','�
 const DAY_LABELS = ['월','화','수','목','금'];
 const PERIOD_LABEL_RE = /^(\d+)교시$/;
 const RULES_PANEL_VIEWS = ['rules', 'morning', 'break', 'lunch'];
+// Keep the legacy toggle keys so existing preferences and backups still work.
+const VOICE_ALERT_OPTIONS = [
+  { fileKey: 'break-3', type: 'break-time', enabledKey: 'voiceAlertBreak3', minutesKey: 'voiceAlertBreakFirstMinutes', inputId: 'voiceBreak3Minutes', toggleId: 'voiceBreak3Toggle', defaultMinutes: 3, title: '쉬는시간 정리 안내', message: '하던 일을 정리하고 수업 준비를 시작해 주세요.' },
+  { fileKey: 'break-1', type: 'break-time', enabledKey: 'voiceAlertBreak1', minutesKey: 'voiceAlertBreakLastMinutes', inputId: 'voiceBreak1Minutes', toggleId: 'voiceBreak1Toggle', defaultMinutes: 1, title: '쉬는시간 자리 복귀 안내', message: '자리로 돌아와 수업 준비를 마쳐 주세요.' },
+  { fileKey: 'lunch-5', type: 'lunch-time', enabledKey: 'voiceAlertLunch5', minutesKey: 'voiceAlertLunchFirstMinutes', inputId: 'voiceLunch5Minutes', toggleId: 'voiceLunch5Toggle', defaultMinutes: 5, title: '점심시간 첫 안내', message: '식사와 활동을 마무리하고 수업 준비를 시작해 주세요.' },
+  { fileKey: 'lunch-1', type: 'lunch-time', enabledKey: 'voiceAlertLunch1', minutesKey: 'voiceAlertLunchLastMinutes', inputId: 'voiceLunch1Minutes', toggleId: 'voiceLunch1Toggle', defaultMinutes: 1, title: '점심시간 마무리 안내', message: '자리로 돌아와 수업 준비를 마쳐 주세요.' },
+];
+
+const VOICE_ALERT_MAX_MINUTES = { 'break-time': 10, 'lunch-time': 50 };
+
+function validVoiceMinutes(value, option) {
+  return (typeof value === 'number' || typeof value === 'string')
+    && Number.isInteger(Number(value)) && Number(value) >= 1
+    && Number(value) <= VOICE_ALERT_MAX_MINUTES[option.type];
+}
+
+function voiceMinutes(option) {
+  const value = settings[option.minutesKey];
+  return validVoiceMinutes(value, option) ? Number(value) : option.defaultMinutes;
+}
 const FIXED_ACTIVITY_DEFAULTS = [
   { id: 'morning', title: '아침 활동', hint: '등교 후 바로 할 활동을 적어두세요.', subtitle: 'MORNING ACTIVITY', badge: 'AM' },
   { id: 'break', title: '쉬는 시간 활동', hint: '쉬는 시간에 할 활동이나 안내를 적어두세요.', subtitle: 'BREAK TIME', badge: 'BRK' },
@@ -585,6 +615,9 @@ function loadSettings() {
 
     }
   } catch { /* keep defaults */ }
+  VOICE_ALERT_OPTIONS.forEach(option => {
+    settings[option.minutesKey] = voiceMinutes(option);
+  });
 }
 function saveSettings() { localStorage.setItem('classroomSettings', JSON.stringify(settings)); }
 
@@ -1961,10 +1994,7 @@ function openSettings() {
   const startTabSelect = document.getElementById('startTabSelect');
   if (startTabSelect) startTabSelect.value = settings.startTab || 'last';
   document.getElementById('voiceAlertToggle').checked = settings.voiceAlertEnabled;
-  document.getElementById('voiceBreak3Toggle').checked = settings.voiceAlertBreak3 !== false;
-  document.getElementById('voiceBreak1Toggle').checked = settings.voiceAlertBreak1 !== false;
-  document.getElementById('voiceLunch5Toggle').checked = settings.voiceAlertLunch5 !== false;
-  document.getElementById('voiceLunch1Toggle').checked = settings.voiceAlertLunch1 !== false;
+  renderVoiceAlertOptions();
   updateVoiceAlertOptionsState();
   var multiPageToggle = document.getElementById('notebookMultiPageToggle');
   if (multiPageToggle) multiPageToggle.checked = !!settings.notebookMultiPageEnabled;
@@ -6349,9 +6379,16 @@ const VOICE_FILES = {
 };
 
 let voiceSource = null;
+let voiceSpeech = null;
 const voiceBuffers = new Map();
 
 function stopVoiceAlert() {
+  if (voiceSpeech) {
+    const speech = voiceSpeech;
+    voiceSpeech = null;
+    window.speechSynthesis.cancel();
+    speech.cancel();
+  }
   if (voiceSource) {
     voiceSource.stop();
     voiceSource = null;
@@ -6400,14 +6437,107 @@ function toggleVoiceAlert() {
 function updateVoiceAlertOptionsState() {
   var el = document.getElementById('voiceAlertOptions');
   if (el) el.classList.toggle('disabled', !settings.voiceAlertEnabled);
+  VOICE_ALERT_OPTIONS.forEach(option => {
+    const toggle = document.getElementById(option.toggleId);
+    const input = document.getElementById(option.inputId);
+    if (toggle) toggle.disabled = !settings.voiceAlertEnabled;
+    if (input) input.disabled = !settings.voiceAlertEnabled || settings[option.enabledKey] === false;
+  });
+}
+
+function renderVoiceAlertOptions() {
+  VOICE_ALERT_OPTIONS.forEach(option => {
+    document.getElementById(option.toggleId).checked = settings[option.enabledKey] !== false;
+    document.getElementById(option.inputId).value = String(voiceMinutes(option));
+    const preview = document.getElementById(option.inputId + 'Preview');
+    if (preview) preview.textContent = option.title + ' · ' + voiceMinutes(option) + '분 전';
+  });
 }
 
 function saveVoiceAlertOptions() {
-  settings.voiceAlertBreak3 = document.getElementById('voiceBreak3Toggle').checked;
-  settings.voiceAlertBreak1 = document.getElementById('voiceBreak1Toggle').checked;
-  settings.voiceAlertLunch5 = document.getElementById('voiceLunch5Toggle').checked;
-  settings.voiceAlertLunch1 = document.getElementById('voiceLunch1Toggle').checked;
+  for (const option of VOICE_ALERT_OPTIONS) {
+    const input = document.getElementById(option.inputId);
+    if (!validVoiceMinutes(input.value, option)) {
+      input.value = String(voiceMinutes(option));
+      const periodName = option.type === 'break-time' ? '쉬는시간' : '점심시간';
+      showToast(periodName + ' 안내 시간은 1~' + VOICE_ALERT_MAX_MINUTES[option.type] + ' 사이의 정수로 입력해주세요. 이전 시간으로 되돌렸어요');
+      input.focus();
+      return false;
+    }
+  }
+  stopVoiceAlert();
+  VOICE_ALERT_OPTIONS.forEach(option => {
+    settings[option.enabledKey] = document.getElementById(option.toggleId).checked;
+    settings[option.minutesKey] = Number(document.getElementById(option.inputId).value);
+  });
   saveSettings();
+  renderVoiceAlertOptions();
+  updateVoiceAlertOptionsState();
+  return true;
+}
+
+async function previewVoiceAlert(fileKey) {
+  await playConfiguredVoiceAlert(VOICE_ALERT_OPTIONS.find(option => option.fileKey === fileKey));
+}
+
+async function playConfiguredVoiceAlert(option, isValid = null) {
+  if (!option) return false;
+  const minutes = voiceMinutes(option);
+  if (minutes === option.defaultMinutes) return playVoiceFile(option.fileKey, isValid);
+  const preview = !isValid;
+  let played = false;
+  try {
+    if (!window.speechSynthesis || typeof SpeechSynthesisUtterance === 'undefined') throw new Error('Speech unavailable');
+    if (!await ensureAudioRunning(preview) || (isValid && !isValid())) return false;
+    stopVoiceAlert();
+    window.speechSynthesis.cancel();
+    const periodName = option.type === 'lunch-time' ? '점심시간' : '쉬는시간';
+    const utterance = new SpeechSynthesisUtterance(periodName + '이 ' + minutes + '분 남았습니다. ' + option.message);
+    utterance.lang = 'ko-KR';
+    utterance.rate = 0.95;
+    const koreanVoice = window.speechSynthesis.getVoices().find(voice => /^ko([-_]|$)/i.test(voice.lang || ''));
+    if (koreanVoice) utterance.voice = koreanVoice;
+    played = await new Promise(resolve => {
+      let finished = false;
+      const finish = result => {
+        if (finished) return;
+        finished = true;
+        clearTimeout(timeout);
+        resolve(result);
+      };
+      const speech = { utterance, cancel: () => finish(false) };
+      const timeout = setTimeout(() => {
+        if (voiceSpeech === speech) stopVoiceAlert();
+        finish(false);
+      }, 5000);
+      voiceSpeech = speech;
+      utterance.onstart = () => {
+        if (voiceSpeech !== speech || (isValid && !isValid())) {
+          if (voiceSpeech === speech) stopVoiceAlert();
+          finish(false);
+          return;
+        }
+        finish(true);
+      };
+      utterance.onend = utterance.onerror = () => {
+        if (voiceSpeech === speech) voiceSpeech = null;
+        finish(false);
+      };
+      try { window.speechSynthesis.speak(utterance); }
+      catch { if (voiceSpeech === speech) voiceSpeech = null; finish(false); }
+    });
+  } catch { /* Leave failed automatic alerts available for retry. */ }
+  if (!played && preview) showToast('한국어 음성을 재생하지 못했어요. 기기의 한국어 음성과 소리 설정을 확인해주세요');
+  return played;
+}
+
+function getDueVoiceAlert(period, remaining) {
+  // Only the current minute is eligible. At equal times the final prompt wins.
+  return VOICE_ALERT_OPTIONS.slice().reverse().find(option => {
+    const secs = voiceMinutes(option) * 60;
+    return option.type === period.type && settings[option.enabledKey] !== false
+      && remaining <= secs && remaining > secs - 60;
+  });
 }
 
 function checkVoiceAlert(now) {
@@ -6426,36 +6556,22 @@ function checkVoiceAlert(now) {
   const endSecs = period.endMins * 60;
   const remaining = endSecs - currentSecs;
 
-  const isLunch = period.type === 'lunch-time';
-  const allAlerts = isLunch
-    ? [
-        { secs: 300, fileKey: 'lunch-5', enabled: settings.voiceAlertLunch5 !== false },
-        { secs: 60, fileKey: 'lunch-1', enabled: settings.voiceAlertLunch1 !== false },
-      ]
-    : [
-        { secs: 180, fileKey: 'break-3', enabled: settings.voiceAlertBreak3 !== false },
-        { secs: 60, fileKey: 'break-1', enabled: settings.voiceAlertBreak1 !== false },
-      ];
-  const alerts = allAlerts.filter(a => a.enabled);
-
-  // A delayed tick must not announce "3 minutes" followed by "1 minute".
-  const alert = alerts.slice().reverse().find(item => remaining <= item.secs && remaining > item.secs - 60);
+  const alert = getDueVoiceAlert(period, remaining);
   if (!alert || voiceAlertPending) return;
-  const key = formatDateKey(now) + '-' + period.type + '-' + period.endMins + '-' + alert.secs;
+  const secs = voiceMinutes(alert) * 60;
+  const key = formatDateKey(now) + '-' + period.type + '-' + period.endMins + '-' + secs;
   if (playedVoiceAlerts.has(key)) return;
-  const optionKey = isLunch ? (alert.secs === 300 ? 'voiceAlertLunch5' : 'voiceAlertLunch1')
-    : (alert.secs === 180 ? 'voiceAlertBreak3' : 'voiceAlertBreak1');
   const isValid = () => {
     const current = new Date();
     const currentPeriod = getCurrentPeriod(current);
     const secondsLeft = period.endMins * 60 - (current.getHours() * 3600 + current.getMinutes() * 60 + current.getSeconds());
-    return settings.voiceAlertEnabled && settings[optionKey] !== false && isAutoAlertDay(current)
+    return settings.voiceAlertEnabled && isAutoAlertDay(current)
       && formatDateKey(current) === formatDateKey(now)
       && currentPeriod.type === period.type && currentPeriod.endMins === period.endMins
-      && secondsLeft <= alert.secs && secondsLeft > alert.secs - 60;
+      && voiceMinutes(alert) * 60 === secs && getDueVoiceAlert(currentPeriod, secondsLeft) === alert;
   };
   voiceAlertPending = true;
-  playVoiceFile(alert.fileKey, isValid).then(played => {
+  playConfiguredVoiceAlert(alert, isValid).then(played => {
     if (played) playedVoiceAlerts.add(key);
   }).finally(() => { voiceAlertPending = false; });
 }
