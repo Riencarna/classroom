@@ -1,10 +1,15 @@
 // =============================================
 // CONSTANTS
 // =============================================
-const APP_VERSION = 'v1.21.0';
+const APP_VERSION = 'v1.22.0';
 const FEEDBACK_URL = 'https://forms.gle/y48um84BTrBVn2Nt6';
 const SCHOOLBELL_DEFAULT_URL = 'https://v4.schoolbell-e.com/ko/gate/login';
 const UPDATE_HISTORY = [
+  { version: 'v1.22.0', notes: [
+    '시간표에서 중간놀이를 지정하고 일반 쉬는시간과 다른 음성 안내 시간을 설정할 수 있어요',
+    '중간놀이 정리·자리 복귀 안내를 각각 종료 1~20분 전으로 조절할 수 있어요',
+    '기본 시간표뿐 아니라 오늘 시간표와 날짜별 시간표에서도 중간놀이를 사용할 수 있어요'
+  ]},
   { version: 'v1.21.0', notes: [
     '학급 도구와 화면 하단의 그림 버튼에서 이미지 띄우기를 열 수 있어요',
     '규칙·안내 사진을 여러 장 저장하고 이름을 붙여 필요할 때 바로 크게 띄울 수 있어요',
@@ -156,6 +161,12 @@ const UPDATE_HISTORY = [
 // 최상단이 최신 글. id는 겹치지 않게(예: 날짜 + 순번) 주세요.
 const DEVELOPER_NOTES = [
   {
+    id: '2026-09-22-02-playtime-alerts',
+    date: '2026-09-22',
+    title: 'v1.22.0 · 중간놀이 정리 시간을 따로 설정할 수 있어요',
+    body: '블록 수업 뒤의 긴 쉬는시간에는 보드게임이나 놀이 도구를 정리할 시간이 더 필요해서, 일반 쉬는시간과 안내 시점을 따로 정하고 싶다는 의견을 보내주셨습니다. 이제 중간놀이 시간을 별도로 지정하고 정리·자리 복귀 안내를 각각 설정할 수 있어요.\n\n먼저 설정 > 시간표 편집에서 "+ 새 시간 추가"를 누른 뒤 유형을 "중간놀이"로 바꾸고, 실제 시작·종료 시각과 적용 요일을 지정해주세요. 이미 쉬는시간을 등록해두셨다면 해당 행의 유형만 중간놀이로 바꾸면 됩니다. 예를 들어 블록 수업이 10:20에 끝나고 다음 수업이 10:40에 시작한다면 중간놀이를 10:20~10:40으로 등록해요. 기존 수업과 시간이 겹치지 않도록 확인해주세요. 오늘 시간표와 날짜별 시간표에서도 같은 유형을 고를 수 있습니다.\n\n그다음 설정 > 표시 설정 > "쉬는시간 · 중간놀이 · 점심시간 음성 안내"에서 중간놀이 정리 안내와 자리 복귀 안내를 조절해주세요. 기본은 종료 5분 전·1분 전이며, 각각 1~20분 전으로 바꾸거나 끌 수 있습니다. 중간놀이로 지정한 구간에는 일반 쉬는시간 안내 대신 중간놀이 안내가 나와요. 예를 들어 일반 쉬는시간은 3분 전부터, 중간놀이는 7분 전부터 정리를 시작하도록 설정할 수 있습니다.\n\n중간놀이는 기기의 한국어 음성으로 남은 시간과 놀이 도구 정리·자리 복귀를 안내합니다. 미리듣기로 소리를 확인해주세요. 같은 시각에 두 안내가 겹치면 자리 복귀 안내만 한 번 재생하고, 중간놀이 시간 밖의 시점에는 안내하지 않습니다. 기존 쉬는시간·점심시간 설정은 유지되며, 새 설정도 같은 기기와 브라우저에 저장됩니다. 아이들이 충분히 정리하고 다음 수업을 준비할 수 있도록 의견 보내주셔서 감사합니다!'
+  },
+  {
     id: '2026-09-22-01-image-display',
     date: '2026-09-22',
     title: 'v1.21.0 · 이미지 띄우기, 원하셨던 방식이 맞을까요?',
@@ -304,16 +315,20 @@ const COLORS = ['#3b82f6','#8b5cf6','#f97316','#10b981','#ef4444','#ec4899','#14
 const DAYS_KR = ['일요일','월요일','화요일','수요일','목요일','금요일','토요일'];
 const DAY_LABELS = ['월','화','수','목','금'];
 const PERIOD_LABEL_RE = /^(\d+)교시$/;
+const TIMETABLE_TYPES = [['in-class', '수업'], ['lunch-time', '점심'], ['break-time', '쉬는시간'], ['play-time', '중간놀이'], ['event-time', '행사']];
 const RULES_PANEL_VIEWS = ['rules', 'morning', 'break', 'lunch'];
 // Keep the legacy toggle keys so existing preferences and backups still work.
 const VOICE_ALERT_OPTIONS = [
   { fileKey: 'break-3', type: 'break-time', enabledKey: 'voiceAlertBreak3', minutesKey: 'voiceAlertBreakFirstMinutes', inputId: 'voiceBreak3Minutes', toggleId: 'voiceBreak3Toggle', defaultMinutes: 3, title: '쉬는시간 정리 안내', message: '하던 일을 정리하고 수업 준비를 시작해 주세요.' },
   { fileKey: 'break-1', type: 'break-time', enabledKey: 'voiceAlertBreak1', minutesKey: 'voiceAlertBreakLastMinutes', inputId: 'voiceBreak1Minutes', toggleId: 'voiceBreak1Toggle', defaultMinutes: 1, title: '쉬는시간 자리 복귀 안내', message: '자리로 돌아와 수업 준비를 마쳐 주세요.' },
+  { fileKey: 'play-5', type: 'play-time', enabledKey: 'voiceAlertPlayFirst', minutesKey: 'voiceAlertPlayFirstMinutes', inputId: 'voicePlayFirstMinutes', toggleId: 'voicePlayFirstToggle', defaultMinutes: 5, title: '중간놀이 정리 안내', message: '보드게임과 놀이 도구를 정리하고 수업 준비를 시작해 주세요.' },
+  { fileKey: 'play-1', type: 'play-time', enabledKey: 'voiceAlertPlayLast', minutesKey: 'voiceAlertPlayLastMinutes', inputId: 'voicePlayLastMinutes', toggleId: 'voicePlayLastToggle', defaultMinutes: 1, title: '중간놀이 자리 복귀 안내', message: '놀이를 마치고 교실의 자기 자리로 돌아와 수업 준비를 마쳐 주세요.' },
   { fileKey: 'lunch-5', type: 'lunch-time', enabledKey: 'voiceAlertLunch5', minutesKey: 'voiceAlertLunchFirstMinutes', inputId: 'voiceLunch5Minutes', toggleId: 'voiceLunch5Toggle', defaultMinutes: 5, title: '점심시간 첫 안내', message: '식사와 활동을 마무리하고 수업 준비를 시작해 주세요.' },
   { fileKey: 'lunch-1', type: 'lunch-time', enabledKey: 'voiceAlertLunch1', minutesKey: 'voiceAlertLunchLastMinutes', inputId: 'voiceLunch1Minutes', toggleId: 'voiceLunch1Toggle', defaultMinutes: 1, title: '점심시간 마무리 안내', message: '자리로 돌아와 수업 준비를 마쳐 주세요.' },
 ];
 
-const VOICE_ALERT_MAX_MINUTES = { 'break-time': 10, 'lunch-time': 50 };
+const VOICE_ALERT_MAX_MINUTES = { 'break-time': 10, 'play-time': 20, 'lunch-time': 50 };
+const VOICE_ALERT_PERIOD_NAMES = { 'break-time': '쉬는시간', 'play-time': '중간놀이 시간', 'lunch-time': '점심시간' };
 
 function validVoiceMinutes(value, option) {
   return (typeof value === 'number' || typeof value === 'string')
@@ -461,6 +476,14 @@ function cloneEntry(entry) {
 function getPeriodNumber(label) {
   const match = String(label || '').trim().match(PERIOD_LABEL_RE);
   return match ? parseInt(match[1], 10) : null;
+}
+
+function setTimetableEntryType(entry, type) {
+  entry.type = type;
+  // A new row starts with a numbered lesson name. Do not count play as a lesson.
+  if (type === 'play-time' && (getPeriodNumber(entry.label) || ['새 시간', '새 교시', '쉬는시간', '쉬는 시간'].includes(entry.label))) {
+    entry.label = '중간놀이';
+  }
 }
 
 function createMorningEntry(start, end) {
@@ -627,6 +650,7 @@ function loadSettings() {
     }
   } catch { /* keep defaults */ }
   VOICE_ALERT_OPTIONS.forEach(option => {
+    if (settings[option.enabledKey] === undefined) settings[option.enabledKey] = true;
     settings[option.minutesKey] = voiceMinutes(option);
   });
 }
@@ -2321,7 +2345,7 @@ function renderSpecialTimetableEditor() {
 
     const typeSelect = document.createElement('select');
     typeSelect.className = 'tt-type-select';
-    [['in-class', '수업'], ['lunch-time', '점심'], ['break-time', '쉬는시간'], ['event-time', '행사']].forEach(([val, txt]) => {
+    TIMETABLE_TYPES.forEach(([val, txt]) => {
       const opt = document.createElement('option');
       opt.value = val;
       opt.textContent = txt;
@@ -2329,7 +2353,8 @@ function renderSpecialTimetableEditor() {
       typeSelect.appendChild(opt);
     });
     typeSelect.addEventListener('change', () => {
-      entry.type = typeSelect.value;
+      setTimetableEntryType(entry, typeSelect.value);
+      labelInput.value = entry.label;
       markSpecialTimetableDirty();
     });
 
@@ -2680,7 +2705,7 @@ function renderQuickTimetableEditor() {
 
     const typeSelect = document.createElement('select');
     typeSelect.className = 'tt-type-select';
-    [['in-class', '수업'], ['lunch-time', '점심'], ['break-time', '쉬는시간'], ['event-time', '행사']].forEach(([val, txt]) => {
+    TIMETABLE_TYPES.forEach(([val, txt]) => {
       const opt = document.createElement('option');
       opt.value = val;
       opt.textContent = txt;
@@ -2688,7 +2713,8 @@ function renderQuickTimetableEditor() {
       typeSelect.appendChild(opt);
     });
     typeSelect.addEventListener('change', () => {
-      entry.type = typeSelect.value;
+      setTimetableEntryType(quickTimetableDraft[i], typeSelect.value);
+      labelInput.value = quickTimetableDraft[i].label;
       markQuickTimetableDirty();
       saveQuickTimetable(false, false);
     });
@@ -2880,7 +2906,7 @@ function renderTimetableEditor() {
     // Type
     const typeSelect = document.createElement('select');
     typeSelect.className = 'tt-type-select';
-    [['in-class', '수업'], ['lunch-time', '점심'], ['break-time', '쉬는시간']].forEach(([val, txt]) => {
+    TIMETABLE_TYPES.forEach(([val, txt]) => {
       const opt = document.createElement('option');
       opt.value = val;
       opt.textContent = txt;
@@ -2888,7 +2914,8 @@ function renderTimetableEditor() {
       typeSelect.appendChild(opt);
     });
     typeSelect.addEventListener('change', () => {
-      timetable[i].type = typeSelect.value;
+      setTimetableEntryType(timetable[i], typeSelect.value);
+      labelInput.value = timetable[i].label;
       saveTimetable();
     });
 
@@ -5461,7 +5488,7 @@ function renderTimetableDisplay() {
   const timeline = [];
   for (let i = 0; i < entries.length; i++) {
     const entry = entries[i];
-    if (entry.type === 'lunch-time' || entry.type === 'break-time' || entry.type === 'event-time') continue;
+    if (entry.type !== 'in-class') continue;
     const subject = entry.subject || (entry.subjects ? entry.subjects[day] || '' : '');
     const room = entry.room || (entry.rooms ? entry.rooms[day] || '' : '');
     timeline.push({ label: entry.label, start: entry.start, end: entry.end, type: entry.type, subject: subject, room: room });
@@ -6470,7 +6497,7 @@ function saveVoiceAlertOptions() {
     const input = document.getElementById(option.inputId);
     if (!validVoiceMinutes(input.value, option)) {
       input.value = String(voiceMinutes(option));
-      const periodName = option.type === 'break-time' ? '쉬는시간' : '점심시간';
+      const periodName = VOICE_ALERT_PERIOD_NAMES[option.type];
       showToast(periodName + ' 안내 시간은 1~' + VOICE_ALERT_MAX_MINUTES[option.type] + ' 사이의 정수로 입력해주세요. 이전 시간으로 되돌렸어요');
       input.focus();
       return false;
@@ -6494,7 +6521,7 @@ async function previewVoiceAlert(fileKey) {
 async function playConfiguredVoiceAlert(option, isValid = null) {
   if (!option) return false;
   const minutes = voiceMinutes(option);
-  if (minutes === option.defaultMinutes) return playVoiceFile(option.fileKey, isValid);
+  if (minutes === option.defaultMinutes && VOICE_FILES[option.fileKey]) return playVoiceFile(option.fileKey, isValid);
   const preview = !isValid;
   let played = false;
   try {
@@ -6502,7 +6529,7 @@ async function playConfiguredVoiceAlert(option, isValid = null) {
     if (!await ensureAudioRunning(preview) || (isValid && !isValid())) return false;
     stopVoiceAlert();
     window.speechSynthesis.cancel();
-    const periodName = option.type === 'lunch-time' ? '점심시간' : '쉬는시간';
+    const periodName = VOICE_ALERT_PERIOD_NAMES[option.type];
     const utterance = new SpeechSynthesisUtterance(periodName + '이 ' + minutes + '분 남았습니다. ' + option.message);
     utterance.lang = 'ko-KR';
     utterance.rate = 0.95;
@@ -6555,8 +6582,8 @@ function checkVoiceAlert(now) {
   if (!settings.voiceAlertEnabled || !isAutoAlertDay(now)) return;
 
   const period = getCurrentPeriod(now);
-  if (period.type !== 'break-time' && period.type !== 'lunch-time') {
-    // 쉬는시간/점심이 아니면 재생 기록 초기화
+  if (!VOICE_ALERT_PERIOD_NAMES[period.type]) {
+    // 음성 안내를 사용하는 시간이 아니면 재생 기록 초기화
     playedVoiceAlerts.clear();
     return;
   }

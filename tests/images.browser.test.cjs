@@ -8,6 +8,7 @@ const { chromium } = require('playwright');
 
 test('image library persists, presents, validates and handles storage failures', async () => {
   const root = path.resolve(__dirname, '..');
+  const version = (await fs.readFile(path.join(root, 'script.js'), 'utf8')).match(/const APP_VERSION = '([^']+)'/)[1];
   const server = http.createServer(async (req, res) => {
     const file = path.join(root, decodeURIComponent(new URL(req.url, 'http://localhost').pathname === '/' ? '/index.html' : new URL(req.url, 'http://localhost').pathname));
     if (!file.startsWith(root + path.sep)) { res.writeHead(403).end(); return; }
@@ -26,13 +27,13 @@ test('image library persists, presents, validates and handles storage failures',
     page.on('pageerror', error => errors.push(error.message));
     // Keep the test offline and prevent visitor-counter writes to the real service.
     await page.route('https://**', route => route.abort());
-    await page.addInitScript(() => {
-      localStorage.setItem('classroom_lastSeenVersion', 'v1.21.0');
+    await page.addInitScript(version => {
+      localStorage.setItem('classroom_lastSeenVersion', version);
       window.firebase = {
         initializeApp() {},
         database() { return { ref() { return { transaction() { return Promise.resolve(); }, once() {} }; } }; }
       };
-    });
+    }, version);
     await page.goto('http://127.0.0.1:' + server.address().port);
     const open = () => page.locator('.image-tool-shortcut').click();
     const ready = () => page.waitForFunction(() => !document.querySelector('.image-add').disabled);

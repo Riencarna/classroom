@@ -321,7 +321,7 @@ test('a blocked Worker falls back to an interval and refreshes after visibility 
 });
 
 function voiceControls(a) {
-  for (const prefix of ['voiceBreak3', 'voiceBreak1', 'voiceLunch5', 'voiceLunch1']) {
+  for (const prefix of ['voiceBreak3', 'voiceBreak1', 'voicePlayFirst', 'voicePlayLast', 'voiceLunch5', 'voiceLunch1']) {
     for (const suffix of ['Toggle', 'Minutes', 'MinutesPreview']) a.nodes[prefix + suffix] = element();
   }
   a.nodes.voiceAlertOptions = element();
@@ -358,7 +358,7 @@ test('invalid user input is rejected without overwriting saved settings', () => 
   voiceControls(a);
   a.run('saveVoiceAlertOptions()');
   const saved = a.storage.get('classroomSettings');
-  for (const [prefix, max, fallback] of [['voiceBreak3', 10, '3'], ['voiceBreak1', 10, '1'], ['voiceLunch5', 50, '5'], ['voiceLunch1', 50, '1']]) {
+  for (const [prefix, max, fallback] of [['voiceBreak3', 10, '3'], ['voiceBreak1', 10, '1'], ['voicePlayFirst', 20, '5'], ['voicePlayLast', 20, '1'], ['voiceLunch5', 50, '5'], ['voiceLunch1', 50, '1']]) {
     for (const value of ['', '0', '-1', String(max + 1), '60', '1.5', 'abc', 'Infinity']) {
       a.nodes[prefix + 'Minutes'].value = value;
       assert.equal(a.run('saveVoiceAlertOptions()'), false, prefix + ': ' + value);
@@ -527,4 +527,138 @@ test('preview uses the selected minutes while automatic voice alerts are off', a
   assert.equal(a.run('playedVoiceAlerts.size'), 0);
   await a.run("previewVoiceAlert('break-3')");
   assert.equal(a.run("voiceBuffers.has('break-3')"), true);
+});
+
+function playtime(a) {
+  a.run(`
+    settings.voiceAlertEnabled = true;
+    timetable.find(entry => entry.label === '2교시').start = '09:40';
+    timetable.find(entry => entry.label === '2교시').end = '10:20';
+    timetable.push({label: '중간놀이', start: '10:20', end: '10:40', type: 'play-time', days: [1,2,3,4,5], subjects: {}});
+    saveTimetable();
+  `);
+}
+
+test('playtime settings are independent, keep old settings and survive storage', () => {
+  const a = app({ classroomSettings: JSON.stringify({ voiceAlertEnabled: true, voiceAlertBreak3: false, voiceAlertBreakFirstMinutes: 2 }) });
+  voiceControls(a);
+  assert.equal(a.nodes.voicePlayFirstMinutes.value, '5');
+  assert.equal(a.nodes.voicePlayLastMinutes.value, '1');
+  assert.equal(a.nodes.voicePlayFirstToggle.checked, true);
+  for (const minutes of ['1', '20']) {
+    a.nodes.voicePlayFirstMinutes.value = minutes;
+    a.nodes.voicePlayLastToggle.checked = false;
+    a.run('saveVoiceAlertOptions()');
+    const b = app(Object.fromEntries(a.storage)); voiceControls(b);
+    assert.equal(b.nodes.voicePlayFirstMinutes.value, minutes);
+    assert.equal(b.nodes.voicePlayLastToggle.checked, false);
+    assert.equal(b.nodes.voicePlayLastMinutes.disabled, true);
+    assert.equal(b.nodes.voiceBreak3Minutes.value, '2');
+    assert.equal(b.nodes.voiceBreak3Toggle.checked, false);
+    assert.equal(b.nodes.voiceLunch5Minutes.value, '5');
+  }
+});
+
+test('playtime is explicit, keeps weekday selections and round-trips through timetable storage', () => {
+  const a = app(); playtime(a);
+  a.run("timetable.find(entry => entry.type === 'play-time').days = [3]; saveTimetable(); timetable = []; loadTimetable()");
+  a.setTime('2026-09-09T10:25:00');
+  assert.equal(a.run('getCurrentPeriod(new Date()).type'), 'play-time');
+  assert.equal(a.run('getCurrentPeriod(new Date()).endMins'), 640);
+  a.setTime('2026-09-10T10:25:00');
+  assert.equal(a.run('getCurrentPeriod(new Date()).type'), 'break-time', 'long gaps are not automatically playtime');
+  a.setTime('2026-09-09T10:40:00');
+  assert.equal(a.run('getCurrentPeriod(new Date()).type'), 'in-class');
+});
+
+test('playtime cleanup and return prompts use speech, never ordinary break audio', async () => {
+  const a = app(); playtime(a);
+  a.run('settings.voiceAlertPlayFirstMinutes = 7');
+  for (const time of ['10:19:00', '10:33:00', '10:33:20', '10:35:00', '10:37:00', '10:39:00', '10:39:30', '10:40:00']) {
+    a.setTime('2026-09-09T' + time); a.run('checkVoiceAlert(new Date())'); await a.settle();
+  }
+  assert.equal(a.spoken.length, 2);
+  assert.match(a.spoken[0], /중간놀이 시간이 7분 남았습니다.*보드게임과 놀이 도구/);
+  assert.match(a.spoken[1], /중간놀이 시간이 1분 남았습니다.*자기 자리/);
+  assert.equal(a.sounds.includes('voice'), false);
+});
+
+test('default playtime speech and previews work without an audio recording', async () => {
+  const a = app(); playtime(a);
+  a.setTime('2026-09-09T10:35:00'); a.run('checkVoiceAlert(new Date())'); await a.settle();
+  assert.match(a.spoken[0], /중간놀이 시간이 5분 남았습니다/);
+  a.run('settings.voiceAlertEnabled = false');
+  await a.run("previewVoiceAlert('play-1')");
+  assert.match(a.spoken[1], /중간놀이 시간이 1분 남았습니다/);
+  assert.equal(a.run('playedVoiceAlerts.size'), 1);
+});
+
+test('playtime honors equal times, individual toggles and muted weekdays', async () => {
+  for (const finalEnabled of [true, false]) {
+    const a = app(); playtime(a);
+    a.run('settings.voiceAlertPlayFirstMinutes = settings.voiceAlertPlayLastMinutes = 5; settings.voiceAlertPlayLast = ' + finalEnabled);
+    a.setTime('2026-09-09T10:35:00');
+    a.run('checkVoiceAlert(new Date())'); await a.settle();
+    a.run('checkVoiceAlert(new Date())'); await a.settle();
+    assert.equal(a.spoken.length, 1);
+    assert.match(a.spoken[0], finalEnabled ? /자기 자리/ : /놀이 도구/);
+  }
+  const muted = app(); playtime(muted);
+  muted.run('settings.alertDays = [1,2,4,5]');
+  muted.setTime('2026-09-09T10:35:00'); muted.run('checkVoiceAlert(new Date())'); await muted.settle();
+  assert.equal(muted.spoken.length, 0);
+  muted.run('settings.alertDays = [3]; settings.voiceAlertPlayFirst = settings.voiceAlertPlayLast = false');
+  for (const time of ['10:35:00', '10:37:00', '10:39:00']) {
+    muted.setTime('2026-09-09T' + time); muted.run('checkVoiceAlert(new Date())'); await muted.settle();
+  }
+  assert.equal(muted.sounds.length, 0, 'disabling playtime does not fall back to break prompts');
+});
+
+test('playtime prompts do not fire outside the interval or catch up expired minutes', async () => {
+  const a = app(); playtime(a);
+  a.run('settings.voiceAlertPlayFirstMinutes = 20');
+  a.setTime('2026-09-09T10:19:59'); a.run('checkVoiceAlert(new Date())'); await a.settle();
+  assert.equal(a.spoken.length, 0);
+  a.setTime('2026-09-09T10:20:00'); a.run('checkVoiceAlert(new Date())'); await a.settle();
+  assert.match(a.spoken[0], /20분 남았습니다/);
+  a.run('settings.voiceAlertPlayFirstMinutes = 5');
+  a.setTime('2026-09-09T10:36:00'); a.run('checkVoiceAlert(new Date())'); await a.settle();
+  assert.equal(a.spoken.length, 1);
+  a.setTime('2026-09-09T10:40:00'); a.run('checkVoiceAlert(new Date())'); await a.settle();
+  assert.equal(a.spoken.length, 1);
+});
+
+test('date-specific playtime takes precedence and survives view-data normalization', async () => {
+  const a = app();
+  a.run(`settings.voiceAlertEnabled = true;
+    viewData.academicEvents = [normalizeAcademicEvent({date: '2026-09-09', title: '블록 수업', timetableOverride: true, timetable: [
+      {label:'블록 수업', start:'09:00', end:'10:20', type:'in-class'},
+      {label:'운동장 놀이', start:'10:20', end:'10:40', type:'play-time'},
+      {label:'3교시', start:'10:40', end:'11:20', type:'in-class'}
+    ]})]; saveViewData(); saveSettings();`);
+  const b = app(Object.fromEntries(a.storage)); b.run('loadViewData()');
+  b.setTime('2026-09-09T10:35:00');
+  assert.equal(b.run('getCurrentPeriod(new Date()).type'), 'play-time');
+  assert.equal(b.run('getCurrentPeriod(new Date()).label'), '운동장 놀이');
+  b.run('checkVoiceAlert(new Date())'); await b.settle();
+  assert.match(b.spoken[0], /중간놀이 시간이 5분/);
+});
+
+test('changing a new numbered row to playtime avoids counting it as an extra lesson', () => {
+  const a = app();
+  a.run("globalThis.newRow = cloneEntry({label:'9교시', start:'10:20', end:'10:40'}); setTimetableEntryType(newRow, 'play-time'); timetable.push(newRow)");
+  assert.equal(a.run('newRow.label'), '중간놀이');
+  assert.equal(a.run("getTodayEntries(new Date()).some(entry => entry.type === 'play-time')"), true);
+  a.run("newRow.label = '운동장 놀이'; setTimetableEntryType(newRow, 'play-time')");
+  assert.equal(a.run('newRow.label'), '운동장 놀이');
+});
+
+test('playtime does not add lesson chimes at its start or end', async () => {
+  const a = app(); playtime(a);
+  a.run('settings.voiceAlertEnabled = false');
+  await a.tick('2026-09-09T10:19:59');
+  await a.tick('2026-09-09T10:20:00');
+  await a.tick('2026-09-09T10:39:59');
+  await a.tick('2026-09-09T10:40:00');
+  assert.deepEqual(a.sounds, [783.99, 659.25, 523.25, 523.25, 659.25, 783.99]);
 });
