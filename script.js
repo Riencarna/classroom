@@ -1,10 +1,15 @@
 // =============================================
 // CONSTANTS
 // =============================================
-const APP_VERSION = 'v1.23.0';
+const APP_VERSION = 'v1.24.0';
 const FEEDBACK_URL = 'https://forms.gle/y48um84BTrBVn2Nt6';
 const SCHOOLBELL_DEFAULT_URL = 'https://v4.schoolbell-e.com/ko/gate/login';
 const UPDATE_HISTORY = [
+  { version: 'v1.24.0', notes: [
+    '학급 도구에 자리 정하기와 수업 벨을 추가했어요',
+    '학생 명단으로 자리를 섞고 고정 자리·빈자리를 지정할 수 있어요',
+    '수업 벨에서 세 가지 소리와 음량을 골라 사용해보세요'
+  ]},
   { version: 'v1.23.0', notes: [
     '설정 > 표시 설정에서 시간표 과목 글자를 기본 크기부터 200%까지 키울 수 있어요',
     '선택한 크기는 바로 적용되고 다음 접속에도 유지돼요',
@@ -165,6 +170,18 @@ const UPDATE_HISTORY = [
 // 개발자 소식 게시판 — 의견 보내기로 받은 피드백에 답변하거나 소식을 전달할 때 사용합니다.
 // 최상단이 최신 글. id는 겹치지 않게(예: 날짜 + 순번) 주세요.
 const DEVELOPER_NOTES = [
+  {
+    id: '2026-11-01-03-lesson-tools-questions',
+    date: '2026-11-01',
+    title: '수업 도구를 건의해주신 선생님께 여쭤봅니다',
+    body: '"수업 도구(뽑기, 자리정하기, 다했어요, 음악, 수업 벨, 발표 목소리 등등)"를 건의해주신 선생님, 의견 보내주셔서 감사합니다! 먼저 기존 랜덤 뽑기에 더해 자리 정하기와 수업 벨을 준비했습니다. 나머지 도구도 선생님께서 생각하신 모습에 맞게 만들고 싶어 몇 가지 여쭤봅니다.\n\n1. ‘다했어요’는 누가, 어디에서 완료 표시를 하나요?\n선생님께서 교실 화면의 학생 이름을 눌러 활동 완료를 표시하는 방식인가요? 아니면 학생이 교실 화면에서 직접 누르거나, 각자의 기기에서 완료 버튼을 누르면 선생님 화면에 모이는 방식인가요? 현재 과제 확인과 달리 어떤 장면에서 사용하고 싶으신지도 궁금합니다.\n\n2. ‘발표 목소리’는 어떤 기능을 생각하셨나요?\n‘혼자 생각할 때는 작은 목소리, 모둠 활동은 대화 목소리, 발표할 때는 큰 목소리’처럼 상황에 맞는 목소리 크기를 그림이나 단계로 보여주는 안내인가요? 아니면 마이크로 실제 소리 크기를 측정해 화면에 보여주는 기능인가요?\n\n3. 음악은 어떤 방식으로 재생하면 좋을까요?\n준비된 활동·정리용 음악 중에서 고르는 방식, 선생님이 가진 음악 파일을 등록하는 방식, 유튜브 등 평소 쓰는 음악 링크를 여는 방식 중 어떤 것을 원하시나요? 활동 중 배경 음악인지, 정리 시간을 알려주는 음악인지와 반복 재생·타이머 연동이 필요한지도 알려주세요.\n\n화면 하단의 ‘의견 보내기’로 ‘수업 도구 건의 추가 답변’이라고 적어 보내주시면 이어서 확인하겠습니다. 모든 질문에 답하지 않으셔도 괜찮아요. 원하시는 항목과 수업 중 사용하는 예시 한 가지만 알려주셔도 도움이 됩니다. 참고하신 서비스나 화면이 있다면 이름이나 링크도 함께 부탁드립니다!'
+  },
+  {
+    id: '2026-11-01-02-lesson-tools',
+    date: '2026-11-01',
+    title: 'v1.24.0 · 자리 정하기와 수업 벨을 추가했어요',
+    body: '수업 중 사용할 도구를 더해달라는 건의를 보내주셔서 감사합니다. 먼저 학급 도구에 자리 정하기와 수업 벨을 추가했습니다.\n\n자리 정하기에서 학생 이름을 한 줄에 한 명씩 입력하거나 랜덤 뽑기 명단을 불러온 뒤 명단 적용을 눌러주세요. 가로·세로 크기를 정하고 자리 섞기를 누르면 배치됩니다. 자리 고정은 학생이 배정된 자리를 눌러 설정하고, 빈자리 지정은 미배정 자리를 눌러 설정합니다. 두 설정은 자리를 섞어도 유지돼요. 자리 바꾸기에서는 두 자리를 차례로 눌러 서로 바꿀 수 있습니다. 크게 보기를 누르면 설정 영역을 숨겨 배치를 넓게 보여줍니다. 명단이나 크기를 새로 적용하면 기존 배치와 고정·빈자리 설정이 초기화되니 확인해주세요.\n\n수업 벨에서는 맑은 종·딩동·집중 신호를 골라 재생할 수 있습니다. 작은 음량으로 먼저 확인해주세요. 음량 조절과 소리 멈추기는 기존 시간표 자동 알림과 별도로 사용할 수 있고, 수업 벨 창을 닫으면 재생도 멈춥니다. 자리 배치와 벨 음량은 같은 기기의 브라우저에 저장되며 설정 내보내기에도 포함됩니다.'
+  },
   {
     id: '2026-11-01-01-timetable-subject-size',
     date: '2026-11-01',
@@ -6022,7 +6039,9 @@ function exportData() {
     classroomSettings: localStorage.getItem('classroomSettings'),
     classroomViewData: localStorage.getItem('classroomViewData'),
     classroomRandomStudents: localStorage.getItem('classroomRandomStudents'),
-    classroomRandomPicked: localStorage.getItem('classroomRandomPicked')
+    classroomRandomPicked: localStorage.getItem('classroomRandomPicked'),
+    classroomSeating: localStorage.getItem('classroomSeating'),
+    classroomLessonBellVolume: localStorage.getItem('classroomLessonBellVolume')
   };
   const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
@@ -6053,7 +6072,7 @@ function handleImport(e) {
   reader.onload = function(ev) {
     try {
       const data = JSON.parse(ev.target.result);
-      const keys = ['classroomRules', 'classroomTimetable', 'classroomSettings', 'classroomViewData', 'classroomRandomStudents', 'classroomRandomPicked'];
+      const keys = ['classroomRules', 'classroomTimetable', 'classroomSettings', 'classroomViewData', 'classroomRandomStudents', 'classroomRandomPicked', 'classroomSeating', 'classroomLessonBellVolume'];
       keys.forEach(function(key) {
         if (data[key] !== undefined && data[key] !== null) {
           localStorage.setItem(key, data[key]);

@@ -4,8 +4,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>우리 반 배경화면</title>
-<link rel="stylesheet" href="style.css?v=1.23.0">
+<link rel="stylesheet" href="style.css?v=1.24.0">
 <link rel="stylesheet" href="image-tool.css?v=1.21.0">
+<link rel="stylesheet" href="lesson-tools.css?v=1.24.0">
 </head>
 <body>
 
@@ -215,9 +216,17 @@
       <span class="classroom-tool-icon" aria-hidden="true">&#x23F1;</span>
       <span><strong>타이머</strong><small>수업 활동 시간 재기</small></span>
     </button>
+    <button class="classroom-tool-item" role="menuitem" onclick="openSeatingTool()">
+      <span class="classroom-tool-icon" aria-hidden="true">🪑</span>
+      <span><strong>자리 정하기</strong><small>빈자리·고정 자리를 정하고 섞기</small></span>
+    </button>
+    <button class="classroom-tool-item" role="menuitem" onclick="openLessonBell()">
+      <span class="classroom-tool-icon" aria-hidden="true">🔔</span>
+      <span><strong>수업 벨</strong><small>활동 시작과 집중을 알리는 소리</small></span>
+    </button>
   </div>
 </div>
-<button class="version-label" onclick="openChangelog()" aria-label="버전 기록 보기">v1.23.0</button>
+<button class="version-label" onclick="openChangelog()" aria-label="버전 기록 보기">v1.24.0</button>
 <button class="feedback-btn" onclick="openFeedback()" title="의견 보내기" aria-label="의견 보내기">&#x1F4EC; 의견 보내기</button>
 <button class="dev-notes-btn" onclick="openDeveloperNotes()" title="개발자 소식" aria-label="개발자 소식">&#x1F4E2; 개발자 소식<span class="dev-notes-badge" id="devNotesBadge" style="display:none"></span></button>
 
@@ -523,6 +532,10 @@
       <button class="modal-close" onclick="closeChangelog()" aria-label="닫기">&#10005;</button>
     </div>
     <div class="changelog-list">
+      <div class="changelog-item">
+        <div class="changelog-item-header"><span class="changelog-version">v1.24.0</span></div>
+        <div class="changelog-desc">학급 도구에 자리 정하기와 수업 벨을 추가했습니다. 학생 명단을 등록하거나 랜덤 뽑기 명단을 불러와 자리를 섞고, 고정 자리와 빈자리를 지정할 수 있습니다. 배치는 자동 저장되며 설정 내보내기에 포함됩니다. 수업 벨은 세 가지 소리와 별도 음량 조절·멈추기를 지원합니다.</div>
+      </div>
       <div class="changelog-item">
         <div class="changelog-item-header"><span class="changelog-version">v1.23.0</span></div>
         <div class="changelog-desc">설정 > 표시 설정에 시간표 과목 글자 크기를 추가했습니다. 기본 크기부터 200%까지 선택할 수 있고, 변경 즉시 적용되어 다음 접속에도 유지됩니다. 긴 과목명은 줄을 바꿔 표시합니다.</div>
@@ -999,7 +1012,8 @@
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-database-compat.js"></script>
 <script src="neis-api.js"></script>
-<script src="script.js?v=1.23.0"></script>
+<script src="script.js?v=1.24.0"></script>
 <script src="image-tool.js?v=1.21.0"></script>
+<script src="lesson-tools.js?v=1.24.0"></script>
 </body>
 </html>

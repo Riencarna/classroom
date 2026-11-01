@@ -1,0 +1,55 @@
+.lesson-dialog { box-sizing: border-box; margin: auto; width: min(1100px, calc(100vw - 32px)); max-width: calc(100vw - 32px); max-height: calc(100dvh - 32px); padding: 26px; border: 1px solid #e6dfd3; border-radius: 24px; background: #faf7f1; color: #2d2a26; box-shadow: 0 24px 80px #25231d40; font-family: 'Noto Sans KR', sans-serif; overflow: auto; }
+.lesson-dialog::backdrop { background: #25231d70; backdrop-filter: blur(5px); }
+.lesson-dialog header { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.lesson-dialog h2 { margin: 0; font-size: 1.5rem; }
+.lesson-dialog button, .lesson-dialog input, .lesson-dialog textarea { font: inherit; }
+.lesson-dialog button { border: 1px solid #dcd7cc; border-radius: 12px; background: #fffdf8; padding: 10px 14px; color: inherit; cursor: pointer; }
+.lesson-dialog button:hover { background: #f0ece2; }
+.lesson-dialog :focus-visible { outline: 3px solid #0f766e; outline-offset: 3px; }
+.lesson-intro { color: #6a665e; margin: 12px 0 22px; line-height: 1.6; }
+.seating-workspace { display: grid; grid-template-columns: 250px minmax(0, 1fr); gap: 24px; }
+.seating-settings { padding: 18px; border-radius: 16px; background: #efebe2; }
+.seating-settings > label { display: block; font-weight: 700; margin-bottom: 10px; }
+.seating-settings textarea { box-sizing: border-box; width: 100%; padding: 10px; border: 1px solid #d0cabd; border-radius: 10px; resize: vertical; background: #fffdf8; }
+.lesson-actions, .seating-modes { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0; }
+.seating-settings .lesson-actions button { flex: 1; font-size: .8rem; }
+.seating-dimensions { display: flex; flex-wrap: wrap; gap: 12px; margin: 22px 0 12px; }
+.seating-dimensions input { width: 45px; padding: 6px; border: 1px solid #d0cabd; border-radius: 8px; }
+.lesson-help { font-size: .8rem; color: #6a665e; line-height: 1.7; }
+.seating-stage { min-width: 0; }
+.seating-toolbar { justify-content: space-between; margin-top: 0; }
+.lesson-dialog .lesson-primary, .seating-modes [aria-pressed="true"] { background: #0f766e; border-color: #0f766e; color: white; }
+.lesson-dialog .lesson-primary:hover { background: #115e59; }
+.seating-modes button { flex: 1; padding: 10px 6px; font-size: .85rem; }
+.seating-board { background: #dce9e1; color: #315c4d; border: 1px solid #bbd0c3; text-align: center; font-weight: 700; border-radius: 10px; padding: 10px; margin: 18px 0; }
+.seating-grid-scroll { overflow-x: auto; padding: 4px; }
+.seating-grid { display: grid; gap: 10px; }
+.lesson-dialog .seating-seat { min-height: 80px; padding: 10px 5px; border-radius: 12px; background: white; overflow-wrap: anywhere; }
+.seating-seat strong, .seating-seat small { display: block; }
+.seating-seat strong { font-size: 1.05rem; }
+.seating-seat small { font-size: .65rem; color: #746f65; margin-top: 7px; }
+.lesson-dialog .seating-seat.is-locked { background: #fff0c8; border-color: #c69222; }
+.lesson-dialog .seating-seat.is-blocked { border-style: dashed; background: #eeece7; color: #787368; }
+.lesson-dialog .seating-seat.is-selected { background: #d7f1ed; border: 2px solid #0f766e; }
+.lesson-status { min-height: 1.6em; line-height: 1.6; color: #0f766e; font-size: .9rem; }
+.seating-dialog.is-expanded { width: calc(100vw - 32px); }
+.seating-dialog.is-expanded .seating-settings { display: none; }
+.seating-dialog.is-expanded .seating-workspace { grid-template-columns: minmax(0, 1fr); }
+.seating-dialog.is-expanded .seating-seat { min-height: 100px; }
+.seating-dialog.is-expanded .seating-seat strong { font-size: clamp(1.1rem, 2.5vw, 2.5rem); }
+.bell-dialog { width: min(600px, calc(100vw - 32px)); }
+.lesson-bell-sounds { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.lesson-bell-sounds button { font-size: 2rem; padding: 22px 8px; }
+.lesson-bell-sounds strong, .lesson-bell-sounds small { display: block; font-size: 1rem; margin-top: 12px; }
+.lesson-bell-sounds small { font-size: .75rem; color: #746f65; margin-top: 6px; }
+.bell-volume { display: flex; align-items: center; gap: 16px; margin: 28px 0; }
+.bell-volume input { flex: 1; min-width: 0; accent-color: #0f766e; }
+.bell-volume output { width: 3em; }
+.classroom-tools-menu { max-height: calc(100dvh - 120px); overflow-y: auto; }
+@media (max-width: 720px) {
+  .lesson-dialog { padding: 18px; }
+  .seating-workspace { grid-template-columns: minmax(0, 1fr); }
+  .seating-settings textarea { max-height: 150px; }
+  .lesson-bell-sounds { gap: 6px; }
+  .lesson-bell-sounds strong { font-size: .85rem; }
+}
