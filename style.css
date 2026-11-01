@@ -313,9 +313,11 @@
   }
 
   .left-panel.timetable-mode {
+    container-type: inline-size;
     justify-content: flex-start;
     gap: 0.55rem;
     padding-top: 3.3rem;
+    padding-bottom: 7rem;
     overflow-y: auto;
     overflow-x: hidden;
   }
@@ -327,13 +329,14 @@
     gap: 1rem;
     margin-bottom: 2.35rem;
     flex-shrink: 0;
+    max-width: 100%;
   }
-  .left-panel.timetable-mode .date-display { font-size: 3.5rem; }
-  .left-panel.timetable-mode .day-name { font-size: 2.8rem; }
-  .left-panel.timetable-mode .ampm-display { font-size: 5rem; }
-  .left-panel.timetable-mode .time-display { font-size: 8.5rem; }
-  .left-panel.timetable-mode .seconds-display { font-size: 3rem; }
-  .left-panel.timetable-mode .clock-container { gap: 1.25rem; flex-shrink: 0; }
+  .left-panel.timetable-mode .date-display { font-size: clamp(1.1rem, 5.8cqw, 3.5rem); white-space: nowrap; }
+  .left-panel.timetable-mode .day-name { font-size: clamp(1rem, 4.7cqw, 2.8rem); white-space: nowrap; }
+  .left-panel.timetable-mode .ampm-display { font-size: clamp(1.5rem, 8.3cqw, 5rem); }
+  .left-panel.timetable-mode .time-display { font-size: clamp(3rem, 14cqw, 8.5rem); }
+  .left-panel.timetable-mode .seconds-display { font-size: clamp(1rem, 5cqw, 3rem); }
+  .left-panel.timetable-mode .clock-container { gap: clamp(0.3rem, 2cqw, 1.25rem); flex-shrink: 0; }
   .left-panel.timetable-mode .seconds-display { flex-shrink: 0; }
   .left-panel.timetable-mode .left-status-row {
     display: none;
@@ -539,10 +542,10 @@
     flex-direction: column;
     align-items: center;
     position: relative;
-    padding: 0 3rem;
+    padding: 0 0.4rem;
     transition: opacity 0.3s;
-    min-width: 140px;
-    flex: 1;
+    min-width: 0;
+    flex: 1 1 0;
     z-index: 3;
   }
 
@@ -577,7 +580,7 @@
     color: rgba(0,0,0,0.45);
   }
   .subway-station.subway-past .subway-subject {
-    font-size: 1.3rem;
+    font-size: calc(1.3rem * var(--timetable-subject-scale, 1));
     color: rgba(0,0,0,0.3);
   }
 
@@ -633,6 +636,8 @@
 
   /* Info area — below node */
   .subway-info {
+    width: 100%;
+    min-width: 0;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -640,6 +645,8 @@
     text-align: center;
   }
   .subway-top-row {
+    width: 100%;
+    min-width: 0;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -660,13 +667,16 @@
   .subway-subject {
     font-family: 'Noto Sans KR', sans-serif;
     font-weight: 700;
-    font-size: 1.7rem;
+    font-size: calc(1.7rem * var(--timetable-subject-scale, 1));
     color: rgba(0,0,0,0.55);
-    white-space: nowrap;
+    max-width: 100%;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    line-height: 1.35;
   }
   .subway-station.subway-current .subway-subject {
     color: #3b82f6;
-    font-size: 1.9rem;
+    font-size: calc(1.9rem * var(--timetable-subject-scale, 1));
   }
   .subway-room {
     padding: 0.16rem 0.5rem;

@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>우리 반 배경화면</title>
-<link rel="stylesheet" href="style.css?v=1.22.0">
+<link rel="stylesheet" href="style.css?v=1.23.0">
 <link rel="stylesheet" href="image-tool.css?v=1.21.0">
 </head>
 <body>
@@ -217,7 +217,7 @@
     </button>
   </div>
 </div>
-<button class="version-label" onclick="openChangelog()" aria-label="버전 기록 보기">v1.22.0</button>
+<button class="version-label" onclick="openChangelog()" aria-label="버전 기록 보기">v1.23.0</button>
 <button class="feedback-btn" onclick="openFeedback()" title="의견 보내기" aria-label="의견 보내기">&#x1F4EC; 의견 보내기</button>
 <button class="dev-notes-btn" onclick="openDeveloperNotes()" title="개발자 소식" aria-label="개발자 소식">&#x1F4E2; 개발자 소식<span class="dev-notes-badge" id="devNotesBadge" style="display:none"></span></button>
 
@@ -324,6 +324,17 @@
           <span class="toggle-slider"></span>
         </label>
       </div>
+      <div class="toggle-row">
+        <label class="toggle-label" for="timetableSubjectSizeSelect">시간표 과목 글자 크기</label>
+        <select class="settings-select" id="timetableSubjectSizeSelect" onchange="setTimetableSubjectScale(this.value)">
+          <option value="100">기본 (100%)</option>
+          <option value="125">크게 (125%)</option>
+          <option value="150">더 크게 (150%)</option>
+          <option value="175">아주 크게 (175%)</option>
+          <option value="200">최대 (200%)</option>
+        </select>
+      </div>
+      <p class="settings-hint">시간표의 과목 글자에 바로 적용되며, 다음에도 선택한 크기로 표시됩니다. 긴 과목명은 줄을 바꿔 모두 보여줍니다.</p>
       <div class="toggle-row">
         <label class="toggle-label" for="startTabSelect">사이트 시작 탭<span class="help-icon">?<span class="help-tooltip">사이트를 새로 열거나 다시 불러올 때 가장 먼저 표시할 탭을 선택합니다.</span></span></label>
         <select class="settings-select" id="startTabSelect" onchange="setStartTab(this.value)">
@@ -512,6 +523,10 @@
       <button class="modal-close" onclick="closeChangelog()" aria-label="닫기">&#10005;</button>
     </div>
     <div class="changelog-list">
+      <div class="changelog-item">
+        <div class="changelog-item-header"><span class="changelog-version">v1.23.0</span></div>
+        <div class="changelog-desc">설정 > 표시 설정에 시간표 과목 글자 크기를 추가했습니다. 기본 크기부터 200%까지 선택할 수 있고, 변경 즉시 적용되어 다음 접속에도 유지됩니다. 긴 과목명은 줄을 바꿔 표시합니다.</div>
+      </div>
       <div class="changelog-item">
         <div class="changelog-item-header"><span class="changelog-version">v1.22.0</span></div>
         <div class="changelog-desc">중간놀이 유형과 별도 음성 안내를 추가했습니다. 기본·오늘·날짜별 시간표에서 중간놀이 구간을 지정하고 정리·자리 복귀 안내를 각각 종료 1~20분 전으로 설정할 수 있습니다. 기본 안내는 5분 전·1분 전이며 한국어 음성으로 놀이 도구 정리와 자리 복귀를 안내합니다. 일반 쉬는시간·점심시간의 기존 설정은 유지됩니다.</div>
@@ -984,7 +999,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-database-compat.js"></script>
 <script src="neis-api.js"></script>
-<script src="script.js?v=1.22.0"></script>
+<script src="script.js?v=1.23.0"></script>
 <script src="image-tool.js?v=1.21.0"></script>
 </body>
 </html>

@@ -1,10 +1,15 @@
 // =============================================
 // CONSTANTS
 // =============================================
-const APP_VERSION = 'v1.22.0';
+const APP_VERSION = 'v1.23.0';
 const FEEDBACK_URL = 'https://forms.gle/y48um84BTrBVn2Nt6';
 const SCHOOLBELL_DEFAULT_URL = 'https://v4.schoolbell-e.com/ko/gate/login';
 const UPDATE_HISTORY = [
+  { version: 'v1.23.0', notes: [
+    '설정 > 표시 설정에서 시간표 과목 글자를 기본 크기부터 200%까지 키울 수 있어요',
+    '선택한 크기는 바로 적용되고 다음 접속에도 유지돼요',
+    '긴 과목명은 줄을 바꿔 모두 표시해요'
+  ]},
   { version: 'v1.22.0', notes: [
     '시간표에서 중간놀이를 지정하고 일반 쉬는시간과 다른 음성 안내 시간을 설정할 수 있어요',
     '중간놀이 정리·자리 복귀 안내를 각각 종료 1~20분 전으로 조절할 수 있어요',
@@ -160,6 +165,12 @@ const UPDATE_HISTORY = [
 // 개발자 소식 게시판 — 의견 보내기로 받은 피드백에 답변하거나 소식을 전달할 때 사용합니다.
 // 최상단이 최신 글. id는 겹치지 않게(예: 날짜 + 순번) 주세요.
 const DEVELOPER_NOTES = [
+  {
+    id: '2026-11-01-01-timetable-subject-size',
+    date: '2026-11-01',
+    title: 'v1.23.0 · 시간표 과목 글자를 더 크게 볼 수 있어요',
+    body: '교실 화면의 시간표 과목 글자가 잘 보이지 않는다는 아이들의 이야기를 전해주셔서 감사합니다. 별도의 게시 시간표 없이 화면으로 하루 일과를 확인하는 교실에서도 더 편하게 볼 수 있도록 과목 글자 크기 설정을 추가했습니다.\n\n설정 > 표시 설정 > "시간표 과목 글자 크기"에서 기본(100%), 크게(125%), 더 크게(150%), 아주 크게(175%), 최대(200%) 중 골라주세요. 선택하면 화면에 바로 반영되고, 같은 기기와 브라우저에서 다음에도 유지됩니다. 긴 과목명은 줄을 바꿔 모두 표시합니다.\n\n아이들이 앉은 자리에서 잘 보이는 크기로 조절해보세요. 따뜻한 응원과 구체적인 의견을 보내주셔서 감사합니다!'
+  },
   {
     id: '2026-09-22-02-playtime-alerts',
     date: '2026-09-22',
@@ -653,6 +664,7 @@ function loadSettings() {
     if (settings[option.enabledKey] === undefined) settings[option.enabledKey] = true;
     settings[option.minutesKey] = voiceMinutes(option);
   });
+  settings.timetableSubjectScale = normalizeTimetableSubjectScale(settings.timetableSubjectScale);
 }
 function saveSettings() { localStorage.setItem('classroomSettings', JSON.stringify(settings)); }
 
@@ -2026,6 +2038,7 @@ function openSettings() {
   document.getElementById('colonBlinkToggle').checked = settings.colonBlink;
   document.getElementById('secondsToggle').checked = settings.showSeconds;
   document.getElementById('timetableModeToggle').checked = settings.timetableMode;
+  applyTimetableSubjectScale();
   const startTabSelect = document.getElementById('startTabSelect');
   if (startTabSelect) startTabSelect.value = settings.startTab || 'last';
   document.getElementById('voiceAlertToggle').checked = settings.voiceAlertEnabled;
@@ -5441,6 +5454,25 @@ function applySecondsVisibility() {
 // =============================================
 // TIMETABLE MODE (LEFT PANEL DISPLAY)
 // =============================================
+function normalizeTimetableSubjectScale(value) {
+  const scale = Number(value);
+  return [100, 125, 150, 175, 200].includes(scale) ? scale : 100;
+}
+
+function applyTimetableSubjectScale() {
+  const scale = normalizeTimetableSubjectScale(settings.timetableSubjectScale);
+  document.getElementById('timetableDisplay').style.setProperty('--timetable-subject-scale', scale / 100);
+  const select = document.getElementById('timetableSubjectSizeSelect');
+  if (select) select.value = String(scale);
+}
+
+function setTimetableSubjectScale(value) {
+  settings.timetableSubjectScale = normalizeTimetableSubjectScale(value);
+  saveSettings();
+  applyTimetableSubjectScale();
+  if (settings.timetableMode) renderTimetableDisplay();
+}
+
 function toggleTimetableMode() {
   settings.timetableMode = !settings.timetableMode;
   saveSettings();
@@ -5454,6 +5486,7 @@ function toggleTimetableModeSetting() {
 }
 
 function applyTimetableMode() {
+  applyTimetableSubjectScale();
   const panel = document.getElementById('leftPanel');
   const btn = document.getElementById('timetableToggleBtn');
   const toggle = document.getElementById('timetableModeToggle');

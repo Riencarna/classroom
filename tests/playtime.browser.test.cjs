@@ -92,7 +92,7 @@ test('playtime can be configured, saved and changed in all three timetable edito
     const override = await page.evaluate(() => JSON.parse(localStorage.getItem('classroomViewData')).academicEvents.find(event => event.date === '2026-09-23'));
     assert.equal(override.timetable.find(entry => entry.type === 'play-time').label, '운동장 놀이');
     await page.locator('.dev-notes-btn').click();
-    assert.match(await page.locator('.dev-notes-title').first().textContent(), /v1.22.0.*중간놀이/);
+    assert.equal((await page.locator('.dev-notes-title').allTextContents()).some(title => /v1.22.0.*중간놀이/.test(title)), true);
     assert.deepEqual(errors, []);
   } finally {
     if (browser) await browser.close();
