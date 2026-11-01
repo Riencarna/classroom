@@ -25,11 +25,11 @@ test('playtime can be configured, saved and changed in all three timetable edito
     browser = await chromium.launch({ channel: 'chrome', headless: true });
     const page = await browser.newPage({ viewport: { width: 1280, height: 900 } });
     const errors = []; page.on('pageerror', error => errors.push(error.message));
-    await page.route('https://**', route => route.abort());
+    await page.route('**/*', route => new URL(route.request().url()).hostname === '127.0.0.1' ? route.continue() : route.abort());
     await page.clock.setFixedTime(new Date('2026-09-22T10:33:00'));
     await page.addInitScript(version => {
       localStorage.setItem('classroom_lastSeenVersion', version);
-      window.firebase = { initializeApp() {}, database() { return { ref() { return { transaction() { return Promise.resolve(); }, once() {} }; } }; } };
+      window.firebase = { initializeApp() {}, database() { return { goOnline() {}, goOffline() {}, ref() { return { transaction() { return Promise.resolve({ committed: true, snapshot: { val: () => ({ total: 1 }) } }); }, once() { return Promise.resolve({ val: () => 0 }); } }; } }; } };
       if (!localStorage.getItem('classroomTimetable')) {
         localStorage.setItem('classroomTimetable', JSON.stringify([
           {label:'1교시',start:'09:00',end:'09:40',type:'in-class',days:[1,2,3,4,5]},

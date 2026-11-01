@@ -26,11 +26,11 @@ test('timetable subject sizes persist and long names fit at different screen siz
     const page = await browser.newPage({ viewport: { width: 1920, height: 1080 } });
     const errors = [];
     page.on('pageerror', error => errors.push(error.message));
-    await page.route('https://**', route => route.abort());
+    await page.route('**/*', route => new URL(route.request().url()).hostname === '127.0.0.1' ? route.continue() : route.abort());
     await page.clock.setFixedTime(new Date('2026-11-02T10:00:00'));
     await page.addInitScript(version => {
       localStorage.setItem('classroom_lastSeenVersion', version);
-      window.firebase = { initializeApp() {}, database() { return { ref() { return { transaction() { return Promise.resolve(); }, once() {} }; } }; } };
+      window.firebase = { initializeApp() {}, database() { return { goOnline() {}, goOffline() {}, ref() { return { transaction() { return Promise.resolve({ committed: true, snapshot: { val: () => ({ total: 1 }) } }); }, once() { return Promise.resolve({ val: () => 0 }); } }; } }; } };
       if (!localStorage.getItem('classroomTimetable')) {
         const subjects = ['국어', '수학', '사회', '창의적 체험활동', '과학', '체육', '아주긴과목이름도빠짐없이표시'];
         localStorage.setItem('classroomTimetable', JSON.stringify(subjects.map((subject, i) => ({

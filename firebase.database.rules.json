@@ -1,0 +1,48 @@
+{
+  "rules": {
+    "counter": {
+      ".read": true,
+      "total": {
+        ".write": "newData.isNumber() && (!data.exists() || newData.val() === data.val() + 1)"
+      },
+      "today": {
+        "$date": {
+          ".write": "newData.isNumber() && (!data.exists() || newData.val() === data.val() + 1) && $date.matches(/^\\d{4}-\\d{2}-\\d{2}$/)",
+          ".validate": "$date.matches(/^\\d{4}-\\d{2}-\\d{2}$/)"
+        }
+      },
+      "migrationBaseline": {
+        ".write": "!data.exists() && newData.isNumber()"
+      },
+      "kst": {
+        ".write": "newData.hasChildren(['total', 'todayKst', 'visitReceipts', 'lastDay', 'lastSession']) && newData.child('total').isNumber() && (newData.child('total').val() === (data.child('total').exists() ? data.child('total').val() : 0) + 1 || (data.exists() && newData.child('total').val() === data.child('total').val() && newData.child('lastDay').val() === data.child('lastDay').val() && newData.child('lastSession').val() === data.child('lastSession').val()))",
+        ".validate": "newData.child('todayKst').child(newData.child('lastDay').val()).val() === (data.child('todayKst').child(newData.child('lastDay').val()).exists() ? data.child('todayKst').child(newData.child('lastDay').val()).val() : 0) + newData.child('total').val() - (data.child('total').exists() ? data.child('total').val() : 0) && newData.child('visitReceipts').child(newData.child('lastDay').val()).child(newData.child('lastSession').val()).val() === true",
+        "total": {
+          ".validate": "newData.isNumber() && newData.val() >= 1 && newData.val() <= 9007199254740991 && newData.val() % 1 === 0"
+        },
+        "lastDay": {
+          ".validate": "newData.isString() && newData.val().matches(/^\\d{4}-\\d{2}-\\d{2}$/)"
+        },
+        "lastSession": {
+          ".validate": "newData.isString() && newData.val().matches(/^[a-f0-9]{32}$/)"
+        },
+        "todayKst": {
+          "$date": {
+            ".validate": "$date.matches(/^\\d{4}-\\d{2}-\\d{2}$/) && newData.isNumber() && newData.val() >= 1 && newData.val() <= 9007199254740991 && newData.val() % 1 === 0 && ($date === newData.parent().parent().child('lastDay').val() || (data.exists() && newData.val() === data.val()))"
+          }
+        },
+        "visitReceipts": {
+          "$date": {
+            ".validate": "$date.matches(/^\\d{4}-\\d{2}-\\d{2}$/)",
+            "$session": {
+              ".validate": "$session.matches(/^[a-f0-9]{32}$/) && newData.val() === true"
+            }
+          }
+        },
+        "$other": {
+          ".validate": false
+        }
+      }
+    }
+  }
+}

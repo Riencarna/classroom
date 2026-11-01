@@ -23,11 +23,11 @@ test('seating preserves every student, locks, excluded seats, backup and bell co
     const errors = [];
     page.on('pageerror', e => errors.push(e.message));
     page.on('dialog', dialog => dialog.accept());
-    await page.route('https://**', route => route.abort());
+    await page.route('**/*', route => new URL(route.request().url()).hostname === '127.0.0.1' ? route.continue() : route.abort());
     const version = (await fs.readFile(path.join(root, 'script.js'), 'utf8')).match(/const APP_VERSION = '([^']+)'/)[1];
     await page.addInitScript(version => {
       localStorage.setItem('classroom_lastSeenVersion', version);
-      window.firebase = { initializeApp() {}, database() { return { ref() { return { transaction() { return Promise.resolve(); }, once() {} }; } }; } };
+      window.firebase = { initializeApp() {}, database() { return { goOnline() {}, goOffline() {}, ref() { return { transaction() { return Promise.resolve({ committed: true, snapshot: { val: () => ({ total: 1 }) } }); }, once() { return Promise.resolve({ val: () => 0 }); } }; } }; } };
     }, version);
     await page.goto('http://127.0.0.1:' + server.address().port);
     await page.locator('#classroomToolsBtn').click();

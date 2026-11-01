@@ -6181,59 +6181,159 @@ document.addEventListener('click', function(e) {
 // =============================================
 // VISITOR COUNTER (Firebase Realtime Database)
 // =============================================
-var firebaseDB = (function() {
-  firebase.initializeApp({
-    databaseURL: 'https://classroom-counter-default-rtdb.asia-southeast1.firebasedatabase.app'
-  });
-  return firebase.database();
-})();
+// One count per tab session per Korean calendar day. Receipts make retries
+// idempotent even if a server commit succeeds but its acknowledgement is lost.
+var visitorCounterState = {
+  db: null, sessionId: null, inFlight: null, lastDay: null, initialized: false
+};
 
-function initVisitorCounter() {
-  var today = new Date().toISOString().slice(0, 10);
-  var totalRef = firebaseDB.ref('counter/total');
-  var todayRef = firebaseDB.ref('counter/today/' + today);
+function visitorDateKey(date) {
+  return new Date((date || new Date()).getTime() + 9 * 60 * 60 * 1000).toISOString().slice(0, 10);
+}
 
-  // One-time migration: move old localStorage total into Firebase
-  var migrated = localStorage.getItem('classroomFirebaseMigrated');
-  if (!migrated) {
-    var oldTotal = 0;
-    try {
-      var old = JSON.parse(localStorage.getItem('classroomVisitorCounter') || '{}');
-      oldTotal = old.totalCount || 0;
-    } catch(e) {}
-    if (oldTotal > 0) {
-      firebaseDB.ref('counter/migrationBaseline').transaction(function(current) {
-        // Only set baseline once (first browser to migrate wins)
-        return current === null ? oldTotal : current;
-      });
-    }
-    localStorage.setItem('classroomFirebaseMigrated', '1');
+function visitorSessionId() {
+  if (visitorCounterState.sessionId) return visitorCounterState.sessionId;
+  var id;
+  try { id = sessionStorage.getItem('classroomVisitorSessionId'); } catch (e) {}
+  if (!id || !/^[a-f0-9]{32}$/.test(id)) {
+    var bytes = new Uint8Array(16);
+    window.crypto.getRandomValues(bytes);
+    id = Array.from(bytes, function(b) { return b.toString(16).padStart(2, '0'); }).join('');
+    try { sessionStorage.setItem('classroomVisitorSessionId', id); } catch (e) {}
   }
+  visitorCounterState.sessionId = id;
+  return id;
+}
 
-  // Increment on new session (not refresh)
-  var isNewSession = !sessionStorage.getItem('classroomSessionActive');
-  if (isNewSession) {
-    sessionStorage.setItem('classroomSessionActive', '1');
-    Promise.all([
-      totalRef.transaction(function(current) { return (current || 0) + 1; }),
-      todayRef.transaction(function(current) { return (current || 0) + 1; })
-    ]).then(function() {
-      readAndDisconnect(today);
-    });
-  } else {
-    readAndDisconnect(today);
+function visitorCountValue(value) {
+  return Number.isSafeInteger(value) && value >= 0;
+}
+
+function visitorRecordObject(value) {
+  return value !== null && typeof value === 'object' && !Array.isArray(value);
+}
+
+function visitorCounterMessage(message, clear) {
+  var counter = document.getElementById('visitorCounter');
+  if (counter) counter.title = message;
+  if (clear) {
+    document.getElementById('todayCount').textContent = '—';
+    document.getElementById('totalCount').textContent = '—';
   }
 }
 
-function readAndDisconnect(today) {
-  firebaseDB.ref('counter').once('value', function(snapshot) {
-    var data = snapshot.val() || {};
-    var baseline = data.migrationBaseline || 0;
-    var total = (data.total || 0) + baseline;
-    var todayCount = (data.today && data.today[today]) || 0;
-    document.getElementById('totalCount').textContent = total;
+function recordVisitorCount(current, day, sessionId) {
+  // A queued write may resume days later. Abort it rather than resurrecting a
+  // receipt that has already expired; the next check counts the current day.
+  if (day !== visitorDateKey()) return;
+  var data = current == null ? {} : current;
+  if (!visitorRecordObject(data)) return;
+  if (data.todayKst != null && !visitorRecordObject(data.todayKst)) return;
+  if (data.visitReceipts != null && !visitorRecordObject(data.visitReceipts)) return;
+  var total = data.total == null ? 0 : data.total;
+  var daily = data.todayKst || {};
+  var count = daily[day] == null ? 0 : daily[day];
+  if (!visitorCountValue(total) || !visitorCountValue(count)) return;
+  var receipts = data.visitReceipts || {};
+  if (receipts[day] != null && !visitorRecordObject(receipts[day])) return;
+  var sessions = receipts[day] || {};
+  if (sessions[sessionId]) return data;
+  if (!Number.isSafeInteger(total + 1) || !Number.isSafeInteger(count + 1)) return;
+  data.total = total + 1;
+  data.lastDay = day;
+  data.lastSession = sessionId;
+  daily[day] = count + 1;
+  data.todayKst = daily;
+  sessions[sessionId] = true;
+  receipts[day] = sessions;
+  // Keep seven days of retry receipts; retain historical daily counts.
+  var cutoff = visitorDateKey(new Date(new Date().getTime() - 6 * 86400000));
+  Object.keys(receipts).forEach(function(key) {
+    if (/^\d{4}-\d{2}-\d{2}$/.test(key) && key < cutoff) delete receipts[key];
+  });
+  data.visitReceipts = receipts;
+  // Legacy counters remain outside this branch and are never rewritten here.
+  return data;
+}
+
+function refreshVisitorCounter() {
+  if (visitorCounterState.inFlight) return visitorCounterState.inFlight;
+  var day = visitorDateKey();
+  var timeout;
+  visitorCounterState.inFlight = Promise.resolve().then(function() {
+    if (!visitorCounterState.db) {
+      if (typeof firebase === 'undefined') throw new Error('Firebase unavailable');
+      if (!firebase.apps || !firebase.apps.length) {
+        firebase.initializeApp({
+          databaseURL: 'https://classroom-counter-default-rtdb.asia-southeast1.firebasedatabase.app'
+        });
+      }
+      visitorCounterState.db = firebase.database();
+    }
+    var db = visitorCounterState.db;
+    var sessionId = visitorSessionId();
+    db.goOnline();
+    timeout = setTimeout(function() {
+      visitorCounterMessage('방문 수 연결 지연 · 연결이 복구되면 다시 확인합니다.', true);
+      // Keep the single pending transaction alive so Firebase can reconnect.
+    }, 15000);
+    // The dedicated KST branch commits its total, day and receipt together.
+    // applyLocally=false prevents displaying a speculative, unconfirmed count.
+    return db.ref('counter/kst').transaction(function(current) {
+      return recordVisitorCount(current, day, sessionId);
+    }, undefined, false);
+  }).then(function(result) {
+    if (!result || !result.committed) throw new Error('Visitor transaction aborted');
+    return Promise.all([
+      Promise.resolve(result.snapshot.val() || {}),
+      visitorCounterState.db.ref('counter/total').once('value'),
+      visitorCounterState.db.ref('counter/migrationBaseline').once('value')
+    ]);
+  }).then(function(values) {
+    if (day !== visitorDateKey()) {
+      visitorCounterMessage('날짜가 바뀌어 방문 수를 다시 확인합니다.', true);
+      return;
+    }
+    var data = values[0];
+    var baseline = values[2].val() == null ? 0 : values[2].val();
+    var legacyTotal = values[1].val() == null ? 0 : values[1].val();
+    var total = data.total == null ? 0 : data.total;
+    var todayCount = (data.todayKst && data.todayKst[day]) || 0;
+    if (!visitorCountValue(total) || !visitorCountValue(legacyTotal) || !visitorCountValue(baseline) ||
+        !visitorCountValue(total + legacyTotal + baseline) || !visitorCountValue(todayCount)) {
+      throw new Error('Invalid visitor count');
+    }
+    document.getElementById('totalCount').textContent = total + legacyTotal + baseline;
     document.getElementById('todayCount').textContent = todayCount;
-    firebaseDB.goOffline();
+    visitorCounterState.lastDay = day;
+    visitorCounterMessage('한국 시간(UTC+9) 기준 · 탭별 하루 1회 방문 · 새로고침 제외', false);
+  }).catch(function() {
+    visitorCounterMessage('방문 수를 확인하지 못했습니다. 잠시 후 다시 시도합니다.', true);
+    visitorCounterState.lastDay = null;
+  }).finally(function() {
+    clearTimeout(timeout);
+    if (visitorCounterState.db) visitorCounterState.db.goOffline();
+    visitorCounterState.inFlight = null;
+  });
+  return visitorCounterState.inFlight;
+}
+
+function initVisitorCounter() {
+  if (visitorCounterState.initialized) return;
+  visitorCounterState.initialized = true;
+  visitorCounterMessage('방문 수를 확인하고 있습니다.', true);
+  refreshVisitorCounter();
+  // Recheck a day boundary or a failed request, including a tab left open
+  // overnight. Background throttling is covered by the resume events below.
+  setInterval(function() {
+    if (document.visibilityState !== 'hidden' && visitorCounterState.lastDay !== visitorDateKey()) {
+      refreshVisitorCounter();
+    }
+  }, 60000);
+  window.addEventListener('online', refreshVisitorCounter);
+  window.addEventListener('pageshow', refreshVisitorCounter);
+  document.addEventListener('visibilitychange', function() {
+    if (document.visibilityState !== 'hidden') refreshVisitorCounter();
   });
 }
 

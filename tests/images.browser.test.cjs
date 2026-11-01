@@ -26,12 +26,12 @@ test('image library persists, presents, validates and handles storage failures',
     const errors = [];
     page.on('pageerror', error => errors.push(error.message));
     // Keep the test offline and prevent visitor-counter writes to the real service.
-    await page.route('https://**', route => route.abort());
+    await page.route('**/*', route => new URL(route.request().url()).hostname === '127.0.0.1' ? route.continue() : route.abort());
     await page.addInitScript(version => {
       localStorage.setItem('classroom_lastSeenVersion', version);
       window.firebase = {
         initializeApp() {},
-        database() { return { ref() { return { transaction() { return Promise.resolve(); }, once() {} }; } }; }
+        database() { return { goOnline() {}, goOffline() {}, ref() { return { transaction() { return Promise.resolve({ committed: true, snapshot: { val: () => ({ total: 1 }) } }); }, once() { return Promise.resolve({ val: () => 0 }); } }; } }; }
       };
     }, version);
     await page.goto('http://127.0.0.1:' + server.address().port);
